@@ -1,0 +1,27 @@
+/* XPM */
+static char *fd_protected[] = {
+/* width height ncolors chars_per_pixel */
+"16 16 4 1",
+/* colors */
+"  c #999999",
+". c #8F2E2C",
+"X c #C0C0C0",
+"o c #585858",
+/* pixels */
+"XXXXXXXXXXXXXXXX",
+"XXXXXXXXXXXXXXXX",
+"XXooooooooooXXXX",
+"XXo o    o ooXXX",
+"XXo o    o o oXX",
+"XXo o      o oXX",
+"XXo oooooooo oXX",
+"XXo          oXX",
+"XXo oooooooo oXX",
+"XXo o      o oXX",
+"XXo o      ...XX",
+"XXo o     . ...X",
+"XXo o     . . .X",
+"XXoooooooo... .X",
+"XXXXXXXXXXX...XX",
+"XXXXXXXXXXXXXXXX"
+};

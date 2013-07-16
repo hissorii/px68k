@@ -1,0 +1,26 @@
+/* XPM */
+static char *fd_inuse[] = {
+/* width height ncolors chars_per_pixel */
+"16 16 3 1",
+/* colors */
+"  c #009F50",
+". c #C0C0C0",
+"X c #00E171",
+/* pixels */
+"................",
+"................",
+"..          ....",
+".. X XXXX X  ...",
+".. X XXXX X X ..",
+".. X XXXXXX X ..",
+".. X        X ..",
+".. XXXXXXXXXX ..",
+".. X        X ..",
+".. X XXXXXX X ..",
+".. X XXXXXX X ..",
+".. X XXXXXX X ..",
+".. X XXXXXX X ..",
+"..            ..",
+"................",
+"................"
+};

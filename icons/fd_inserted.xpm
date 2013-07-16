@@ -1,0 +1,26 @@
+/* XPM */
+static char *fd_inserted[] = {
+/* width height ncolors chars_per_pixel */
+"16 16 3 1",
+/* colors */
+"  c #999999",
+". c #C0C0C0",
+"X c #585858",
+/* pixels */
+"................",
+"................",
+"..XXXXXXXXXX....",
+"..X X    X XX...",
+"..X X    X X X..",
+"..X X      X X..",
+"..X XXXXXXXX X..",
+"..X          X..",
+"..X XXXXXXXX X..",
+"..X X      X X..",
+"..X X      X X..",
+"..X X      X X..",
+"..X X      X X..",
+"..XXXXXXXXXXXX..",
+"................",
+"................"
+};

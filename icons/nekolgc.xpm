@@ -1,0 +1,26 @@
+/* XPM */
+static char *nekolgc[] = {
+/* columns rows colors chars-per-pixel */
+"57 17 3 1",
+"  c black",
+". c #808080",
+"X c #C0C0C0",
+/* pixels */
+"X      XXX      X                                        ",
+"X XX.   X   .XX X XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX ",
+"X XXXX  X  XXXX X X X X   X X X   XXXX X X   X X X   XXX ",
+"X XXXX. X .XXXX X X X X XXX . X X XXXX X X XXX . X X XXX ",
+"X XXXXX   XXXXX X X   X   X  XX X XXXX   X   X  XX X XXX ",
+"X X           X X X   X XXX . X X X  X   X XXX . X X X   ",
+"X               X X . X XXX X X X XXXX . X XXX X X X XXX ",
+"X  XXX     XXX  X X X X   X X X   XXXX X X   X X X   XXX ",
+"X    .X   X.    X XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX ",
+"X               X                                        ",
+"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"    XX  X  X  X. X  X  X  X  XXXX  XXXX   XXX    X  XX   ",
+"  X  X  X  X  X. X  X  X  X  XXXX  XXX  X  X  XXXX  X  XX",
+"  X  X  X  X   . X  X  X  X  X  X  XXX  X  X  X  X  X  XX",
+"    XX  X  X  X  XX   XX  X  X  X  XXX  X  X  X  X  X  XX",
+"  XXXX  .  X  X. XXX .XX  X  XXXX  XXX  X  X  X  X  X  XX",
+"  XXXXX   XX  X. XXX .XXX   XXXXX    XX   XXX   XX  XX   "
+};

@@ -1,0 +1,26 @@
+/* XPM */
+static char *adpcm[] = {
+/* columns rows colors chars-per-pixel */
+"42 17 3 1",
+"  c black",
+". c #808080",
+"X c #C0C0C0",
+/* pixels */
+"X       X       XX                       X",
+"X XX.   X   .XX XX XXXXXXXXXXXXXXXXXXXXX X",
+"X XXXX  X  XXXX XX XX XX  XX  XXX  X X X X",
+"X XXXX. X .XXXX XX X X X X X X X XXX   X X",
+"X XXXXX X XXXXX XX X X X X X X X XXX   X X",
+"X XXXXX X XXXXX XX X   X X X  XX XXX X X X",
+"X XXXX. X .XXXX XX X X X X X XXX XXX X X X",
+"X XXXX  X  XXXX XX X X X  XX XXXX  X X X X",
+"X XX.   X   .XX XX XXXXXXXXXXXXXXXXXXXXX X",
+"X       X       XX                       X",
+"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+"     XXX  XXX   .XXX  XX      XX   XXX  XX",
+"  XX .XX  XX. XX  XX  XXXX  XXX.   .XX  XX",
+"  XX  XX  XX  XXXXXX  XXXX  XXX  X  XX  XX",
+"  XX  XX  XX  XX  XX  XXXX  XXX  X  XX  XX",
+"  XX .XX  XX. XX  XX  XXXX  XX.     .X  XX",
+"     XXX  XXX     XX  XXXX  XX. .X. .X    "
+};
