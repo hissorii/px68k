@@ -200,7 +200,7 @@ int	WINAPI MessageBox(HWND, LPCSTR, LPCSTR, UINT);
 void	WINAPI PostQuitMessage(int);
 BOOL	WINAPI WritePrivateProfileString(LPCSTR, LPCSTR, LPCSTR, LPCSTR);
 
-DWORD	WINAPI GetLastError(VOID);
+DWORD	WINAPI GetLastError(void);
 BOOL	WINAPI SetEndOfFile(HANDLE hFile);
 #ifdef __cplusplus
 };

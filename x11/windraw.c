@@ -25,6 +25,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <SDL.h>
 #include "common.h"
 #include "winx68k.h"
 #include "winui.h"
@@ -241,6 +242,8 @@ int WinDraw_Init(void)
 	GdkColormap *colormap;
 	GdkBitmap *mask;
 
+	SDL_Surface *sdl_surface;
+
 	WindowX = 768;
 	WindowY = 512;
 
@@ -263,22 +266,27 @@ int WinDraw_Init(void)
 		return FALSE;
 	}
 
-	/* 15 or 16 bpp 以外はサポート外 */
-	if (visual->depth != 15 && visual->depth != 16) {
-		fprintf(stderr, "No support depth.\n");
-		return FALSE;
-	}
-	WinDraw_Pal16R = visual->red_mask;
-	WinDraw_Pal16G = visual->green_mask;
-	WinDraw_Pal16B = visual->blue_mask;
-
-	surface = gdk_image_new(GDK_IMAGE_FASTEST, visual, FULLSCREEN_WIDTH,
-	    FULLSCREEN_HEIGHT);
-	if (surface == NULL) {
+	sdl_surface = SDL_GetVideoSurface();
+	if (sdl_surface == NULL) {
 		g_message("can't create surface.");
 		return 1;
 	}
-	ScrBuf = (WORD *)(surface->mem);
+
+	WinDraw_Pal16R = sdl_surface->format->Rmask;
+	WinDraw_Pal16G = sdl_surface->format->Gmask;
+	WinDraw_Pal16B = sdl_surface->format->Bmask;
+
+	ScrBuf = (WORD *)sdl_surface->pixels;
+
+	SDL_LockSurface(sdl_surface);
+	{
+//		printf("hoge\n");
+		int i;
+		for (i = 0; i < 80*100; i++) {
+			*(ScrBuf + i) = 0xffff;
+		}
+	}
+	SDL_UnlockSurface(sdl_surface);
 
 	pixmap = gdk_pixmap_new(drawarea->window,
 	    FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, visual->depth);
@@ -333,6 +341,10 @@ WinDraw_Redraw(void)
 void FASTCALL
 WinDraw_Draw(void)
 {
+	SDL_Surface *sdl_surface;
+	sdl_surface = SDL_GetVideoSurface();
+	SDL_UpdateRect(sdl_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
+
 	GtkWidget *w = (GtkWidget *)drawarea;
 	GdkDrawable *d = (GdkDrawable *)drawarea->window;
 

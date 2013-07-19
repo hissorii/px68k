@@ -4,6 +4,7 @@
 extern "C" {
 #endif 
 
+#include "SDL.h"
 #include "common.h"
 #include "fileio.h"
 #include "timer.h"
@@ -93,9 +94,6 @@ GtkWidget *window;
 GtkWidget *main_vbox;
 GtkWidget *menubar;
 GtkWidget *drawarea;
-extern GdkImage *surface;
-extern GdkPixmap *pixmap;
-extern GdkPixmap *splash_pixmap;
 
 static void set_window_size(GtkWidget *);
 static void set_icon_bitmap(GtkWidget *);
@@ -597,6 +595,7 @@ uninstall_idle_process(void)
 int
 main(int argc, char *argv[])
 {
+	int sdlaudio = -1;
 
 	if (set_modulepath(winx68k_dir, sizeof(winx68k_dir)))
 		return 1;
@@ -605,6 +604,22 @@ main(int argc, char *argv[])
 	file_setcd(winx68k_dir);
 
 	LoadConfig();
+
+#ifndef NOSOUND
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+#endif
+		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+			return 1;
+		}
+#ifndef NOSOUND
+	} else {
+		sdlaudio = 0;
+	}
+#endif
+	SDL_WM_SetCaption(APPNAME" SDL", NULL);
+        if (SDL_SetVideoMode(FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, 16, SDL_SWSURFACE) == NULL) {
+		return 1;
+	}
 
 	gtk_set_locale();
 	gtk_rc_add_default_file(".xkeropirc");
@@ -693,7 +708,7 @@ main(int argc, char *argv[])
 	MIDI_SetMimpiMap(Config.ToneMapFile);	// 音色設定ファイル使用反映
 	MIDI_EnableMimpiDef(Config.ToneMap);
 
-	if (!DSound_Init(Config.SampleRate, Config.BufferSize)) {
+	if (sdlaudio == 0 && !DSound_Init(Config.SampleRate, Config.BufferSize)) {
 		if (Config.DSAlert)
 			fprintf(stderr, "Can't init sound.\n");
 	}
