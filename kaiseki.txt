@@ -1,0 +1,72 @@
+2013/07/24
+
+* MPU実行ルーチンを入れ替える
+xkeropi: M68KRUN() (68kem.asm/_68KRUN)
+cps2: m68000/c68k.c/INT32  C68k_Exec(c68k_struc *cpu, INT32 cycle)
+
+* cps2側はc68k_struct C68K構造体で、レジスタ等を管理している。xkeropiの各変数をこの構造体にマッピングしていく
+
+typedef struct c68k_t
+{
+	UINT32 D[8];
+	UINT32 A[8];
+
+	UINT32 flag_C;
+	UINT32 flag_V;
+	UINT32 flag_Z;
+	UINT32 flag_N;
+
+	UINT32 flag_X;
+	UINT32 flag_I;
+	UINT32 flag_S;
+
+	UINT32 USP;
+	UINT32 PC;
+
+	UINT32 HaltState;
+	INT32 IRQLine;
+	INT32 IRQState;
+	INT32 ICount;
+
+	UINT32 BasePC;
+	UINT32 Fetch[C68K_FETCH_BANK];
+
+	UINT8  (*Read_Byte)(UINT32 address);
+	UINT16 (*Read_Word)(UINT32 address);
+	UINT8  (*Read_Byte_PC_Relative)(UINT32 address);
+	UINT16 (*Read_Word_PC_Relative)(UINT32 address);
+	void (*Write_Byte)(UINT32 address, UINT8 data);
+	void (*Write_Word)(UINT32 address, UINT16 data);
+
+	INT32  (*Interrupt_CallBack)(INT32 irqline);
+	void (*Reset_CallBack)(void);
+
+} c68k_struc;
+
+* TODO: まずはxkeropiのレジスタ関連をocps2のc68k_strucにマッピングする
+
+xkeropi側のレジスタは68kem.asm内の_regsが実態。
+これをextern m68k_regs regs;としてC言語側に見せている。
+
+* TODO:done stack pointerの扱いがよくわからん
+-> 
+
+- A7がスタックポインタ
+- スタックポインタはユーザーモードと特権モードで異なる
+- ステータスレジスタのSビット(13bit目)が1ならスーパーバイザーモード
+
+cps2側はc68k_struc内にa[7], USPの二つ
+xkeropi側はm68k_regs内にa[7], isp, uspの三つ
+
+xkeropiのCコードでispを触るのはここだけ。あとはR_ISPとしてアセンブラコードのMPUコアで操作されるのみ。
+x11/winx68k.cpp:        regs.a[7] = regs.isp = (IPL[0x30001]<<24)|(IPL[0x30000]<<16)|(IPL[0x30003]<<8)|IPL[0x30002];
+
+xkeropiのCコードでuspを触る個所はない。アセンブラコード内で操作されるのみ。
+
+
+* cps2のCPU初期化
+cps2/cps2.c/cps2_main()
+ cps2/cps2.c/cps2_init()
+  cps2/drive.c/cps2_drive_init()
+   cps2/cps2crpt.c/cps2_init_68k()
+    m68000.c/m68000_init()
