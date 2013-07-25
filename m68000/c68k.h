@@ -15,6 +15,7 @@
 extern "C" {
 #endif
 
+#include "common.h"
 
 // setting
 ///////////
@@ -22,35 +23,6 @@ extern "C" {
 //#define C68K_BIG_ENDIAN
 
 #define C68K_FETCH_BITS 8		// [4-12]   default = 8
-
-
-// Compiler dependant defines
-///////////////////////////////
-
-#ifndef UINT8
-#define UINT8	unsigned char
-#endif
-
-#ifndef INT8
-#define INT8	char
-#endif
-
-#ifndef UINT16
-#define UINT16	unsigned short
-#endif
-
-#ifndef INT16
-#define INT16	short
-#endif
-
-#ifndef UINT32
-#define UINT32	unsigned int
-#endif
-
-#ifndef INT32
-#define INT32	int
-#endif
-
 
 // 68K core types definitions
 //////////////////////////////
@@ -175,7 +147,7 @@ typedef struct c68k_t
 ////////////////////////////
 
 extern c68k_struc C68K;
-
+extern int m68000_ICountBk;
 
 // 68K core function declaration
 /////////////////////////////////

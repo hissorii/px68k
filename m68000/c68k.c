@@ -10,7 +10,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "emumain.h"
 #include "c68k.h"
 
 
@@ -25,15 +24,15 @@
 	グローバル構造体
 ******************************************************************************/
 
-c68k_struc ALIGN_DATA C68K;
-
+c68k_struc C68K;
+int m68000_ICountBk;
 
 /******************************************************************************
 	ローカル変数
 ******************************************************************************/
 
-static void ALIGN_DATA *JumpTable[0x10000];
-static UINT8 ALIGN_DATA c68k_bad_address[1 << C68K_FETCH_SFT];
+static void *JumpTable[0x10000];
+static UINT8 c68k_bad_address[1 << C68K_FETCH_SFT];
 
 
 /******************************************************************************
@@ -98,10 +97,7 @@ void C68k_Reset(c68k_struc *CPU)
 	CPU->flag_I = 7;
 	CPU->flag_S = C68K_SR_S;
 
-	CPU->A[7]  = READ_PCREL_32(0);
-	PC = READ_PCREL_32(4);
-
-	C68k_Set_Reg(CPU, C68K_PC, PC);
+	// SP, PCの初期化はWinX68k_Reset()側で実行する
 }
 
 

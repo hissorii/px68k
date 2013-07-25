@@ -2,7 +2,7 @@
 
 #include "common.h"
 #include "memory.h"
-#include "m68000.h"
+#include "../m68000/m68000.h"
 #include "winx68k.h"
 
 #include "adpcm.h"
@@ -472,7 +472,7 @@ rm_buserr(DWORD addr)
 void Memory_Init(void)
 {
 
-	cpu_setOPbase24((DWORD)regs.pc);
+	cpu_setOPbase24((DWORD)C68k_Get_Reg(&C68K, C68K_PC));
 }
 
 void FASTCALL

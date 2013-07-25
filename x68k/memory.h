@@ -15,6 +15,11 @@ extern	BYTE*	IPL;
 extern	BYTE*	MEM;
 extern	BYTE*	OP_ROM;
 extern	BYTE*	FONT;
+extern  BYTE    SCSIIPL[0x2000];
+extern  BYTE    SRAM[0x4000];
+extern  BYTE    GVRAM[0x80000];
+extern  BYTE   TVRAM[0x80000];
+
 
 extern	DWORD	BusErrFlag;
 extern	DWORD	BusErrAdr;

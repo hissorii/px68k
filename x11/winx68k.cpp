@@ -16,7 +16,8 @@ extern "C" {
 #include "winx68k.h"
 #include "windraw.h"
 #include "winui.h"
-#include "m68000.h"
+#include "m68000.h" // xxx これはいずれいらなくなるはず
+#include "../m68000/m68000.h"
 #include "memory.h"
 #include "mfp.h"
 #include "opm.h"
@@ -46,6 +47,8 @@ extern "C" {
 
 #include "dswin.h"
 #include "fmg_wrap.h"
+
+#define WIN68DEBUG
 
 #ifdef WIN68DEBUG
 #include "d68k.h"
@@ -81,7 +84,7 @@ int NoWaitMode = 0;
 unsigned int hTimerID = 0;
 DWORD TimerICount = 0;
 extern DWORD timertick;
-BYTE traceflag = 0;
+BYTE traceflag = 1;
 
 BYTE ForceDebugMode = 0;
 DWORD skippedframes = 0;
@@ -221,11 +224,9 @@ WinX68k_Reset(void)
 {
 	OPM_Reset();
 
-	ZeroMemory(&regs, sizeof(m68k_regs));
-	regs.a[7] = regs.isp = (IPL[0x30001]<<24)|(IPL[0x30000]<<16)|(IPL[0x30003]<<8)|IPL[0x30002];
-	regs.pc   = (IPL[0x30005]<<24)|(IPL[0x30004]<<16)|(IPL[0x30007]<<8)|IPL[0x30006];
-	regs.sr_high = 0x27;
-	M68KRESET();
+	C68k_Reset(&C68K);
+	C68k_Set_Reg(&C68K, C68K_A7, (IPL[0x30001]<<24)|(IPL[0x30000]<<16)|(IPL[0x30003]<<8)|IPL[0x30002]);
+	C68k_Set_Reg(&C68K, C68K_PC, (IPL[0x30005]<<24)|(IPL[0x30004]<<16)|(IPL[0x30007]<<8)|IPL[0x30006]);
 
 	Memory_Init();
 	CRTC_Init();
@@ -247,7 +248,7 @@ WinX68k_Reset(void)
 	MIDI_Init();
 	//WinDrv_Init();
 
-	m68000_ICount = 0;
+	C68K.ICount = 0;
 	m68000_ICountBk = 0;
 	ICount = 0;
 
@@ -271,9 +272,10 @@ WinX68k_Init(void)
 	if (MEM)
 		ZeroMemory(MEM, 0xc00000);
 
-	if (MEM && FONT && IPL)
+	if (MEM && FONT && IPL) {
+	  	m68000_init();  
 		return TRUE;
-	else
+	} else
 		return FALSE;
 }
 
@@ -343,7 +345,7 @@ void WinX68k_Exec(void)
 
 	do {
 		int m, n = (ICount>CLOCK_SLICE)?CLOCK_SLICE:ICount;
-		m68000_ICount = m68000_ICountBk = 0;			// 割り込み発生前に与えておかないとダメ（CARAT）
+		C68K.ICount = m68000_ICountBk = 0;			// 割り込み発生前に与えておかないとダメ（CARAT）
 
 		if ( hsync ) {
 			hsync = 0;
@@ -377,7 +379,7 @@ void WinX68k_Exec(void)
 			fp=fopen("_trace68.txt", "a");
 			for (i=0; i<HSYNC_CLK; i++)
 			{
-				m68k_disassemble(buf, regs.pc);
+				m68k_disassemble(buf, C68k_Get_Reg(&C68K, C68K_PC));
 //				if (MEM[0xa84c0]) /**test=1; */tracing=1000;
 //				if (regs.pc==0x9d2a) tracing=5000;
 //				if ((regs.pc>=0x2000)&&((regs.pc<=0x8e0e0))) tracing=50000;
@@ -386,16 +388,16 @@ void WinX68k_Exec(void)
 //				fp=fopen("_trace68.txt", "a");
 //				if ( (regs.pc==0x7176) /*&& (Memory_ReadW(oldpc)==0xff1a)*/ ) tracing=100;
 //				if ( (/*((regs.pc>=0x27000) && (regs.pc<=0x29000))||*/((regs.pc>=0x27000) && (regs.pc<=0x29000))) && (oldpc!=regs.pc))
-				if (/*fdctrace&&*/(oldpc!=regs.pc))
+				if (/*fdctrace&&*/(oldpc != C68k_Get_Reg(&C68K, C68K_PC)))
 				{
 //					//tracing--;
-					fprintf(fp, "D0:%08X D1:%08X D2:%08X D3:%08X D4:%08X D5:%08X D6:%08X D7:%08X CR:%04X\n", regs.d[0], regs.d[1], regs.d[2], regs.d[3], regs.d[4], regs.d[5], regs.d[6], regs.d[7], regs.ccr);
-					fprintf(fp, "A0:%08X A1:%08X A2:%08X A3:%08X A4:%08X A5:%08X A6:%08X A7:%08X SR:%04X\n", regs.a[0], regs.a[1], regs.a[2], regs.a[3], regs.a[4], regs.a[5], regs.a[6], regs.a[7], regs.sr_high);
-					fprintf(fp, "<%04X> (%08X ->) %08X : %s\n", Memory_ReadW(regs.pc), oldpc, regs.pc, buf);
+				  fprintf(fp, "D0:%08X D1:%08X D2:%08X D3:%08X D4:%08X D5:%08X D6:%08X D7:%08X CR:%04X\n", C68K.D[0], C68K.D[1], C68K.D[2], C68K.D[3], C68K.D[4], C68K.D[5], C68K.D[6], C68K.D[7], 0/* xxx とりあえず0 C68K.ccr */);
+				  fprintf(fp, "A0:%08X A1:%08X A2:%08X A3:%08X A4:%08X A5:%08X A6:%08X A7:%08X SR:%04X\n", C68K.A[0], C68K.A[1], C68K.A[2], C68K.A[3], C68K.A[4], C68K.A[5], C68K.A[6], C68K.A[7], C68k_Get_Reg(&C68K, C68K_SR) >> 8/* regs.sr_high*/);
+					fprintf(fp, "<%04X> (%08X ->) %08X : %s\n", Memory_ReadW(C68k_Get_Reg(&C68K, C68K_PC)), oldpc, C68k_Get_Reg(&C68K, C68K_PC), buf);
 				}
-				oldpc = regs.pc;
-				m68000_ICount = 1;
-				M68KRUN();
+				oldpc = C68k_Get_Reg(&C68K, C68K_PC);
+				C68K.ICount = 1;
+				C68k_Exec(&C68K, C68K.ICount);
 			}
 			fclose(fp);
 			usedclk = clk_line = HSYNC_CLK;
@@ -404,16 +406,16 @@ void WinX68k_Exec(void)
 		else
 #endif
 		{
-			m68000_ICount = n;
-			M68KRUN();
-			m = (n-m68000_ICount-m68000_ICountBk);			// 経過クロック数
+			C68K.ICount = n;
+			C68k_Exec(&C68K, C68K.ICount);
+			m = (n-C68K.ICount-m68000_ICountBk);			// 経過クロック数
 			ClkUsed += m*10;
 			usedclk = ClkUsed/clkdiv;
 			clk_line += usedclk;
 			ClkUsed -= usedclk*clkdiv;
 			ICount -= m;
 			clk_count += m;
-			m68000_ICount = m68000_ICountBk = 0;
+			C68K.ICount = m68000_ICountBk = 0;
 		}
 
 		MFP_Timer(usedclk);

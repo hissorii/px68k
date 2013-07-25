@@ -6,8 +6,9 @@
 
 ******************************************************************************/
 
-#include "emumain.h"
-
+#include "m68000.h"
+#include "c68k.h"
+#include "../x68k/memory.h"
 
 /******************************************************************************
 	CPS2°Å¹æ²½ROMÍÑ
@@ -39,7 +40,7 @@ static UINT8 m68000_read_pcrelative_8(UINT32 offset)
 	if (offset >= m68k_encrypt_start && offset <= m68k_encrypt_end)
 		return m68k_decrypted_rom[offset ^ 1];
 	else
-		return m68000_read_memory_8(offset);
+		return Memory_ReadB(offset);
 }
 
 
@@ -52,7 +53,7 @@ static UINT16 m68000_read_pcrelative_16(UINT32 offset)
 	if (offset >= m68k_encrypt_start && offset <= m68k_encrypt_end)
 		return *(UINT16 *)&m68k_decrypted_rom[offset];
 	else
-		return m68000_read_memory_16(offset);
+		return Memory_ReadW(offset);
 }
 #endif
 
@@ -68,40 +69,17 @@ static UINT16 m68000_read_pcrelative_16(UINT32 offset)
 void m68000_init(void)
 {
 	C68k_Init(&C68K);
-	C68k_Set_ReadB(&C68K, m68000_read_memory_8);
-	C68k_Set_ReadW(&C68K, m68000_read_memory_16);
-	C68k_Set_WriteB(&C68K, m68000_write_memory_8);
-	C68k_Set_WriteW(&C68K, m68000_write_memory_16);
-#if (EMU_SYSTEM == CPS1)
-	C68k_Set_Fetch(&C68K, 0x000000, 0x1fffff, (UINT32)memory_region_cpu1);
-	C68k_Set_Fetch(&C68K, 0x900000, 0x92ffff, (UINT32)cps1_gfxram);
-	C68k_Set_Fetch(&C68K, 0xff0000, 0xffffff, (UINT32)cps1_ram);
-#elif (EMU_SYSTEM == CPS2)
-	if (memory_length_user1)
-		C68k_Set_Fetch(&C68K, 0x000000, 0x3fffff, (UINT32)memory_region_user1);
-	else
-		C68k_Set_Fetch(&C68K, 0x000000, 0x3fffff, (UINT32)memory_region_cpu1);
-	C68k_Set_Fetch(&C68K, 0x660000, 0x663fff, (UINT32)cps2_ram);
-	C68k_Set_Fetch(&C68K, 0x900000, 0x92ffff, (UINT32)cps1_gfxram);
-	C68k_Set_Fetch(&C68K, 0xff0000, 0xffffff, (UINT32)cps1_ram);
-	if (memory_length_user1)
-	{
-		C68k_Set_ReadB_PC_Relative(&C68K, m68000_read_pcrelative_8);
-		C68k_Set_ReadW_PC_Relative(&C68K, m68000_read_pcrelative_16);
-	}
-#elif (EMU_SYSTEM == MVS)
-	C68k_Set_Fetch(&C68K, 0x000000, 0x0fffff, (UINT32)memory_region_cpu1);
-	C68k_Set_Fetch(&C68K, 0x100000, 0x10ffff, (UINT32)neogeo_ram);
-	if (memory_length_cpu1 > 0x100000)
-		C68k_Set_Fetch(&C68K, 0x200000, 0x2fffff, (UINT32)&memory_region_cpu1[0x100000]);
-	else
-		C68k_Set_Fetch(&C68K, 0x200000, 0x2fffff, (UINT32)memory_region_cpu1);
-	C68k_Set_Fetch(&C68K, 0xc00000, 0xc00000 + (memory_length_user1 - 1), (UINT32)memory_region_user1);
-#elif (EMU_SYSTEM == NCDZ)
-	C68k_Set_Fetch(&C68K, 0x000000, 0x1fffff, (UINT32)memory_region_cpu1);
-	C68k_Set_Fetch(&C68K, 0xc00000, 0xc7ffff, (UINT32)memory_region_user1);
-	C68k_Reset(&C68K);
-#endif
+	C68k_Set_ReadB(&C68K, Memory_ReadB);
+	C68k_Set_ReadW(&C68K, Memory_ReadW);
+	C68k_Set_WriteB(&C68K, Memory_WriteB);
+	C68k_Set_WriteW(&C68K, Memory_WriteW);
+        C68k_Set_Fetch(&C68K, 0x000000, 0xbfffff, (UINT32)MEM);
+        C68k_Set_Fetch(&C68K, 0xc00000, 0xc7ffff, (UINT32)GVRAM);
+        C68k_Set_Fetch(&C68K, 0xe00000, 0xe7ffff, (UINT32)TVRAM);
+        C68k_Set_Fetch(&C68K, 0xea0000, 0xea1fff, (UINT32)SCSIIPL);
+        C68k_Set_Fetch(&C68K, 0xed0000, 0xed3fff, (UINT32)SRAM);
+        C68k_Set_Fetch(&C68K, 0xf00000, 0xfbffff, (UINT32)FONT);
+        C68k_Set_Fetch(&C68K, 0xfc0000, 0xffffff, (UINT32)IPL);
 }
 
 
@@ -155,7 +133,7 @@ void m68000_execute2(UINT32 start, UINT32 break_point)
 
 	while ((pc = C68k_Get_Reg(&C68K_temp, M68K_PC)) != break_point)
 	{
-		opcode = m68000_read_memory_16(pc);
+		opcode = Memory_ReadW(pc);
 		if (opcode == 0x4e75)
 		{
 			// rts

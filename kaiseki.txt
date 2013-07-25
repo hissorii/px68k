@@ -48,7 +48,7 @@ typedef struct c68k_t
 xkeropi側のレジスタは68kem.asm内の_regsが実態。
 これをextern m68k_regs regs;としてC言語側に見せている。
 
-* TODO:done stack pointerの扱いがよくわからん
+* TODO: stack pointerの扱いがよくわからん
 -> 
 
 - A7がスタックポインタ
@@ -63,10 +63,32 @@ x11/winx68k.cpp:        regs.a[7] = regs.isp = (IPL[0x30001]<<24)|(IPL[0x30000]<
 
 xkeropiのCコードでuspを触る個所はない。アセンブラコード内で操作されるのみ。
 
-
 * cps2のCPU初期化
 cps2/cps2.c/cps2_main()
  cps2/cps2.c/cps2_init()
   cps2/drive.c/cps2_drive_init()
    cps2/cps2crpt.c/cps2_init_68k()
     m68000.c/m68000_init()
+
+* m68000_init()の解析
+
+- メモリのbyte/word単位のread/write関数のセットC68k_Set_ReadB(&C68K, Memory_ReadB);等
+  keropiではアセンブリではcpu_readmem24{,_word,_dword}のだが、xkeropiではC言語で書かれたmem_wrap.c/cpu_readmem24{,_word,_dword}()があるではないか。
+すばらしい。現状使われていないようだが、これを有効にしよう。
+
+x68k/memory.h:#define   Memory_ReadB            cpu_readmem24
+x68k/memory.h:#define Memory_ReadW              cpu_readmem24_word
+x68k/memory.h:#define Memory_ReadD              cpu_readmem24_dword
+
+#define m68k_read_memory_8(address)  Memory_ReadB(address)
+
+* 2013/07/25
+R_IRQ	 DD 0			 ; IRQ Request Level
+:
+R_IRQ_CALLBACK	 DD 0			 ; irq callback (get vector)
+
+struct m68k_regs {
+DWORD IRQ_level;
+:
+void *irq_callback;
+}

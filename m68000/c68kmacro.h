@@ -1086,7 +1086,7 @@
 	{																		\
 		if (res & 1)														\
 		{																	\
-			WRITE_MEM_##size(adr, *(u##size *)src);							\
+			WRITE_MEM_##size(adr, *(UINT##size *)src);							\
 			adr += (size / 8);												\
 		}																	\
 		src += 4;															\
@@ -1105,7 +1105,7 @@
 		if (res & 1)														\
 		{																	\
 			adr -= (size / 8);												\
-			WRITE_MEM_##size##PD(adr, *(u##size *)src);						\
+			WRITE_MEM_##size##PD(adr, *(UINT##size *)src);						\
 		}																	\
 		src -= 4;															\
 	} while (res >>= 1);													\
