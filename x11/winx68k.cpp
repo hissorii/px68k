@@ -48,7 +48,7 @@ extern "C" {
 #include "dswin.h"
 #include "fmg_wrap.h"
 
-#define WIN68DEBUG
+  //#define WIN68DEBUG
 
 #ifdef WIN68DEBUG
 #include "d68k.h"

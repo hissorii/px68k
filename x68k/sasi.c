@@ -6,7 +6,7 @@
 #include "fileio.h"
 #include "prop.h"
 #include "status.h"
-#include "m68000.h"
+#include "../m68000/m68000.h"
 #include "ioc.h"
 #include "sasi.h"
 #include "irqh.h"
@@ -222,7 +222,7 @@ BYTE FASTCALL SASI_Read(DWORD adr)
 if (hddtrace&&((SASI_Phase!=3)||(adr!=0xe96001))) {
 FILE *fp;
 fp=fopen("_trace68.txt", "a");
-fprintf(fp, "Read  - Adr:%08X  Ret:%02X  Phase:%d BufPtr:%d  (Time:%08X)  @ $%08X\n", adr, ret, SASI_Phase, SASI_BufPtr, timeGetTime(), regs.pc);
+fprintf(fp, "Read  - Adr:%08X  Ret:%02X  Phase:%d BufPtr:%d  (Time:%08X)  @ $%08X\n", adr, ret, SASI_Phase, SASI_BufPtr, timeGetTime(), C68k_Get_Reg(&C68K, C68K_PC));
 fclose(fp);
 }
 
@@ -357,7 +357,7 @@ void FASTCALL SASI_Write(DWORD adr, BYTE data)
 if (hddtrace&&((SASI_Phase!=3)||(adr!=0xe96001))) {
 FILE *fp;
 fp=fopen("_trace68.txt", "a");
-fprintf(fp, "Write - Adr:%08X Data:%02X  Phase:%d  (Time:%08X)  @ $%08X\n", adr, data, SASI_Phase, timeGetTime(), regs.pc);
+fprintf(fp, "Write - Adr:%08X Data:%02X  Phase:%d  (Time:%08X)  @ $%08X\n", adr, data, SASI_Phase, timeGetTime(), C68k_Get_Reg(&C68K, C68K_PC));
 fclose(fp);
 }
 	if ( (adr==0xe96007)&&(SASI_Phase==0) )

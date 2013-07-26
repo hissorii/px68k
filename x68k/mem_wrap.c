@@ -125,6 +125,16 @@ void (FASTCALL *MemWriteTable[])(DWORD, BYTE) = {
 	wm_buserr, wm_buserr, wm_buserr, wm_buserr, wm_buserr, wm_buserr, wm_buserr, wm_buserr,
 };
 
+BYTE *IPL;
+BYTE *MEM;
+BYTE *OP_ROM;
+BYTE *FONT;
+
+DWORD BusErrFlag = 0;
+DWORD BusErrHandling = 0;
+DWORD BusErrAdr;
+DWORD MemByteAccess = 0;
+
 /*
  * write function
  */
@@ -573,5 +583,7 @@ BusError(DWORD adr, DWORD unknown)
 
 	(void)adr;
 	(void)unknown;
-	assert(0);
+
+	BusErrHandling = 1;
+	//assert(0);
 }

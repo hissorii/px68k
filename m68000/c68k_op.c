@@ -1958,6 +1958,7 @@ OP(suba_32_i)          { SUBA_RI32(I)                          }	// 04bc
 OP(1010)
 {
 	SWAP_SP()
+	PC -= 2;
 	EXCEPTION(C68K_1010_EX)
 	RET(34)
 }
@@ -4584,6 +4585,7 @@ OP(rol_16_al)
 OP(1111)
 {
 	SWAP_SP()
+	PC -= 2;
 	EXCEPTION(C68K_1111_EX)
 	RET(34)
 }

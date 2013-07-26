@@ -42,7 +42,7 @@ void IRQH_IRQCallBack(BYTE irq)
 		if (IRQH_IRQ[i])
 		{
 			C68k_Set_IRQ_Callback(&C68K, IRQH_CallBack[i]);
-			C68k_Set_IRQ(&C68K, i, 0); // xxx 
+			C68k_Set_IRQ(&C68K, i, HOLD_LINE); // xxx 
 			if ( C68K.ICount) {					// 多重割り込み時（CARAT）
 				m68000_ICountBk += C68K.ICount;		// 強制的に割り込みチェックをさせる
 				C68K.ICount = 0;				// 苦肉の策 ^^;

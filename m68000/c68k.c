@@ -26,6 +26,7 @@
 
 c68k_struc C68K;
 int m68000_ICountBk;
+int ICount;
 
 /******************************************************************************
 	ローカル変数
@@ -105,6 +106,9 @@ void C68k_Reset(c68k_struc *CPU)
 	CPU実行
 --------------------------------------------------------*/
 
+extern DWORD BusErrHandling;
+extern DWORD BusErrAdr;
+
 INT32 C68k_Exec(c68k_struc *CPU, INT32 cycles)
 {
 	if (CPU)
@@ -127,6 +131,22 @@ C68k_Check_Interrupt:
 C68k_Exec_Next:
 			if (CPU->ICount > 0)
 			{
+
+				if (BusErrHandling) {
+					printf("BusError occured\n");
+					SWAP_SP();
+					PUSH_32_F(GET_PC() - 2);
+					PUSH_16_F(GET_SR());
+					CPU->A[7] -= 2;
+					PUSH_32_F(BusErrAdr);
+					CPU->A[7] -= 2;
+					CPU->flag_S = C68K_SR_S;
+					PC = READ_MEM_32((C68K_BUS_ERROR_EX) << 2);
+					SET_PC(PC);
+					BusErrHandling = 0;
+				}
+
+
 				Opcode = READ_IMM_16();
 				PC += 2;
 				goto *JumpTable[Opcode];

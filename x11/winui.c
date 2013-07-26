@@ -47,7 +47,7 @@
 #include "juliet.h"
 #include "fdd.h"
 #include "irqh.h"
-#include "m68000.h"
+#include "../m68000/m68000.h"
 #include "crtc.h"
 #include "mfp.h"
 #include "fdc.h"
@@ -332,7 +332,7 @@ wm_timer(gpointer data)
 #ifdef WIN68DEBUG
 		g_snprintf(buf, sizeof(buf),
 		    "%s - %2d fps / %2d.%03d MHz  PC:%08X",
-		    PrgTitle, FrameCount, (freq/1000), (freq%1000), regs.pc);
+		    PrgTitle, FrameCount, (freq/1000), (freq%1000), C68k_Get_Reg(&C68K, C68K_PC));
 #else
 		if ( juliet_YM2151IsEnable() ) {
 			g_snprintf(buf, sizeof(buf),
