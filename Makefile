@@ -1110,14 +1110,15 @@ CPUASMOBJS=
 X68KOBJS= 	x68k/adpcm.o x68k/bg.o x68k/crtc.o x68k/dmac.o x68k/fdc.o 	x68k/fdd.o x68k/disk_d88.o x68k/disk_dim.o x68k/disk_xdf.o 	x68k/gvram.o x68k/ioc.o x68k/irqh.o x68k/mem_wrap.o x68k/mercury.o 	x68k/mfp.o x68k/palette.o x68k/midi.o x68k/pia.o x68k/rtc.o 	x68k/sasi.o x68k/scc.o x68k/scsi.o x68k/sram.o x68k/sysport.o 	x68k/tvram.o 	x68k/cpu_glue.o
 
 #X68KASMOBJS= x68k/bga.o x68k/memory.o x68k/memory_glue.o
-X68KASMOBJS= x68k/bga.o
+X68KASMOBJS=
 
 FMGENOBJS= 	fmgen/fmgen.o fmgen/fmg_wrap.o fmgen/file.o fmgen/fmtimer.o 	fmgen/opm.o fmgen/opna.o fmgen/psg.o
 
 X11OBJS= 	x11/joystick.o x11/juliet.o x11/keyboard.o x11/mouse.o x11/prop.o 	x11/status.o x11/timer.o 	x11/dswin.o x11/windraw.o x11/winui.o 	x11/about.o
 
 X11CXXOBJS= x11/winx68k.o
-X11ASMOBJS= x11/haveunit.o
+#X11ASMOBJS= x11/haveunit.o
+X11ASMOBJS=
 
 WIN32APIOBJS= win32api/dosio.o win32api/fake.o win32api/peace.o
 

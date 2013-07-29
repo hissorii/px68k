@@ -361,8 +361,10 @@ WinDraw_Draw(void)
 		    pixmap, 0, 0, 0, 0, TextDotX, TextDotY);
 	} else {
 		gdk_scale_image(scaled_screen, surface, NULL, &surface_rect);
+#if 0
 		gdk_draw_image(d, w->style->fg_gc[GTK_WIDGET_STATE(w)],
 		    scaled_screen, 0, 0, 0, 0, WindowX, WindowY);
+#endif
 	}
 }
 
@@ -2273,9 +2275,11 @@ void WinDraw_DrawLine(void)
 
 	switch (screen_mode) {
 	case 0:
+#if 0
 		gdk_draw_image(pixmap,
 		    drawarea->style->fg_gc[GTK_WIDGET_STATE(drawarea)],
 		    surface, 16, 16 + VLINE, 0, VLINE, WindowX, 1);
+#endif
 		break;
 	}
 }

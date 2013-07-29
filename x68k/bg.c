@@ -326,7 +326,7 @@ void FASTCALL BG_Write(DWORD adr, BYTE data)
 }
 
 #ifndef USE_GAS
-#define USE_GAS
+//#define USE_GAS
 #endif
 
 // -----------------------------------------------------------------------
@@ -518,6 +518,7 @@ Sprite_DrawLineMcr(int pri)
 INLINE void
 BG_DrawLineMcr8(int bg)
 {
+#if 0
 	WORD *bgtop;
 	DWORD *bgscrx, *bgscry;
 	DWORD x, y;
@@ -540,6 +541,7 @@ BG_DrawLineMcr8(int bg)
 	x = (y1 & 0x1f8) >> 2;
 
 	esi = BG[x + y];
+#endif
 }
 
 INLINE void

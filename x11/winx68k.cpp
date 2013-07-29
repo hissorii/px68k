@@ -266,11 +266,11 @@ WinX68k_Init(void)
 {
 
 	IPL = (BYTE*)malloc(0x40000);
-	MEM = (BYTE*)malloc(0xc00000);
+	MEM = (BYTE*)malloc(0x200000);
 	FONT = (BYTE*)malloc(0xc0000);
 
 	if (MEM)
-		ZeroMemory(MEM, 0xc00000);
+		ZeroMemory(MEM, 0x200000);
 
 	if (MEM && FONT && IPL) {
 	  	m68000_init();  
