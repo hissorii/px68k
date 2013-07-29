@@ -464,10 +464,10 @@ Sprite_DrawLineMcr(int pri)
 			SPRITECTRLTBL_T *sctp = &sct[n];
 
 			t = (sctp->sprite_posx + BG_HAdjust) & 0x3ff;
-			if (t > TextDotX + 16)
+			if (t >= TextDotX + 16)
 				continue;
 
-			y = sct->sprite_posy & 0x3ff;
+			y = sctp->sprite_posy & 0x3ff;
 			y -= VLINEBG;
 			y += BG_VLINE;
 			y = -y;
@@ -477,36 +477,31 @@ Sprite_DrawLineMcr(int pri)
 			if (y <= 15) {
 				BYTE *p;
 				DWORD pal;
-				int i;
-
+				int i, d;
+				BYTE bh, dat;
+				
 				if (sctp->sprite_ctrl < 0x4000) {
-					// spline_flipx
-					p = &BGCHR16[(sctp->sprite_ctrl * 256) + (y * 16)];
+					p = &BGCHR16[((sctp->sprite_ctrl * 256) & 0xffff)  + (y * 16)];
+					d = 1;
+				} else  if ((sctp->sprite_ctrl - 0x4000) & 0x8000) {
+					p = &BGCHR16[((sctp->sprite_ctrl * 256) & 0xffff) + (((y * 16) & 0xff) ^ 0xf0) + 15];
+					d = -1;
+				} else if ((signed short)(sctp->sprite_ctrl) >= 0x4000) {
+					p = &BGCHR16[((sctp->sprite_ctrl * 256) & 0xffff) + (y * 16) + 15];
+					d = -1;
+				}  else {
+					p = &BGCHR16[((sctp->sprite_ctrl << 8) & 0xffff)  + (((y * 16) & 0xff) ^ 0xf0)];
+					d = 1;
+				}
 
-					for (i = 0; i < 16; ++i, ++t) {
-						pal = *p++ & 0xf;
-						if (pal) {
-							pal |= (sctp->sprite_ctrl >> 4) & 0xf0;
-							if (BG_PriBuf[t] >= n) {
-								BG_LineBuf[t] = TextPal[pal];
-								Text_TrFlag[t] |= 2;
-								BG_PriBuf[t] = n;
-							}
-						}
-					}
-				} else {
-					// spline_fxflipx
-					p = &BGCHR16[(sctp->sprite_ctrl * 256) + (y * 16)];
-
-					for (i = 0; i < 16; ++i, ++t) {
-						pal = *p-- & 0xf;
-						if (pal) {
-							pal |= (sctp->sprite_ctrl >> 4) & 0xf0;
-							if (BG_PriBuf[t] >= n) {
-								BG_LineBuf[t] = TextPal[pal];
-								Text_TrFlag[t] |= 2;
-								BG_PriBuf[t] = n;
-							}
+				for (i = 0; i < 16; i++, t++, p += d) {
+					pal = *p & 0xf;
+					if (pal) {
+						pal |= (sctp->sprite_ctrl >> 4) & 0xf0;
+						if (BG_PriBuf[t] >= n * 8) {
+							BG_LineBuf[t] = TextPal[pal];
+							Text_TrFlag[t] |= 2;
+							BG_PriBuf[t] = n * 8;
 						}
 					}
 				}
@@ -515,48 +510,135 @@ Sprite_DrawLineMcr(int pri)
 	}
 }
 
-INLINE void
-BG_DrawLineMcr8(int bg)
-{
-#if 0
-	WORD *bgtop;
-	DWORD *bgscrx, *bgscry;
-	DWORD x, y;
-	DWORD t0, t1;
+#define BG_DRAWLINE_LOOPY(cnt) \
+{ \
+	bl = bl << 4;							\
+	for (j = 0; j < cnt; j++, esi += d, edi++) {			\
+		dat = *esi | bl;					\
+		if (dat == 0)						\
+			continue;					\
+		if ((dat & 0xf) || !(Text_TrFlag[edi + 1] & 2)) {	\
+			BG_LineBuf[1 + edi] = TextPal[dat];		\
+			Text_TrFlag[edi + 1] |= 2;			\
+		}							\
+	}								\
+}
 
-	if (bg == 0) {
-		bgtop = &BG_BG0TOP;
-		bgscrx = &BG0ScrollX;
-		bgscry = &BG0ScrollY;
-	} else {
-		bgtop = &BG_BG1TOP;
-		bgscrx = &BG1ScrollX;
-		bgscry = &BG1ScrollY;
+#define BG_DRAWLINE_LOOPY_NG(cnt) \
+{  \
+	bl = bl << 4;					    \
+        for (j = 0; j < cnt; j++, esi += d, edi++) {	    \
+                dat = *esi & 0xf;			    \
+		if (dat) {				    \
+			dat |= bl;			    \
+                        BG_LineBuf[1 + edi] = TextPal[dat]; \
+			Text_TrFlag[edi + 1] |= 2;	    \
+                }					    \
+        }						    \
+}
+
+void bg_drawline_loopx8(WORD BGTOP, DWORD BGScrollX, DWORD BGScrollY, long adjust, int ng)
+{
+       unsigned char dat, bl;
+       int i, j, d;
+       DWORD ebp, edx, edi, ecx;
+       WORD si;
+       BYTE *esi;
+
+       ebp = ((BGScrollY + VLINEBG - BG_VLINE) & 7) << 3;
+       edx = BGTOP + (((BGScrollY + VLINEBG - BG_VLINE) & 0x1f8) << 4);
+       edi = ((BGScrollX - adjust) & 7) ^ 15;
+       ecx = ((BGScrollX - adjust) & 0x1f8) >> 2;
+
+       for (i = TextDotX >> 3; i >= 0; i--) {
+               bl = BG[ecx + edx];
+               si = (WORD)BG[ecx + edx + 1] << 6;
+
+               if (bl < 0x40) {
+                       esi = &BGCHR8[si + ebp];
+                       d = +1;
+               } else if ((bl - 0x40) & 0x80) {
+                       esi = &BGCHR8[si + 0x3f - ebp];
+                       d = -1;
+               } else if ((signed char)bl >= 0x40) {
+                       esi = &BGCHR8[si + ebp + 7];
+                       d = -1;
+               } else {
+                       esi = &BGCHR8[si + 0x38 - ebp];
+                       d = +1;
+               }
+	       if (ng) {
+		       BG_DRAWLINE_LOOPY_NG(8);
+	       } else {
+		       BG_DRAWLINE_LOOPY(8);
+	       }
+               ecx += 2;
+               ecx &= 0x7f;
+       }
+}
+
+void bg_drawline_loopx16(WORD BGTOP, DWORD BGScrollX, DWORD BGScrollY, long adjust, int ng)
+{
+       unsigned char dat, bl;
+       int i, j, d;
+       DWORD ebp, edx, edi, ecx;
+       WORD si;
+       BYTE *esi;
+
+       ebp = ((BGScrollY + VLINEBG - BG_VLINE) & 15) << 4;
+       edx = BGTOP + (((BGScrollY + VLINEBG - BG_VLINE) & 0x3f0) << 3);
+       edi = ((BGScrollX - adjust) & 15) ^ 15;
+       ecx = ((BGScrollX - adjust) & 0x3f0) >> 3;
+
+       for (i = TextDotX >> 4; i >= 0; i--) {
+		bl = BG[ecx + edx];
+		si = BG[ecx + edx + 1] << 8;
+
+		if (bl < 0x40) {
+			esi = &BGCHR16[si + ebp];
+			d = +1;
+		} else if ((bl - 0x40) & 0x80) {
+			esi = &BGCHR16[si + 0xff - ebp];
+			d = -1;
+		} else if ((signed char)bl >= 0x40) {
+			esi = &BGCHR16[si + ebp + 15];
+			d = -1;
+		} else {
+			esi = &BGCHR16[si + 0xf0 - ebp];
+			d = +1;
+		}
+		if (ng) {
+			BG_DRAWLINE_LOOPY_NG(16);
+		} else {
+			BG_DRAWLINE_LOOPY(16);
+		}
+		ecx += 2;
+		ecx &= 0x7f;
 	}
-
-	t0 = (*bgscry + VLINEBG) - BG_VLINE;
-	t1 = *bgscrx - BG_HAdjust;
-
-	y = *bgtop + (t0 & 0x1f8) << 4;
-	x = (y1 & 0x1f8) >> 2;
-
-	esi = BG[x + y];
-#endif
 }
 
 INLINE void
-BG_DrawLineMcr16(int bg)
+BG_DrawLineMcr8(WORD BGTOP, DWORD BGScrollX, DWORD BGScrollY)
 {
+       bg_drawline_loopx8(BGTOP, BGScrollX, BGScrollY, BG_HAdjust, 0);
 }
 
 INLINE void
-BG_DrawLineMcr8_ng(int bg)
+BG_DrawLineMcr16(WORD BGTOP, DWORD BGScrollX, DWORD BGScrollY)
 {
+       bg_drawline_loopx8(BGTOP, BGScrollX, BGScrollY, BG_HAdjust, 0);
 }
 
 INLINE void
-BG_DrawLineMcr16_ng(int bg)
+BG_DrawLineMcr8_ng(WORD BGTOP, DWORD BGScrollX, DWORD BGScrollY)
 {
+       bg_drawline_loopx8(BGTOP, BGScrollX, BGScrollY, BG_HAdjust, 1);
+}
+
+INLINE void
+BG_DrawLineMcr16_ng(WORD BGTOP, DWORD BGScrollX, DWORD BGScrollY)
+{
+       bg_drawline_loopx16(BGTOP, BGScrollX, BGScrollY, 0, 1);
 }
 
 LABEL void FASTCALL
@@ -580,28 +662,28 @@ BG_DrawLine(int opaq, int gd)
 		Sprite_DrawLineMcr(2);
 		if (BG_Regs[9] & 1) {
 			if (BG_CHRSIZE == 8) {
-				BG_DrawLineMcr8(0);
+				BG_DrawLineMcr8(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
 			} else {
-				BG_DrawLineMcr16(0);
+				BG_DrawLineMcr16(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
 			}
 		}
 	} else {
 		Sprite_DrawLineMcr(1);
 		if (BG_CHRSIZE == 8) {
 			if (BG_Regs[9] & 8) {
-				BG_DrawLineMcr8_ng(1);
+				BG_DrawLineMcr8_ng(BG_BG1TOP, BG1ScrollX, BG1ScrollY);
 			}
 			Sprite_DrawLineMcr(2);
 			if (BG_Regs[9] & 1) {
-				BG_DrawLineMcr8_ng(0);
+				BG_DrawLineMcr8_ng(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
 			}
 		} else {
-			if (BG_Regs[9] & 8) {
-				BG_DrawLineMcr16_ng(1);
-			}
+//			if (BG_Regs[9] & 8) {
+//				BG_DrawLineMcr16_ng(BG_BG1TOP, BG1ScrollX, BG1ScrollY);
+//			}
 			Sprite_DrawLineMcr(2);
 			if (BG_Regs[9] & 1) {
-				BG_DrawLineMcr16_ng(0);
+				BG_DrawLineMcr16_ng(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
 			}
 		}
 	}

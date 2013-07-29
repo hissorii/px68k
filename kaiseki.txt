@@ -1,4 +1,4 @@
-2013/07/24
+**2013/07/24
 
 * MPU実行ルーチンを入れ替える
 xkeropi: M68KRUN() (68kem.asm/_68KRUN)
@@ -92,3 +92,103 @@ DWORD IRQ_level;
 :
 void *irq_callback;
 }
+
+** 2013/07/29
+
+* 残るアセンブリコードの洗い出し
+-> done
+- x11/windraw.c [done]
+- x68k/bga.asm [deleted]
+- x68k/tvram.c [done]
+- x68k/bg.c 少々手直し、追加[done]
+- x68k/gvram.c [done]
+- x68k/crtc.c [done]
+
+* x68k/bg.c/Sprite_DrawLineMcr()でsegvる
+-> 修正done
+
+%macro  Sprite_DrawLineMcr      2 (%2が引数でint pri)
+        mov     ebp, [TextDotX]
+        add     ebp, 16
+        mov     edx, 127 * 8
+spline_%1_lp:
+        mov     al, [Sprite_Regs + spritectrltbl.sprite_ply + edx]
+        and     al, 3
+        cmp     al, %2
+	; sctp = &sct[edx/sizeof(spritectrltbl)];
+	; if (sctp->sprite_ply & 3 == pri)
+        je      spline_%1_plyhit
+spline_%1_lpcnt:
+        sub     dx, 8
+        jns     spline_%1_lp
+        jmp     spline_%1_ed
+spline_%1_plyhit:
+        movzx   edi, word [Sprite_Regs + spritectrltbl.sprite_posx + edx]
+        add     edi, [BG_HAdjust]
+        and     di, 3ffh
+	; if (sctp->sprite_posx + BG_HAdjust) & 0x3ff)
+	;     ~~~~xxx: sctp not sct 
+        cmp     edi, ebp
+        jnc     spline_%1_lpcnt
+	; if (t >= TextDotX + 16)
+	;       ~~xxx: >= not > (=でもcarry flagはセットされない)
+        movzx   eax, word [Sprite_Regs + spritectrltbl.sprite_posy + edx]
+        and     ax, 3ffh
+	; y = sctp->sprite_posy & 0x3fff
+        sub     eax, [VLINEBG]
+        add     eax, [BG_VLINE]
+        neg     eax
+        add     eax, 16
+	; y -= VLINEBG, y+= BG_VLINE, y = -y, y+= 16
+        jnc     spline_%1_lpcnt
+        shl     al, 4
+	; y *= 16; //xxx忘れるな
+        movzx   esi, word [Sprite_Regs + spritectrltbl.sprite_ctrl + edx]
+        mov     bx, si
+	; bx = sctp->sprite_ctrl
+        shl     si, 8
+	si = sctp->scrite_ctrl * 256; //xxx忘れるな
+        cmp     bh, 40h
+        jc      spline_%1_flipx
+	; if (sctp->sprite_ctrl < 0x4000)
+        js      spline_%1_fxflipy //サインフラグは引き算後マイナスでよい？
+	; else if (sctp->sprite_ctrl - 0x4000 & 0x8000)
+        jge     spline_%1_fxflipx
+	; else if (sctp->sprite_ctrl >= 0x4000)
+        xor     al, 0f0h
+	; else y ^= 0xf0;
+spline_%1_flipx:
+        lea     esi, [BGCHR16 + esi + eax]
+	; esi = BGCHR16[(sctp->sprite_ctrl * 256) & 0xffff + (y * 16)]
+        cld ; directioin flagをクリア -> インクリメント方向
+spline_%1_out:
+        shl     bh, 4
+        mov     ecx, 16
+spline_%1_outlp:
+        lodsb ; al = *esi;
+        and     ax, 0fh
+        je      spline_%1_trans
+        or      al, bh
+        cmp     [BG_PriBuf + edi * 2], dx
+        jc      spline_%1_trans
+        mov     ax, [TextPal + eax * 2]
+        mov     [BG_LineBuf + edi * 2], ax
+        or      byte [Text_TrFlag + edi], 2
+        mov     [BG_PriBuf + edi * 2], dx
+spline_%1_trans:
+        inc     edi
+        loop    spline_%1_outlp
+        jmp     spline_%1_lpcnt
+spline_%1_fxflipy:
+        xor     al, 0f0h
+spline_%1_fxflipx:
+        lea     esi, [BGCHR16 + esi + eax + 15]
+        std
+        jmp     spline_%1_out
+spline_%1_ed:
+%endmacro
+
+* BG_DrawLineMcrX()がない
+-> done
+
+
