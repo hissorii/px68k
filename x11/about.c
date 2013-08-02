@@ -37,6 +37,7 @@
 #include "../icons/nekolgc.xpm"
 #include "../icons/opm.xpm"
 
+#if 0
 static void
 dialog_destroy(GtkWidget *w, GtkWidget **wp)
 {
@@ -150,3 +151,4 @@ create_about_dialog(void)
 	gtk_widget_show(table);
 	gtk_widget_show(dialog);
 }
+#endif

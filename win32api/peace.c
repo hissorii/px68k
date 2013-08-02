@@ -30,7 +30,9 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#if 0
 #include <sys/uio.h>
+#endif
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -295,7 +297,7 @@ GlobalAlloc(UINT flags, DWORD bytes)
 		p->psize = bytes;
 		p->refcount = 0;
 		p->type = HTYPE_MEMORY;
-		return p;
+		return p->p;
 	}
 	return 0;
 }

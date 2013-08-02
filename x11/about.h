@@ -28,6 +28,8 @@
 #ifndef	about_h__
 #define	about_h__
 
+#if 0
 void create_about_dialog(void);
+#endif
 
 #endif /* about_h__ */

@@ -143,7 +143,7 @@ set_modulepath(char *path, size_t len)
 	if (homepath == 0)
 		homepath = ".";
 
-	g_snprintf(path, len, "%s/%s", homepath, ".keropi");
+	snprintf(path, len, "%s/%s", homepath, ".keropi");
 	if (stat(path, &sb) < 0) {
 		if (mkdir(path, 0700) < 0) {
 			perror(path);
@@ -155,7 +155,7 @@ set_modulepath(char *path, size_t len)
 			return 1;
 		}
 	}
-	g_snprintf(winx68k_ini, sizeof(winx68k_ini), "%s/%s", path, "config");
+	snprintf(winx68k_ini, sizeof(winx68k_ini), "%s/%s", path, "config");
 	if (stat(winx68k_ini, &sb) >= 0) {
 		if (sb.st_mode & S_IFDIR) {
 			fprintf(stderr, "%s is directory.\n", winx68k_ini);
@@ -385,6 +385,7 @@ void SaveConfig(void)
 
 /* --------------- */
 
+#if 0
 typedef struct {
 	GtkWidget *fs;
 	int type;
@@ -1292,3 +1293,4 @@ file_selection(int type, char *title, char *defstr, void *arg)
 
 	gtk_widget_show(file_dialog);
 }
+#endif

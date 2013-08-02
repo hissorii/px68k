@@ -93,16 +93,22 @@ static int ClkUsed = 0;
 static int FrameSkipCount = 0;
 static int FrameSkipQueue = 0;
 
+#if 0
 GtkWidget *window;
 GtkWidget *main_vbox;
 GtkWidget *menubar;
 GtkWidget *drawarea;
+#endif
 
+#if 0
 static void set_window_size(GtkWidget *);
 static void set_icon_bitmap(GtkWidget *);
+#endif
+#if 0
 typedef void sigfunc(int);
 static sigfunc *setup_signal(int, sigfunc *);
 static void sighandler(int);
+#endif
 
 #ifdef __cplusplus
 };
@@ -131,14 +137,25 @@ WinX68k_SCSICheck(void)
 	};
 
 	DWORD *p;
+	WORD *p1, *p2;
 	int scsi;
 	int i;
 
 	scsi = 0;
 	for (i = 0x30600; i < 0x30c00; i += 2) {
+#if 0 // 4の倍数ではない偶数アドレスからの4バイト長アクセスはMIPSには無理
 		p = (DWORD *)(&IPL[i]);
 		if (*p == 0x0000fc00)
 			scsi = 1;
+#else
+		p1 = (WORD *)(&IPL[i]);
+		p2 = p1 + 1;
+		// xxx: works only for little endian guys
+		if (*p1 == 0xfc00 && *p2 == 0x0000) {
+			scsi = 1;
+			break;
+		}
+#endif
 	}
 
 	// SCSIモデルのとき
@@ -498,6 +515,7 @@ void WinX68k_Exec(void)
 	}
 }
 
+#if 0
 /*
  * signal handler
  */
@@ -522,7 +540,9 @@ sighandler(int signo)
 
 	gtk_main_quit();
 }
+#endif
 
+#if 0
 /*
  * misc
  */
@@ -544,7 +564,9 @@ set_icon_bitmap(GtkWidget *w)
 	    w->window, keropi_mono_bits, keropi_mono_width, keropi_mono_height);
 	gdk_window_set_icon(w->window, NULL, icon_pixmap, NULL);
 }
+#endif
 
+#if 0
 //
 // IDLE process
 //
@@ -589,14 +611,24 @@ uninstall_idle_process(void)
 	gtk_idle_remove(idle_id);
 	idle_id = -1;
 }
-
+#endif
 
 //
 // main
 //
-int
+#ifdef PSP
+
+#include <pspmoduleinfo.h>
+
+PSP_HEAP_SIZE_KB(-1024);
+
+extern "C" int
+SDL_main(int argc, char *argv[])
+#else
 main(int argc, char *argv[])
+#endif
 {
+	SDL_Event ev;
 	int sdlaudio = -1;
 
 	if (set_modulepath(winx68k_dir, sizeof(winx68k_dir)))
@@ -619,10 +651,16 @@ main(int argc, char *argv[])
 	}
 #endif
 	SDL_WM_SetCaption(APPNAME" SDL", NULL);
+#ifndef PSP
         if (SDL_SetVideoMode(FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, 16, SDL_SWSURFACE) == NULL) {
+#else
+        if (SDL_SetVideoMode(480, 272, 16, SDL_SWSURFACE) == NULL) {
+#endif
+		puts("SDL_SetVideoMode() failed");
 		return 1;
 	}
 
+#if 0
 	gtk_set_locale();
 	gtk_rc_add_default_file(".xkeropirc");
 	gtk_init(&argc, &argv);
@@ -634,9 +672,13 @@ main(int argc, char *argv[])
 	gtk_container_border_width(GTK_CONTAINER(main_vbox), 1);
 	gtk_container_add(GTK_CONTAINER(window), main_vbox);
 	gtk_widget_show(main_vbox);
+#endif
 
+#if 0
 	/* メニューバー	*/
 	menubar = create_menu(window);
+#endif
+#if 0
 	gtk_box_pack_start(GTK_BOX(main_vbox), menubar, FALSE, TRUE, 0);
 	gtk_widget_show(menubar);
 
@@ -654,7 +696,7 @@ main(int argc, char *argv[])
 	gtk_window_set_title(GTK_WINDOW(window), APPNAME);
 	set_window_size(window);
 	set_icon_bitmap(window);
-
+#endif
 	SplashFlag = 20;
 	SoundSampleRate = Config.SampleRate;
 
@@ -671,8 +713,10 @@ main(int argc, char *argv[])
 		return 1;
 	}
 
+#if 0
 	/* window 表示 */
 	gtk_widget_show(window);
+#endif
 
 	if (!WinX68k_Init()) {
 		WinX68k_Cleanup();
@@ -722,6 +766,10 @@ main(int argc, char *argv[])
 #endif
 	DSound_Play();
 
+#ifdef PSP
+	FDD_SetFD(0, "FDD1.XDF", 0);
+	FDD_SetFD(1, "FDD2.XDF", 0);
+#else
 	//SetCmdLineFD();	// コマンドラインでFD挿入を指示している場合
 	switch (argc) {
 	case 3:
@@ -730,7 +778,9 @@ main(int argc, char *argv[])
 		FDD_SetFD(0, argv[1], 0);
 		break;
 	}
+#endif
 
+#if 0
 	setup_signal(SIGINT, sighandler);
 	setup_signal(SIGTERM, sighandler);
 
@@ -738,6 +788,30 @@ main(int argc, char *argv[])
 	install_idle_process();
 	gtk_main();
 	uninstall_idle_process();
+#endif
+
+	puts("hoge");
+
+	while (1) {
+		// OPM_RomeoOut(Config.BufferSize * 5);
+		if (NoWaitMode || Timer_GetCount()) {
+			WinX68k_Exec();
+			if (SplashFlag) {
+				SplashFlag--;
+				if (SplashFlag == 0)
+					WinDraw_HideSplash();
+			}
+		}
+                while (SDL_PollEvent(&ev)) {
+                        switch (ev.type) {
+                        case SDL_QUIT:
+                                goto end_loop;
+                        case SDL_KEYDOWN:
+                                break;
+                        }
+                }
+        }
+end_loop:
 
 	Memory_WriteB(0xe8e00d, 0x31);	// SRAM書き込み許可
 	Memory_WriteD(0xed0040, Memory_ReadD(0xed0040)+1); // 積算稼働時間(min.)

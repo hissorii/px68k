@@ -26,6 +26,7 @@
  */
 
 #include <SDL.h>
+//#include <SDL_rotozoom.h>
 #include "common.h"
 #include "winx68k.h"
 #include "winui.h"
@@ -44,6 +45,7 @@
 extern BYTE Debug_Text, Debug_Grp, Debug_Sp;
 
 WORD *ScrBuf = 0;
+SDL_Surface *sdl_rgbsurface;
 
 int Draw_Opaque;
 int FullScreenFlag = 0;
@@ -65,6 +67,7 @@ WORD WinDraw_Pal16B, WinDraw_Pal16R, WinDraw_Pal16G;
 DWORD WindowX = 0;
 DWORD WindowY = 0;
 
+#if 0
 GdkImage *surface;
 GdkRectangle surface_rect = { 16, 16, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT };
 GdkImage *scaled_screen;
@@ -74,22 +77,26 @@ static int screen_mode;
 
 
 GdkImage *gdk_scale_image(GdkImage *dest, GdkImage *src, GdkRectangle *dest_rect, GdkRectangle *src_rect);
-
+#endif
 
 void WinDraw_InitWindowSize(WORD width, WORD height)
 {
 	static BOOL inited = FALSE;
 
 	if (!inited) {
+#if 0
 		GdkWindow *t, *root = window->window;
 
 		while ((t = gdk_window_get_parent(root)) != 0)
 			root = t;
 		gdk_window_get_size(root, &root_width, &root_height);
+#endif
 		inited = TRUE;
 	}
 
+#if 0
 	gdk_window_get_position(window->window, &winx, &winy);
+#endif
 
 	winw = width;
 	winh = height;
@@ -167,21 +174,30 @@ void WinDraw_ChangeSize(void)
 			WindowY = oldy = 512;
 	}
 
+#if 0
 	surface_rect.width = TextDotX;
 	surface_rect.height = TextDotY;
+#endif
 
 	if ((oldx == WindowX) && (oldy == WindowY))
 		return;
 
+#if 0
 	if ((TextDotX == WindowX) && (TextDotY == WindowY))
 		screen_mode = 0;
 	else {
 		screen_mode = 1;
+#endif
+
+#if 0
 		if (scaled_screen)
 			gdk_image_destroy(scaled_screen);
 		scaled_screen = gdk_image_new(GDK_IMAGE_FASTEST,
 		    surface->visual, WindowX, WindowY);
 	}
+#endif
+
+#if 0
 	if (surface) {
 		bzero(ScrBuf, FULLSCREEN_WIDTH * FULLSCREEN_HEIGHT * 2);
 #if 1
@@ -194,10 +210,13 @@ void WinDraw_ChangeSize(void)
 		    0, oldy, FULLSCREEN_WIDTH - oldx, FULLSCREEN_HEIGHT - oldy);
 #endif
 	}
+#endif
 
 	WinDraw_InitWindowSize((WORD)WindowX, (WORD)WindowY);
+#if 0
 	gtk_widget_set_usize(drawarea, winw, winh);
 	gtk_widget_set_uposition(window, winx, winy);
+#endif
 	StatBar_Show(Config.WindowFDDStat);
 	Mouse_ChangePos();
 }
@@ -220,38 +239,45 @@ void WinDraw_ChangeMode(int flag)
 
 void WinDraw_ShowSplash(void)
 {
-
+#if 0
 	gdk_draw_pixmap(pixmap,
 	    drawarea->style->fg_gc[GTK_WIDGET_STATE(drawarea)],
 	    splash_pixmap, 0, 0,
 	    768 - keropi_xpm_width, 512 - keropi_xpm_height,
 	    keropi_xpm_width, keropi_xpm_height);
+#endif
 }
 
 void WinDraw_HideSplash(void)
 {
-
+#if 0
 	gdk_draw_rectangle(pixmap, window->style->black_gc, TRUE, 0, 0,
 	    FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
 	Draw_DrawFlag = 1;
+#endif
 }
+
 
 int WinDraw_Init(void)
 {
+#if 0
 	GdkVisual *visual;
 	GdkColormap *colormap;
 	GdkBitmap *mask;
-
+#endif
 	SDL_Surface *sdl_surface;
 
 	WindowX = 768;
 	WindowY = 512;
 
+#if 0
 	if ((root_width < WindowX) || (root_height < WindowY)) {
 		fprintf(stderr, "No support resolution.\n");
 		return FALSE;
 	}
+#endif
 
+#if 0
 	visual = gtk_widget_get_visual(drawarea);
 
 	switch (visual->type) {
@@ -265,10 +291,11 @@ int WinDraw_Init(void)
 		fprintf(stderr, "No support visual class.\n");
 		return FALSE;
 	}
+#endif
 
 	sdl_surface = SDL_GetVideoSurface();
 	if (sdl_surface == NULL) {
-		g_message("can't create surface.");
+		fprintf(stderr, "can't create surface.\n");
 		return 1;
 	}
 
@@ -276,9 +303,18 @@ int WinDraw_Init(void)
 	WinDraw_Pal16G = sdl_surface->format->Gmask;
 	WinDraw_Pal16B = sdl_surface->format->Bmask;
 
-	ScrBuf = (WORD *)sdl_surface->pixels;
+	//	ScrBuf = (WORD *)sdl_surface->pixels;
+	sdl_rgbsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, 800, 512, 16, sdl_surface->format->Rmask, sdl_surface->format->Gmask, sdl_surface->format->Bmask, sdl_surface->format->Amask);
 
-	SDL_LockSurface(sdl_surface);
+	if (sdl_rgbsurface == 0) {
+		puts("ScrBuf allocate failed");
+		exit(1);
+	}
+	ScrBuf = sdl_rgbsurface->pixels;
+
+	printf("drawbuf: 0x%x, ScrBuf: 0x%x\n", sdl_surface->pixels, ScrBuf);
+
+	SDL_LockSurface(sdl_rgbsurface);
 	{
 //		printf("hoge\n");
 		int i;
@@ -286,8 +322,9 @@ int WinDraw_Init(void)
 			*(ScrBuf + i) = 0xffff;
 		}
 	}
-	SDL_UnlockSurface(sdl_surface);
+	SDL_UnlockSurface(sdl_rgbsurface);
 
+#if 0
 	pixmap = gdk_pixmap_new(drawarea->window,
 	    FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, visual->depth);
 	if (pixmap == NULL) {
@@ -296,13 +333,16 @@ int WinDraw_Init(void)
 	}
 	gdk_draw_rectangle(pixmap, window->style->black_gc, TRUE, 0, 0,
 	    FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
+#endif
 
+#if 0
 	/* けろぴーすぷらっしゅ用意 */
 	colormap = gtk_widget_get_colormap(window);
 	splash_pixmap = gdk_pixmap_colormap_create_from_xpm_d(NULL, colormap,
 	    &mask, NULL, keropi_xpm);
 	if (splash_pixmap == NULL)
 		g_error("Couldn't create replacement pixmap.");
+#endif
 
 	return TRUE;
 }
@@ -310,7 +350,7 @@ int WinDraw_Init(void)
 void
 WinDraw_Cleanup(void)
 {
-
+#if 0
 	if (splash_pixmap) {
 		gdk_pixmap_unref(splash_pixmap);
 		splash_pixmap = 0;
@@ -329,6 +369,7 @@ WinDraw_Cleanup(void)
 		ScrBuf = 0;
 	}
 	gdk_window_get_position(window->window, &winx, &winy);
+#endif
 }
 
 void
@@ -341,21 +382,92 @@ WinDraw_Redraw(void)
 void FASTCALL
 WinDraw_Draw(void)
 {
-	SDL_Surface *sdl_surface;
-	sdl_surface = SDL_GetVideoSurface();
-	SDL_UpdateRect(sdl_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
+	SDL_Surface *sdl_surface, *roto_surface;
+	SDL_Rect srcrect, dstrect;
+	int ret;
+#if 0 // PSPだとうまく動かない
+	roto_surface = rotozoomSurfaceXY(sdl_rgbsurface, 0, 0.3, 0.3, 0);
+	if (roto_surface == NULL) {
+		puts("rotozoom failed");
+	}
 
+	srcrect.x = srcrect.y = 200;
+	srcrect.w = 480, srcrect.h = 272;
+	dstrect.x = dstrect.y = 0;
+	dstrect.w = 480, dstrect.h = 272;
+
+	if (sdl_rgbsurface == NULL) {
+		puts("xxx sdl_rgbsurface not allocated yet");
+		return;
+	}
+	sdl_surface = SDL_GetVideoSurface();
+	if (sdl_surface == NULL) {
+		puts("xxx sdl_sururface not allocated yet");
+		return;
+	}
+	ret = SDL_BlitSurface(roto_surface, NULL, sdl_surface, NULL);
+	if (ret < 0) {
+		printf("SDL_BlitSurface() failed %d\n", ret);
+	}
+#else
+	int x, y;
+	DWORD c, *p, *p2, *dst, dummy;
+
+	sdl_surface = SDL_GetVideoSurface();
+
+#ifdef PSP
+#if 0 //縦横1/2拡大。未完成
+	p = ScrBuf;
+	p2 = ScrBuf + 800;
+	for (y = 0; y < 512 / 2; y += 2) {
+		dst = (DWORD *)(sdl_surface->pixels + 512 * 4 * y / 2);
+		p = ScrBuf + 800 * y;
+		p2 = p + 800;
+		for (x = 0; x < 800; x += 2) {
+			*dst++ = (*p++ + *p++ + *p2++ + *p2++) / 4;
+//			dummy = (*p++ + *p++ + *p2++ + *p2++) / 4;
+		}
+	}
+#else // とりあえず指定範囲内のみblit
+	// PSPのsdl_surfaceのバッファは幅512
+	p = ScrBuf;
+	dst = sdl_surface->pixels;
+	for (y = 0; y < 272; y++) {
+		p = ScrBuf + 800 * y;
+		// surface->pixelsはvoid *
+		dst = sdl_surface->pixels + 512 * 2 * y;
+		for (x = 0; x < 480; x++) {
+			*dst++ = *p++;
+		}
+	}
+#endif
+#else
+	ret = SDL_BlitSurface(sdl_rgbsurface, NULL, sdl_surface, NULL);
+	if (ret < 0) {
+		printf("SDL_BlitSurface() failed %d\n", ret);
+	}
+#endif
+#endif
+#ifdef PSP
+	SDL_UpdateRect(sdl_surface, 0, 0, 480, 272);
+#else
+	SDL_UpdateRect(sdl_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
+#endif
+
+#if 0
 	GtkWidget *w = (GtkWidget *)drawarea;
 	GdkDrawable *d = (GdkDrawable *)drawarea->window;
+#endif
 
 	FrameCount++;
-	if (!Draw_DrawFlag && is_installed_idle_process())
+	if (!Draw_DrawFlag/* && is_installed_idle_process()*/)
 		return;
 	Draw_DrawFlag = 0;
 
 	if (SplashFlag)
 		WinDraw_ShowSplash();
 
+#if 0
 	if (screen_mode == 0) {
 		gdk_draw_pixmap(d, w->style->fg_gc[GTK_WIDGET_STATE(w)],
 		    pixmap, 0, 0, 0, 0, TextDotX, TextDotY);
@@ -366,6 +478,7 @@ WinDraw_Draw(void)
 		    scaled_screen, 0, 0, 0, 0, WindowX, WindowY);
 #endif
 	}
+#endif
 }
 
 INLINE void WinDraw_DrawGrpLine(int opaq)
@@ -2273,15 +2386,15 @@ void WinDraw_DrawLine(void)
 #endif /* USE_ASM */
 	}
 
+#if 0
 	switch (screen_mode) {
 	case 0:
-#if 0
 		gdk_draw_image(pixmap,
 		    drawarea->style->fg_gc[GTK_WIDGET_STATE(drawarea)],
 		    surface, 16, 16 + VLINE, 0, VLINE, WindowX, 1);
-#endif
 		break;
 	}
+#endif
 }
 
 
@@ -2345,6 +2458,7 @@ gcd(unsigned int v0, unsigned int v1)
 #endif
 }
 
+#if 0
 static void expand16_fast(GdkImage *dest, GdkImage *src, GdkRectangle *dr, GdkRectangle *sr, int ratio[4]);
 
 GdkImage *
@@ -2447,3 +2561,4 @@ expand16_fast(GdkImage *dest, GdkImage *src, GdkRectangle *dr, GdkRectangle *sr,
 		}
 	}
 }
+#endif

@@ -33,14 +33,18 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#if 0
 #include <sys/uio.h>
+#endif
 
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
+#if 0
 #include <X11/Xlib.h>
+#endif
 
 #include "windows.h"
 #include "mmsystem.h"

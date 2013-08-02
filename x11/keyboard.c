@@ -57,7 +57,9 @@ Keyboard_Init(void)
 //	てーぶる類
 // ----------------------------------
 
+#if 0
 #include <gdk/gdkkeysyms.h>
+#endif
 
 #define	NC	0
 
@@ -336,6 +338,7 @@ BYTE KeyTableMaster[512] = {
 void
 Keyboard_KeyDown(DWORD wp)
 {
+#if 0
 	BYTE code;
 	BYTE newwp;
 
@@ -394,6 +397,7 @@ Keyboard_KeyDown(DWORD wp)
 			JoyKeyState |= JOY_TRG2;
 		break;
 	}
+#endif
 }
 
 // ----------------------------------
@@ -402,6 +406,7 @@ Keyboard_KeyDown(DWORD wp)
 void
 Keyboard_KeyUp(DWORD wp)
 {
+#if 0
 	BYTE code;
 	BYTE newwp;
 
@@ -456,6 +461,7 @@ Keyboard_KeyUp(DWORD wp)
 			JoyKeyState &= ~JOY_TRG2;
 		break;
 	}
+#endif
 }
 
 // ----------------------------------

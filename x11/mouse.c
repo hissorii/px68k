@@ -40,14 +40,17 @@ BYTE	MouseSW = 0;
 POINT	CursorPos;
 int	mousex = 0, mousey = 0;
 
+#if 0
 static GdkPixmap *cursor_pixmap;
 static GdkCursor *cursor;
 
 static void getmaincenter(GtkWidget *w, POINT *p);
 void gdk_window_set_pointer(GdkWindow *window, gint x, gint y);
+#endif
 
 void Mouse_Init(void)
 {
+#if 0
 	static gchar hide_cursor[16*16/8] = {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -70,6 +73,7 @@ void Mouse_Init(void)
 	MousePosX = (TextDotX / 2);
 	MousePosY = (TextDotY / 2);
 	MouseStat = 0;
+#endif
 }
 
 
@@ -78,7 +82,7 @@ void Mouse_Init(void)
 // ----------------------------------
 void Mouse_Event(DWORD wparam, DWORD lparam)
 {
-
+#if 0
 	if (MouseSW) {
 		switch (wparam) {
 		case 0:	// マウス移動
@@ -104,6 +108,7 @@ void Mouse_Event(DWORD wparam, DWORD lparam)
 			break;
 		}
 	}
+#endif
 }
 
 
@@ -112,6 +117,7 @@ void Mouse_Event(DWORD wparam, DWORD lparam)
 // ----------------------------------
 void Mouse_SetData(void)
 {
+#if 0
 	POINT pt;
 	int x, y;
 
@@ -152,6 +158,7 @@ void Mouse_SetData(void)
 		MouseX = 0;
 		MouseY = 0;
 	}
+#endif
 }
 
 
@@ -160,6 +167,7 @@ void Mouse_SetData(void)
 // ----------------------------------
 void Mouse_StartCapture(int flag)
 {
+#if 0
 	GtkWidget *w = window;
 	POINT pt;
 
@@ -182,20 +190,23 @@ void Mouse_StartCapture(int flag)
 
 		MouseSW = 0;
 	}
+#endif
 }
 
 
 void Mouse_ChangePos(void)
 {
-
+#if 0
 	if (MouseSW) {
 		POINT pt;
 
 		getmaincenter(window, &pt);
 		gdk_window_set_pointer(window->window, pt.x, pt.y);
 	}
+#endif
 }
 
+#if 0
 static void
 getmaincenter(GtkWidget *w, POINT *p)
 {
@@ -241,3 +252,4 @@ gdk_window_set_pointer(GdkWindow *window, gint x, gint y)
 	    0, 0, 0, 0, x, y);
 }
 #endif	/* GTK_MAJOR_VERSION == 1 */
+#endif

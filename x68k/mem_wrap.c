@@ -574,7 +574,8 @@ AdrError(DWORD adr, DWORD unknown)
 
 	(void)adr;
 	(void)unknown;
-	assert(0);
+	printf("AdrError: %d\n", adr);
+	//	assert(0);
 }
 
 void
@@ -584,6 +585,7 @@ BusError(DWORD adr, DWORD unknown)
 	(void)adr;
 	(void)unknown;
 
+	printf("BusError: %d\n", adr);
 	BusErrHandling = 1;
 	//assert(0);
 }

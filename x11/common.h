@@ -15,6 +15,13 @@
 #define	LABEL
 #define	__stdcall
 
+#ifdef PSP
+#ifdef MAX_PATH
+#undef MAX_PATH
+#endif
+#define MAX_PATH 256
+#endif
+
 typedef unsigned char	UINT8;
 typedef unsigned short	UINT16;
 typedef unsigned int	UINT32;

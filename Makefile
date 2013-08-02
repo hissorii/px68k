@@ -1087,7 +1087,7 @@ GTK_LIB=	`$(GTK_CONFIG) --libs`
 # SDL 1.2
 SDL_CONFIG?=	sdl-config
 SDL_INCLUDE=	`$(SDL_CONFIG) --cflags`
-SDL_LIB=	`$(SDL_CONFIG) --libs`
+SDL_LIB=	`$(SDL_CONFIG) --libs` -lSDL_gfx
 
 NASM?= nasm
 NASMFLAGS= -i ./x68k -i ./x11

@@ -11,10 +11,12 @@ void WinUI_Init(void);
 #ifndef _winx68k_gtkui_h
 #define _winx68k_gtkui_h
 
+#if 0
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
 
 GtkWidget *create_menu(GtkWidget *w);
+#endif
 
 #endif //winx68k_gtkui_h
 

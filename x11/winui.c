@@ -93,6 +93,7 @@ extern  int		dmatrace;
 
 	DWORD		LastClock[4] = {0, 0, 0, 0};
 
+#if 0
 #define	EVENT_MASK \
 			(GDK_BUTTON1_MOTION_MASK	\
 			 | GDK_BUTTON2_MOTION_MASK	\
@@ -124,6 +125,7 @@ typedef struct {
 	int type;
 	void *arg;
 } file_selection_t;
+#endif
 
 /******************************************************************************
  * init
@@ -131,7 +133,7 @@ typedef struct {
 void
 WinUI_Init(void)
 {
-
+#if 0
 	/*
 	 * ハンドラ設定
 	 */
@@ -160,8 +162,10 @@ WinUI_Init(void)
 	 * タイトルバー変更用タイマ
 	 */
 	hTimerID = gtk_timeout_add(500, wm_timer, (gpointer)window);
+#endif
 }
 
+#if 0
 /******************************************************************************
  * イベントハンドラ
  ******************************************************************************/
@@ -473,8 +477,9 @@ static void select_item(char *name);
 static void xmenu_select_framerate(int kind);
 static void xmenu_select_stretch(int kind);
 //static void xmenu_select_xvimode(int kind);
+#endif
 
-
+#if 0
 GtkWidget *
 create_menu(GtkWidget *w)
 {
@@ -510,7 +515,9 @@ create_menu(GtkWidget *w)
 
 	return gtk_item_factory_get_widget(item_factory, "<main>");
 }
+#endif
 
+#if 0
 static void
 disable_unused_items(void)
 {
@@ -1015,3 +1022,4 @@ file_selection(int type, char *title, char *defstr, void *arg)
 
 	gtk_widget_show(file_dialog);
 }
+#endif
