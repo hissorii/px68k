@@ -1,0 +1,75 @@
+ポータブルX68000エミュレータ
+PX68K ( Portable (x)keropi PRO-68K )
+
+ソースを自分でコンパイルする際に役に立つかもしれないドキュメント
+                                                          2013/08/07 ひっそりぃ
+
+■開発環境について
+
+・UNIX系
+
+  Ubuntu Linux 13.04
+  SDL 1.2
+
+・PSP
+
+  Ubuntu Linux 13.04
+  psptoolchain
+  psplibraries (SDL 1.2.9)
+
+・Android
+
+  Ubuntu Linux 13.04
+  SDL2-2.0.0 (http://www.libsdl.org/ から入手)
+  android-ndk-r9-linux-x86 (Android NDK)
+  adt-bundle-linux-x86-20130729 (Android SDK)
+
+■コンパイルについて
+
+・UNIX系
+
+  $ make
+
+・PSP
+
+  $ make -f Makefile.psp
+
+・Android
+
+  * SDL2-2.0.0.zip 内の README-android.txt に従う。
+    補足として、android-project/jni/src/Android.mk はpx68kリポジトリの
+    Android.mkを使う。ファイルを置換するなりシンボリックリンクはるなりする。
+
+  * Android.mk の PX68K_PATH を自分の環境にあわせること。
+
+    ちなみにhissoriiは以下の様なディレクトリ構造になっている
+    PX68Kソース  ~/src/px68k
+    PX68KAndroid ~/src/px68k-android/jni/src/Android.mk
+
+  * Android.mk の LOCAL_C_INCLUDES　で、ndkのディレクトリを指定している
+    箇所は、自分の環境にあわせて書き直すこと
+
+  * まずはnative codeのコンパイル
+
+    android-project/jni/srcディレクトリに移動してから、
+    $ /usr/local/android-ndk-r9/ndk-build (ndkを/usr/local/に入れた場合)
+
+  * 次にapkの作成
+
+    android-projectディレクトリに移動してから、
+    $ ant release (またはant debug)
+
+    で、android-project/bin/ に .apk ファイルが作成される
+
+    README-android.txtに記載があるが、antを実行するためには、
+    android-project/local.propatiesにsdkのパスを指定しておくこと。
+    ひっそりぃの設定は以下。
+    hissorii@ubuntu:~/src/px68k-android$ cat local.properties
+    sdk.dir=/usr/local/adt-bundle-linux-x86-20130729/sdk
+
+    antで作成したrelease版は.apkインストールではじかれるな。うーむ。
+    とりあえずeclipse上で[Run]->[Run]で作成される.apkだと大丈夫。
+    よくわからん。
+
+
+以上

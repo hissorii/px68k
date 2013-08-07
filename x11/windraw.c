@@ -40,12 +40,18 @@
 #include "status.h"
 #include "tvram.h"
 
+#ifdef ANDROID
+#include <android/log.h>
+#endif
+
 #include "../icons/keropi.xpm"
 
 extern BYTE Debug_Text, Debug_Grp, Debug_Sp;
 
 WORD *ScrBuf = 0;
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
 SDL_Surface *sdl_rgbsurface;
+#endif
 
 int Draw_Opaque;
 int FullScreenFlag = 0;
@@ -77,6 +83,10 @@ static int screen_mode;
 
 
 GdkImage *gdk_scale_image(GdkImage *dest, GdkImage *src, GdkRectangle *dest_rect, GdkRectangle *src_rect);
+#endif
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+extern SDL_Window *sdl_window;
 #endif
 
 void WinDraw_InitWindowSize(WORD width, WORD height)
@@ -293,16 +303,32 @@ int WinDraw_Init(void)
 	}
 #endif
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	sdl_surface = SDL_GetWindowSurface(sdl_window);
+	__android_log_print(ANDROID_LOG_DEBUG,"Tag","BitsPP: %d BytesPP: %d",sdl_surface->format->BitsPerPixel, sdl_surface->format->BytesPerPixel);
+	__android_log_print(ANDROID_LOG_DEBUG,"Tag","Rmask: %x GMask: %x BMask: %x",sdl_surface->format->Rmask, sdl_surface->format->Gmask, sdl_surface->format->Bmask);
+#else
 	sdl_surface = SDL_GetVideoSurface();
+#endif
 	if (sdl_surface == NULL) {
 		fprintf(stderr, "can't create surface.\n");
 		return 1;
 	}
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	WinDraw_Pal16R = 0xf800;
+	WinDraw_Pal16G = 0x07e0;
+	WinDraw_Pal16B = 0x001f;
+#else
 	WinDraw_Pal16R = sdl_surface->format->Rmask;
 	WinDraw_Pal16G = sdl_surface->format->Gmask;
 	WinDraw_Pal16B = sdl_surface->format->Bmask;
+	printf("R: %x, G: %x, B: %x\n", WinDraw_Pal16R, WinDraw_Pal16G, WinDraw_Pal16B);
+#endif
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	ScrBuf = malloc(800*600*2);
+#else
 	//	ScrBuf = (WORD *)sdl_surface->pixels;
 	sdl_rgbsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, 800, 512, 16, sdl_surface->format->Rmask, sdl_surface->format->Gmask, sdl_surface->format->Bmask, sdl_surface->format->Amask);
 
@@ -311,18 +337,23 @@ int WinDraw_Init(void)
 		exit(1);
 	}
 	ScrBuf = sdl_rgbsurface->pixels;
+#endif
 
 	printf("drawbuf: 0x%x, ScrBuf: 0x%x\n", sdl_surface->pixels, ScrBuf);
 
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_LockSurface(sdl_rgbsurface);
+#endif
 	{
 //		printf("hoge\n");
 		int i;
-		for (i = 0; i < 80*100; i++) {
+		for (i = 0; i < 80; i++) {
 			*(ScrBuf + i) = 0xffff;
 		}
 	}
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_UnlockSurface(sdl_rgbsurface);
+#endif
 
 #if 0
 	pixmap = gdk_pixmap_new(drawarea->window,
@@ -410,37 +441,103 @@ WinDraw_Draw(void)
 		printf("SDL_BlitSurface() failed %d\n", ret);
 	}
 #else
-	int x, y;
-	DWORD c, *p, *p2, *dst, dummy;
+	int x, y, Bpp;
+	WORD c, *p, *p2, dummy, *dst16;
+	DWORD *dst32, dat32;
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	sdl_surface = SDL_GetWindowSurface(sdl_window);
+#else
 	sdl_surface = SDL_GetVideoSurface();
+#endif
 
 #ifdef PSP
 #if 0 //縦横1/2拡大。未完成
 	p = ScrBuf;
 	p2 = ScrBuf + 800;
 	for (y = 0; y < 512 / 2; y += 2) {
-		dst = (DWORD *)(sdl_surface->pixels + 512 * 4 * y / 2);
+		dst16 = sdl_surface->pixels + 512 * 4 * y / 2;
 		p = ScrBuf + 800 * y;
 		p2 = p + 800;
 		for (x = 0; x < 800; x += 2) {
-			*dst++ = (*p++ + *p++ + *p2++ + *p2++) / 4;
+			*dst16++ = (*p++ + *p++ + *p2++ + *p2++) / 4;
 //			dummy = (*p++ + *p++ + *p2++ + *p2++) / 4;
 		}
 	}
 #else // とりあえず指定範囲内のみblit
 	// PSPのsdl_surfaceのバッファは幅512
 	p = ScrBuf;
-	dst = sdl_surface->pixels;
+	dst16 = sdl_surface->pixels;
 	for (y = 0; y < 272; y++) {
 		p = ScrBuf + 800 * y;
 		// surface->pixelsはvoid *
-		dst = sdl_surface->pixels + 512 * 2 * y;
+		dst16 = sdl_surface->pixels + 512 * 2 * y;
 		for (x = 0; x < 480; x++) {
-			*dst++ = *p++;
+			*dst16++ = *p++;
 		}
 	}
 #endif
+#else
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	p = ScrBuf;
+	dst32 = sdl_surface->pixels;
+	static int oldtextx = 0, oldtexty = 0;
+	if (oldtextx != TextDotX) {
+		oldtextx = TextDotX;
+		__android_log_print(ANDROID_LOG_DEBUG,"Tag","TextDotX: %d", TextDotX);
+	}
+	if (oldtexty != TextDotY) {
+		oldtexty = TextDotY;
+		__android_log_print(ANDROID_LOG_DEBUG,"Tag","TextDotY: %d", TextDotY);
+	}
+
+	Bpp = sdl_surface->format->BytesPerPixel;
+	// 2倍に拡大する
+	if (TextDotX <= 256 && TextDotY <= 256) {
+		for (y = 0; y < 256; y++) {
+			p = ScrBuf + 800 * y;
+			// surface->pixelsはvoid *
+			dst32 = dst16 = sdl_surface->pixels + sdl_surface->w * Bpp * y * 2;
+			for (x = 0; x < 256; x++) {
+				if  (Bpp == 4) {
+					dat32 = (DWORD)(*p & 0xf800) << 8 | (*p & 0x07e0) << 5 | (*p & 0x001f) << 3;
+					*dst32++ = dat32;
+					*dst32 = dat32;
+					dst32 += sdl_surface->w;
+					*dst32-- = dat32;
+					*dst32 = dat32;
+					p++;
+					dst32 -= sdl_surface->w;
+					dst32 += 2;
+				} else if (Bpp == 2) {
+					*dst16++ = *p;
+					*dst16 = *p;
+					dst16 += sdl_surface->w;
+					*dst16-- = *p;
+					*dst16 = *p;
+					p++;
+					dst16 -= sdl_surface->w;
+					dst16 += 2;
+				} else {
+					// xxx 未サポート
+				}
+			}
+		}
+	} else {
+		for (y = 0; y < 512; y++) {
+			p = ScrBuf + 800 * y;
+			// surface->pixelsはvoid *
+			dst32 = dst16 = sdl_surface->pixels + sdl_surface->w * Bpp * y;
+			for (x = 0; x < 800; x++) {
+				if (Bpp == 4) {
+					*dst32++ = (DWORD)(*p & 0xf800) << 8 | (*p & 0x07e0) << 5 | (*p & 0x001f) << 3;
+				} else if (Bpp == 2) {
+					*dst16++ = *p;
+				}
+				p++;
+			}
+		}
+	}
 #else
 	ret = SDL_BlitSurface(sdl_rgbsurface, NULL, sdl_surface, NULL);
 	if (ret < 0) {
@@ -448,10 +545,15 @@ WinDraw_Draw(void)
 	}
 #endif
 #endif
+#endif
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	SDL_UpdateWindowSurface(sdl_window);
+#else
 #ifdef PSP
 	SDL_UpdateRect(sdl_surface, 0, 0, 480, 272);
 #else
 	SDL_UpdateRect(sdl_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
+#endif
 #endif
 
 #if 0

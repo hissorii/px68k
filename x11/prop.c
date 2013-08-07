@@ -139,6 +139,12 @@ set_modulepath(char *path, size_t len)
 	struct stat sb;
 	char *homepath;
 
+#ifdef ANDROID // xxx ちゃんと作ろう
+        sprintf(path, "/sdcard/px68k");
+        sprintf(winx68k_ini, "/sdcard/px68k/config");
+        return 0;
+#endif
+
 	homepath = getenv("HOME");
 	if (homepath == 0)
 		homepath = ".";

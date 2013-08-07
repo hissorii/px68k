@@ -18,7 +18,7 @@ extern "C" {
 #include "winui.h"
 #include "m68000.h" // xxx これはいずれいらなくなるはず
 #include "../m68000/m68000.h"
-#include "memory.h"
+#include "../x68k/memory.h"
 #include "mfp.h"
 #include "opm.h"
 #include "bg.h"
@@ -44,6 +44,10 @@ extern "C" {
 #include "gvram.h"
 #include "tvram.h"
 #include "mouse.h"
+
+#ifdef ANDROID
+#include <android/log.h>
+#endif
 
 #include "dswin.h"
 #include "fmg_wrap.h"
@@ -112,6 +116,11 @@ static void sighandler(int);
 
 #ifdef __cplusplus
 };
+#endif
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+SDL_Window *sdl_window;
+SDL_DisplayMode sdl_dispmode;
 #endif
 
 void
@@ -625,11 +634,15 @@ PSP_HEAP_SIZE_KB(-1024);
 extern "C" int
 SDL_main(int argc, char *argv[])
 #else
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 #endif
 {
 	SDL_Event ev;
 	int sdlaudio = -1;
+
+#ifdef ANDROID
+	__android_log_write(ANDROID_LOG_DEBUG,"Tag","333");
+#endif
 
 	if (set_modulepath(winx68k_dir, sizeof(winx68k_dir)))
 		return 1;
@@ -650,6 +663,8 @@ main(int argc, char *argv[])
 		sdlaudio = 0;
 	}
 #endif
+
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_WM_SetCaption(APPNAME" SDL", NULL);
 #ifndef PSP
         if (SDL_SetVideoMode(FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, 16, SDL_SWSURFACE) == NULL) {
@@ -659,6 +674,25 @@ main(int argc, char *argv[])
 		puts("SDL_SetVideoMode() failed");
 		return 1;
 	}
+#else
+	sdl_window = SDL_CreateWindow(APPNAME" SDL", 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, 0);
+	if (sdl_window == NULL) {
+		__android_log_print(ANDROID_LOG_DEBUG,"Tag","sdl_window: %ld", sdl_window);
+	}
+
+#if 0
+	__android_log_write(ANDROID_LOG_DEBUG,"Tag","before SDL_SetWindowDisplaymode()");
+	sdl_dispmode.format = SDL_PIXELFORMAT_RGB555;
+	sdl_dispmode.w = FULLSCREEN_WIDTH;
+	sdl_dispmode.h = FULLSCREEN_HEIGHT;
+	sdl_dispmode.refresh_rate = 0;
+	sdl_dispmode.driverdata = 0;
+	if (SDL_SetWindowDisplayMode(sdl_window, &sdl_dispmode) < 0) {
+		__android_log_write(ANDROID_LOG_DEBUG,"Tag","SDL_SetWindowDisplaymode() failed");
+		return 1;
+	}
+#endif
+#endif
 
 #if 0
 	gtk_set_locale();
@@ -766,9 +800,12 @@ main(int argc, char *argv[])
 #endif
 	DSound_Play();
 
-#ifdef PSP
+#if defined(PSP)
 	FDD_SetFD(0, "FDD1.XDF", 0);
 	FDD_SetFD(1, "FDD2.XDF", 0);
+#elif defined(ANDROID) // xxx 決め打ちはないやろー
+	FDD_SetFD(0, "/sdcard/px68k/FDD1.XDF", 0);
+	FDD_SetFD(1, "/sdcard/px68k/FDD2.XDF", 0);
 #else
 	//SetCmdLineFD();	// コマンドラインでFD挿入を指示している場合
 	switch (argc) {
