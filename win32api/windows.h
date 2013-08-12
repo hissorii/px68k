@@ -1,5 +1,3 @@
-/*	$Id: windows.h,v 1.1.1.1 2003/04/28 18:06:55 nonaka Exp $	*/
-
 #ifndef	__NP2_WIN32EMUL_H__
 #define	__NP2_WIN32EMUL_H__
 

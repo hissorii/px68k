@@ -1,5 +1,3 @@
-/*	$Id: dswin.c,v 1.3 2010/11/07 14:22:50 nonaka Exp $	*/
-
 /* 
  * Copyright (c) 2003 NONAKA Kimihiro
  * All rights reserved.

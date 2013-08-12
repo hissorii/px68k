@@ -1,5 +1,3 @@
-/*	$Id: fake.c,v 1.2 2003/12/05 18:07:15 nonaka Exp $	*/
-
 /* 
  * Copyright (c) 2003 NONAKA Kimihiro
  * All rights reserved.
@@ -33,18 +31,11 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#if 0
-#include <sys/uio.h>
-#endif
 
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#if 0
-#include <X11/Xlib.h>
-#endif
 
 #include "windows.h"
 #include "mmsystem.h"

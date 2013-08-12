@@ -1,5 +1,3 @@
-/*	$Id: keyboard.c,v 1.5 2008/11/09 14:46:46 nonaka Exp $	*/
-
 /* 
  * Copyright (c) 2003,2008 NONAKA Kimihiro
  * All rights reserved.

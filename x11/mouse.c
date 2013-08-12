@@ -1,5 +1,3 @@
-/*	$Id: mouse.c,v 1.5 2008/11/08 02:24:18 nonaka Exp $	*/
-
 /* 
  * Copyright (c) 2003,2008 NONAKA Kimihiro
  * All rights reserved.

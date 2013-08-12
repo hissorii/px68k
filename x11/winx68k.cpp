@@ -1,5 +1,3 @@
-/*	$Id: winx68k.cpp,v 1.2 2003/12/05 18:07:17 nonaka Exp $	*/
-
 #ifdef  __cplusplus
 extern "C" {
 #endif 
@@ -99,23 +97,6 @@ DWORD skippedframes = 0;
 static int ClkUsed = 0;
 static int FrameSkipCount = 0;
 static int FrameSkipQueue = 0;
-
-#if 0
-GtkWidget *window;
-GtkWidget *main_vbox;
-GtkWidget *menubar;
-GtkWidget *drawarea;
-#endif
-
-#if 0
-static void set_window_size(GtkWidget *);
-static void set_icon_bitmap(GtkWidget *);
-#endif
-#if 0
-typedef void sigfunc(int);
-static sigfunc *setup_signal(int, sigfunc *);
-static void sighandler(int);
-#endif
 
 #ifdef __cplusplus
 };
@@ -527,104 +508,6 @@ void WinX68k_Exec(void)
 	}
 }
 
-#if 0
-/*
- * signal handler
- */
-static sigfunc *
-setup_signal(int signo, sigfunc *func)
-{
-	struct sigaction act, oact;
-
-	act.sa_handler = func;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-	if (sigaction(signo, &act, &oact) < 0)
-		return SIG_ERR;
-	return oact.sa_handler;
-}
-
-static void
-sighandler(int signo)
-{
-
-	UNUSED(signo);
-
-	gtk_main_quit();
-}
-#endif
-
-#if 0
-/*
- * misc
- */
-static void
-set_window_size(GtkWidget *w)
-{
-
-	/* リサイズ不可 */
-	gtk_window_set_policy(GTK_WINDOW(w), FALSE, FALSE, TRUE);
-}
-
-static void
-set_icon_bitmap(GtkWidget *w)
-{
-	GdkPixmap *icon_pixmap;
-
-	gdk_window_set_icon_name(w->window, APPNAME);
-	icon_pixmap = gdk_bitmap_create_from_data(
-	    w->window, keropi_mono_bits, keropi_mono_width, keropi_mono_height);
-	gdk_window_set_icon(w->window, NULL, icon_pixmap, NULL);
-}
-#endif
-
-#if 0
-//
-// IDLE process
-//
-static gint
-idle_process_splash(gpointer *p)
-{
-
-	UNUSED(p);
-
-	// OPM_RomeoOut(Config.BufferSize * 5);
-	if (NoWaitMode || Timer_GetCount()) {
-		WinX68k_Exec();
-		if (SplashFlag) {
-			SplashFlag--;
-			if (SplashFlag == 0)
-				WinDraw_HideSplash();
-		}
-	}
-	return TRUE;
-}
-
-static int idle_id = -1;
-
-BOOL
-is_installed_idle_process(void)
-{
-
-	return (idle_id == -1) ? FALSE : TRUE;
-}
-
-void
-install_idle_process(void)
-{
-
-	idle_id = gtk_idle_add((GtkFunction)idle_process_splash, NULL);
-}
-
-void
-uninstall_idle_process(void)
-{
-
-	gtk_idle_remove(idle_id);
-	idle_id = -1;
-}
-#endif
-
 //
 // main
 //
@@ -710,56 +593,11 @@ int main(int argc, char *argv[])
 	glOrthof(0, 800, 600, 0, -1, 1);
 	//  glOrthof(0, 1024, 0, 1024, -1, 1);
 	glMatrixMode(GL_MODELVIEW);
-#if 0
-	__android_log_write(ANDROID_LOG_DEBUG,"Tag","before SDL_SetWindowDisplaymode()");
-	sdl_dispmode.format = SDL_PIXELFORMAT_RGB555;
-	sdl_dispmode.w = FULLSCREEN_WIDTH;
-	sdl_dispmode.h = FULLSCREEN_HEIGHT;
-	sdl_dispmode.refresh_rate = 0;
-	sdl_dispmode.driverdata = 0;
-	if (SDL_SetWindowDisplayMode(sdl_window, &sdl_dispmode) < 0) {
-		__android_log_write(ANDROID_LOG_DEBUG,"Tag","SDL_SetWindowDisplaymode() failed");
-		return 1;
-	}
-#endif
-#endif
-
-#if 0
-	gtk_set_locale();
-	gtk_rc_add_default_file(".xkeropirc");
-	gtk_init(&argc, &argv);
-
-	/* ウィンドウの作成 */
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-
-	main_vbox = gtk_vbox_new(FALSE, 2);
-	gtk_container_border_width(GTK_CONTAINER(main_vbox), 1);
-	gtk_container_add(GTK_CONTAINER(window), main_vbox);
-	gtk_widget_show(main_vbox);
 #endif
 
 #if 0
 	/* メニューバー	*/
 	menubar = create_menu(window);
-#endif
-#if 0
-	gtk_box_pack_start(GTK_BOX(main_vbox), menubar, FALSE, TRUE, 0);
-	gtk_widget_show(menubar);
-
-	/* 画面領域 */
-	drawarea = gtk_drawing_area_new();
-	gtk_drawing_area_size(GTK_DRAWING_AREA(drawarea),
-	    FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
-	gtk_box_pack_start(GTK_BOX(main_vbox), drawarea, FALSE, TRUE, 0);
-	gtk_widget_show(drawarea);
-
-	gtk_widget_realize(window);
-	gtk_widget_set_uposition(GTK_WIDGET(window), winx, winy);
-
-	/* タイトルやらアイコンやらのセットアップ */
-	gtk_window_set_title(GTK_WINDOW(window), APPNAME);
-	set_window_size(window);
-	set_icon_bitmap(window);
 #endif
 	SplashFlag = 20;
 	SoundSampleRate = Config.SampleRate;
@@ -776,11 +614,6 @@ int main(int argc, char *argv[])
 		Error("Error: Can't init screen.\n");
 		return 1;
 	}
-
-#if 0
-	/* window 表示 */
-	gtk_widget_show(window);
-#endif
 
 	if (!WinX68k_Init()) {
 		WinX68k_Cleanup();
@@ -846,18 +679,6 @@ int main(int argc, char *argv[])
 		break;
 	}
 #endif
-
-#if 0
-	setup_signal(SIGINT, sighandler);
-	setup_signal(SIGTERM, sighandler);
-
-	/* メインループ */
-	install_idle_process();
-	gtk_main();
-	uninstall_idle_process();
-#endif
-
-	puts("hoge");
 
 	while (1) {
 		// OPM_RomeoOut(Config.BufferSize * 5);

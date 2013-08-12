@@ -1,5 +1,3 @@
-/*	$Id: prop.c,v 1.4 2008/11/17 12:02:08 nonaka Exp $	*/
-
 /* 
  * Copyright (c) 2003 NONAKA Kimihiro
  * All rights reserved.

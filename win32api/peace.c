@@ -1,5 +1,3 @@
-/*	$Id: peace.c,v 1.4 2008/11/17 12:24:18 nonaka Exp $	*/
-
 /*
  * Copyright 2000 Masaru OKI
  * All rights reserved.
@@ -30,9 +28,6 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#if 0
-#include <sys/uio.h>
-#endif
 
 #include <fcntl.h>
 #include <stdio.h>

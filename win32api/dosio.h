@@ -1,5 +1,3 @@
-/*	$Id: dosio.h,v 1.1.1.1 2003/04/28 18:06:55 nonaka Exp $	*/
-
 /* 
  * Copyright (c) 2003 NONAKA Kimihiro
  * All rights reserved.

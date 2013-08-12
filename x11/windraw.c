@@ -1,5 +1,3 @@
-/*	$Id: windraw.c,v 1.3 2008/11/08 01:42:42 nonaka Exp $	*/
-
 /* 
  * Copyright (c) 2003 NONAKA Kimihiro
  * All rights reserved.
@@ -80,18 +78,6 @@ DWORD WindowY = 0;
 GLuint texid = 0;
 #endif
 
-#if 0
-GdkImage *surface;
-GdkRectangle surface_rect = { 16, 16, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT };
-GdkImage *scaled_screen;
-GdkPixmap *pixmap;
-GdkPixmap *splash_pixmap;
-static int screen_mode;
-
-
-GdkImage *gdk_scale_image(GdkImage *dest, GdkImage *src, GdkRectangle *dest_rect, GdkRectangle *src_rect);
-#endif
-
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 extern SDL_Window *sdl_window;
 #endif
@@ -101,19 +87,8 @@ void WinDraw_InitWindowSize(WORD width, WORD height)
 	static BOOL inited = FALSE;
 
 	if (!inited) {
-#if 0
-		GdkWindow *t, *root = window->window;
-
-		while ((t = gdk_window_get_parent(root)) != 0)
-			root = t;
-		gdk_window_get_size(root, &root_width, &root_height);
-#endif
 		inited = TRUE;
 	}
-
-#if 0
-	gdk_window_get_position(window->window, &winx, &winy);
-#endif
 
 	winw = width;
 	winh = height;
@@ -191,49 +166,10 @@ void WinDraw_ChangeSize(void)
 			WindowY = oldy = 512;
 	}
 
-#if 0
-	surface_rect.width = TextDotX;
-	surface_rect.height = TextDotY;
-#endif
-
 	if ((oldx == WindowX) && (oldy == WindowY))
 		return;
 
-#if 0
-	if ((TextDotX == WindowX) && (TextDotY == WindowY))
-		screen_mode = 0;
-	else {
-		screen_mode = 1;
-#endif
-
-#if 0
-		if (scaled_screen)
-			gdk_image_destroy(scaled_screen);
-		scaled_screen = gdk_image_new(GDK_IMAGE_FASTEST,
-		    surface->visual, WindowX, WindowY);
-	}
-#endif
-
-#if 0
-	if (surface) {
-		bzero(ScrBuf, FULLSCREEN_WIDTH * FULLSCREEN_HEIGHT * 2);
-#if 1
-		gdk_draw_rectangle(pixmap, window->style->black_gc, TRUE,
-		    0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
-#else
-		gdk_draw_rectangle(pixmap, window->style->black_gc, TRUE,
-		    oldx, 0, FULLSCREEN_WIDTH - oldx, FULLSCREEN_HEIGHT);
-		gdk_draw_rectangle(pixmap, window->style->black_gc, TRUE,
-		    0, oldy, FULLSCREEN_WIDTH - oldx, FULLSCREEN_HEIGHT - oldy);
-#endif
-	}
-#endif
-
 	WinDraw_InitWindowSize((WORD)WindowX, (WORD)WindowY);
-#if 0
-	gtk_widget_set_usize(drawarea, winw, winh);
-	gtk_widget_set_uposition(window, winx, winy);
-#endif
 	StatBar_Show(Config.WindowFDDStat);
 	Mouse_ChangePos();
 }
@@ -256,60 +192,20 @@ void WinDraw_ChangeMode(int flag)
 
 void WinDraw_ShowSplash(void)
 {
-#if 0
-	gdk_draw_pixmap(pixmap,
-	    drawarea->style->fg_gc[GTK_WIDGET_STATE(drawarea)],
-	    splash_pixmap, 0, 0,
-	    768 - keropi_xpm_width, 512 - keropi_xpm_height,
-	    keropi_xpm_width, keropi_xpm_height);
-#endif
 }
 
 void WinDraw_HideSplash(void)
 {
-#if 0
-	gdk_draw_rectangle(pixmap, window->style->black_gc, TRUE, 0, 0,
-	    FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
-	Draw_DrawFlag = 1;
-#endif
 }
 
 
 int WinDraw_Init(void)
 {
-#if 0
-	GdkVisual *visual;
-	GdkColormap *colormap;
-	GdkBitmap *mask;
-#endif
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_Surface *sdl_surface;
 #endif
 	WindowX = 768;
 	WindowY = 512;
-
-#if 0
-	if ((root_width < WindowX) || (root_height < WindowY)) {
-		fprintf(stderr, "No support resolution.\n");
-		return FALSE;
-	}
-#endif
-
-#if 0
-	visual = gtk_widget_get_visual(drawarea);
-
-	switch (visual->type) {
-	case GDK_VISUAL_TRUE_COLOR:
-		break;
-	case GDK_VISUAL_DIRECT_COLOR:
-		if (visual->depth >= 15)
-			break;
-		/* FALLTHROUGH */
-	default:
-		fprintf(stderr, "No support visual class.\n");
-		return FALSE;
-	}
-#endif
 
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
 	sdl_surface = SDL_GetVideoSurface();
@@ -372,52 +268,12 @@ int WinDraw_Init(void)
 	SDL_UnlockSurface(sdl_rgbsurface);
 #endif
 
-#if 0
-	pixmap = gdk_pixmap_new(drawarea->window,
-	    FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, visual->depth);
-	if (pixmap == NULL) {
-		g_message("can't create pixmap.");
-		return FALSE;
-	}
-	gdk_draw_rectangle(pixmap, window->style->black_gc, TRUE, 0, 0,
-	    FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
-#endif
-
-#if 0
-	/* けろぴーすぷらっしゅ用意 */
-	colormap = gtk_widget_get_colormap(window);
-	splash_pixmap = gdk_pixmap_colormap_create_from_xpm_d(NULL, colormap,
-	    &mask, NULL, keropi_xpm);
-	if (splash_pixmap == NULL)
-		g_error("Couldn't create replacement pixmap.");
-#endif
-
 	return TRUE;
 }
 
 void
 WinDraw_Cleanup(void)
 {
-#if 0
-	if (splash_pixmap) {
-		gdk_pixmap_unref(splash_pixmap);
-		splash_pixmap = 0;
-	}
-	if (pixmap) {
-		gdk_pixmap_unref(pixmap);
-		pixmap = 0;
-	}
-	if (scaled_screen) {
-		gdk_image_destroy(scaled_screen);
-		scaled_screen = 0;
-	}
-	if (surface) {
-		gdk_image_destroy(surface);
-		surface = 0;
-		ScrBuf = 0;
-	}
-	gdk_window_get_position(window->window, &winx, &winy);
-#endif
 }
 
 void
@@ -539,11 +395,6 @@ WinDraw_Draw(void)
 	SDL_UpdateRect(sdl_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
 #endif
 
-#if 0
-	GtkWidget *w = (GtkWidget *)drawarea;
-	GdkDrawable *d = (GdkDrawable *)drawarea->window;
-#endif
-
 	FrameCount++;
 	if (!Draw_DrawFlag/* && is_installed_idle_process()*/)
 		return;
@@ -551,98 +402,10 @@ WinDraw_Draw(void)
 
 	if (SplashFlag)
 		WinDraw_ShowSplash();
-
-#if 0
-	if (screen_mode == 0) {
-		gdk_draw_pixmap(d, w->style->fg_gc[GTK_WIDGET_STATE(w)],
-		    pixmap, 0, 0, 0, 0, TextDotX, TextDotY);
-	} else {
-		gdk_scale_image(scaled_screen, surface, NULL, &surface_rect);
-#if 0
-		gdk_draw_image(d, w->style->fg_gc[GTK_WIDGET_STATE(w)],
-		    scaled_screen, 0, 0, 0, 0, WindowX, WindowY);
-#endif
-	}
-#endif
 }
 
 INLINE void WinDraw_DrawGrpLine(int opaq)
 {
-#ifdef USE_ASM
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq)
-	{
-	__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			mov	edx, offset Grp_LineBuf
-			mov	ecx, TextDotX
-			shr	cx, 1
-		drawgrplineolp:
-			mov	eax, [edx]
-			mov	[ebx], eax
-			add	edx, 4
-			add	ebx, 4
-			loop	drawgrplineolp
-		}
-	}
-	else
-	{
-	__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			mov	edx, offset Grp_LineBuf
-			mov	ecx, TextDotX
-		drawgrplinelp:
-			mov	ax, [edx]
-			or	ax, ax
-			jz	drawgrplineskip
-			mov	[ebx], ax
-		drawgrplineskip:
-			add	edx, 2
-			add	ebx, 2
-			loop	drawgrplinelp
-		}
-	}
-#elif defined(USE_GAS) && defined(__i386__)
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq) {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"mov	%2, %%edx;"
-			"mov	(%3), %%ecx;"
-			"shr	$1, %%cx;"
-		"0:"
-			"mov	(%%edx), %%eax;"
-			"mov	%%eax, (%%ebx);"
-			"add	$4, %%edx;"
-			"add	$4, %%ebx;"
-			"loop	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (Grp_LineBuf), "g" (TextDotX)
-		: "ax", "bx", "cx", "dx", "memory");
-	} else {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"mov	%2, %%edx;"
-			"mov	(%3), %%ecx;"
-			"shr	$1, %%cx;"
-		"0:"
-			"mov	(%%edx), %%ax;"
-			"or	%%ax, %%ax;"
-			"jz	1f;"
-			"mov	%%ax, (%%ebx);"
-		"1:"
-			"add	$2, %%edx;"
-			"add	$2, %%ebx;"
-			"loop	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (Grp_LineBuf), "g" (TextDotX)
-		: "ax", "bx", "cx", "dx", "memory");
-	}
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 	WORD w;
 	int i;
@@ -656,83 +419,10 @@ INLINE void WinDraw_DrawGrpLine(int opaq)
 				ScrBuf[adr] = w;
 		}
 	}
-#endif /* USE_ASM */
 }
 
 INLINE void WinDraw_DrawGrpLineNonSP(int opaq)
 {
-#ifdef USE_ASM
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq)
-	{
-	__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			mov	edx, offset Grp_LineBufSP2
-			mov	ecx, TextDotX
-		drawgrpnslinelpo:
-			mov	ax, [edx]
-			mov	[ebx], ax
-			add	edx, 2
-			add	ebx, 2
-			loop	drawgrpnslinelpo
-		}
-	}
-	else
-	{
-	__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			mov	edx, offset Grp_LineBufSP2
-			mov	ecx, TextDotX
-		drawgrpnslinelp:
-			mov	ax, [edx]
-			or	ax, ax
-			jz	drawgrpnslineskip
-			mov	[ebx], ax
-		drawgrpnslineskip:
-			add	edx, 2
-			add	ebx, 2
-			loop	drawgrpnslinelp
-		}
-	}
-#elif defined(USE_GAS) && defined(__i386__)
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq) {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"mov	%2, %%edx;"
-			"mov	(%3), %%ecx;"
-		"0:"
-			"mov	(%%edx), %%ax;"
-			"mov	%%ax, (%%ebx);"
-			"add	$2, %%edx;"
-			"add	$2, %%ebx;"
-			"loop	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (Grp_LineBufSP2), "g" (TextDotX)
-		: "ax", "bx", "cx", "dx", "memory");
-	} else {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"mov	%2, %%edx;"
-			"mov	(%3), %%ecx;"
-		"0:"
-			"mov	(%%edx), %%ax;"
-			"or	%%ax, %%ax;"
-			"jz	1f;"
-			"mov	%%ax, (%%ebx);"
-		"1:"
-			"add	$2, %%edx;"
-			"add	$2, %%ebx;"
-			"loop	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (Grp_LineBufSP2), "g" (TextDotX)
-		: "ax", "bx", "cx", "dx", "memory");
-	}
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 	WORD w;
 	int i;
@@ -746,142 +436,11 @@ INLINE void WinDraw_DrawGrpLineNonSP(int opaq)
 				ScrBuf[adr] = w;
 		}
 	}
-#endif /* USE_ASM */
 }
 
 
 INLINE void WinDraw_DrawTextLine(int opaq, int td)
 {
-#ifdef USE_ASM
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq)
-	{
-		__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			mov	ecx, TextDotX
-		drawtextlineolp:
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-		//	test	byte ptr (Text_TrFlag+16)[edx], 1
-		//	jnz	drawtextlineoskip
-		//	mov	ax, TextPal[0]
-		//drawtextlineoskip:
-			mov	[ebx], ax
-			inc	edx
-			add	ebx, 2
-			loop	drawtextlineolp
-		}
-	}
-	else
-	{
-		if (td)
-		{
-		__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			mov	ecx, TextDotX
-		drawtextlinetdlp:
-			test	byte ptr (Text_TrFlag+16)[edx], 1
-			jz	drawtextlinetdskip
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			or	ax, ax
-			jz	drawtextlinetdskip
-//mov	[ebx], 0xffff
-			mov	[ebx], ax
-		drawtextlinetdskip:
-			inc	edx
-			add	ebx, 2
-			loop	drawtextlinetdlp
-		}
-		}
-		else
-		{
-		__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			mov	ecx, TextDotX
-		drawtextlinelp:
-		//	test	byte ptr (Text_TrFlag+16)[edx], 3
-		//	jnz	drawtextlinenonskip
-		//	mov	ax, TextPal[0]
-		//	jmp	drawtextlinenonskip2
-		//drawtextlinenonskip:
-		//	test	byte ptr (Text_TrFlag+16)[edx], 1
-		//	jz	drawtextlineskip
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-		//drawtextlinenonskip2:
-			or	ax, ax
-			jz	drawtextlineskip
-			mov	[ebx], ax
-		drawtextlineskip:
-			inc	edx
-			add	ebx, 2
-			loop	drawtextlinelp
-		}
-		}
-	}
-#elif defined(USE_GAS) && defined(__i386__)
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq) {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"xor	%%edx, %%edx;"
-			"mov	(%2), %%ecx;"
-		"0:"
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"mov	%%ax, (%%ebx);"
-			"inc	%%edx;"
-			"add	$2, %%ebx;"
-			"loop	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (TextDotX)
-		: "ax", "bx", "cx", "dx", "memory");
-	} else {
-		if (td) {
-			asm (
-				"mov	%0, %%ebx;"
-				"add	%1, %%ebx;"
-				"xor	%%edx, %%edx;"
-				"mov	(%2), %%ecx;"
-			"0:"
-				"testb	$1, Text_TrFlag + 16(%%edx);"
-				"jz	1f;"
-				"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-				"or	%%ax, %%ax;"
-				"jz	1f;"
-				"mov	%%ax, (%%ebx);"
-			"1:"
-				"inc	%%edx;"
-				"add	$2, %%ebx;"
-				"loop	0b;"
-			: /* output: nothing */
-			: "m" (adr), "g" (ScrBuf), "g" (TextDotX)
-			: "ax", "bx", "cx", "dx", "memory");
-		} else {
-			asm (
-				"mov	%0, %%ebx;"
-				"add	%1, %%ebx;"
-				"xor	%%edx, %%edx;"
-				"mov	(%2), %%ecx;"
-			"0:"
-				"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-				"or	%%ax, %%ax;"
-				"jz	1f;"
-				"mov	%%ax, (%%ebx);"
-			"1:"
-				"inc	%%edx;"
-				"add	$2, %%ebx;"
-				"loop	0b;"
-			: /* output: nothing */
-			: "m" (adr), "g" (ScrBuf), "g" (TextDotX)
-			: "ax", "bx", "cx", "dx", "memory");
-		}
-	}
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 	WORD w;
 	int i;
@@ -905,194 +464,11 @@ INLINE void WinDraw_DrawTextLine(int opaq, int td)
 			}
 		}
 	}
-#endif /* USE_ASM */
 }
 
 
 INLINE void WinDraw_DrawTextLineTR(int opaq)
 {
-#ifdef USE_ASM
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq)
-	{
-		__asm {
-			push	edi
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			xor	edi, edi
-			xor	eax, eax
-			mov	ecx, TextDotX
-		drawtexttrlineolp:
-			mov	di, word ptr Grp_LineBufSP[edx*2]
-			or	di, di
-			jnz	drawtexttrlineotr
-
-			test	byte ptr (Text_TrFlag+16)[edx], 1
-			jz	drawtexttrlineopal0
-
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			jmp	drawtexttrlineonorm
-
-		drawtexttrlineopal0:
-			xor	ax, ax
-			jmp	drawtexttrlineonorm
-		drawtexttrlineotr:
-						// ねこーねこー
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			and	di, Pal_HalfMask
-			test	ax, Ibit
-			jz	drawtexttrlineotrI
-			add	di, Pal_Ix2
-		drawtexttrlineotrI:
-			and	ax, Pal_HalfMask
-			add	ax, di		// 17bit計算中
-			rcr	ax, 1		// 17bit計算中
-		drawtexttrlineonorm:
-			mov	[ebx], ax
-			inc	edx
-			add	ebx, 2
-			dec	cx
-			jnz	drawtexttrlineolp
-//			loop	drawtexttrlineolp
-			pop	edi
-		}
-	}
-	else
-	{
-		__asm {
-			push	edi
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			mov	ecx, TextDotX
-		drawtexttrlinelp:
-			test	byte ptr (Text_TrFlag+16)[edx], 1
-			jz	drawtexttrlineskip
-
-			mov	di, word ptr Grp_LineBufSP[edx*2]
-			or	di, di
-			jnz	drawtexttrlinetr
-
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			or	ax, ax
-			jz	drawtexttrlineskip
-			jmp	drawtexttrlinenorm
-
-		drawtexttrlinetr:
-						// ねこーねこー
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			or	ax, ax
-			jz	drawtexttrlineskip
-			and	di, Pal_HalfMask
-			test	ax, Ibit
-			jz	drawtexttrlinetrI
-			add	di, Pal_Ix2
-		drawtexttrlinetrI:
-			and	ax, Pal_HalfMask
-			add	ax, di		// 17bit計算中
-			rcr	ax, 1		// 17bit計算中
-		drawtexttrlinenorm:
-			mov	[ebx], ax
-		drawtexttrlineskip:
-			inc	edx
-			add	ebx, 2
-			dec	cx
-			jnz	drawtexttrlinelp
-//			loop	drawtexttrlinelp
-			pop	edi
-		}
-	}
-#elif defined(USE_GAS) && defined(__i386__)
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq) {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"xor	%%edx, %%edx;"
-			"xor	%%edi, %%edi;"
-			"xor	%%eax, %%eax;"
-			"mov	(%2), %%ecx;"
-		"0:"
-			"mov	Grp_LineBufSP(, %%edx, 2), %%di;"
-			"or	%%di, %%di;"
-			"jnz	2f;"
-
-			"testb	$1, Text_TrFlag + 16(%%edx);"
-			"jz	1f;"
-
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"jmp	4f;"
-
-		"1:"
-			"xor	%%ax, %%ax;"
-			"jmp	4f;"
-		"2:"
-						// ねこーねこー
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"and	(%3), %%di;"
-			"test	(%4), %%ax;"
-			"jz	3f;"
-			"add	(%5), %%di;"
-		"3:"
-			"and	(%3), %%ax;"
-			"add	%%di, %%ax;"	// 17bit計算中
-			"rcr	$1, %%ax;"	// 17bit計算中
-		"4:"
-			"mov	%%ax, (%%ebx);"
-			"inc	%%edx;"
-			"add	$2, %%ebx;"
-			"dec	%%cx;"
-			"jnz	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (TextDotX), "g" (Pal_HalfMask),
-		  "g" (Ibit), "g" (Pal_Ix2)
-		: "ax", "bx", "cx", "dx", "di", "memory");
-	} else {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"xor	%%edx, %%edx;"
-			"mov	(%2), %%ecx;"
-		"0:"
-			"testb	$1, Text_TrFlag + 16(%%edx);"
-			"jz	4f;"
-
-			"mov	Grp_LineBufSP(, %%edx, 2), %%di;"
-			"or	%%di, %%di;"
-			"jnz	1f;"
-
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"or	%%ax, %%ax;"
-			"jz	4f;"
-			"jmp	3f;"
-
-		"1:"
-						// ねこーねこー
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"or	%%ax, %%ax;"
-			"jz	4f;"
-			"and	(%3), %%di;"
-			"test	(%4), %%ax;"
-			"jz	2f;"
-			"add	(%5), %%di;"
-		"2:"
-			"and	(%3), %%ax;"
-			"add	%%di, %%ax;"	// 17bit計算中
-			"rcr	$1, %%ax;"	// 17bit計算中
-		"3:"
-			"mov	%%ax, (%%ebx);"
-		"4:"
-			"inc	%%edx;"
-			"add	$2, %%ebx;"
-			"dec	%%cx;"
-			"jnz	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (TextDotX), "g" (Pal_HalfMask),
-		  "g" (Ibit), "g" (Pal_Ix2)
-		: "ax", "bx", "cx", "dx", "di", "memory");
-	}
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 	DWORD v;
 	WORD w;
@@ -1137,193 +513,10 @@ INLINE void WinDraw_DrawTextLineTR(int opaq)
 			}
 		}
 	}
-#endif /* USE_ASM */
 }
 
 INLINE void WinDraw_DrawTextLineTR2(int opaq)
 {
-#ifdef USE_ASM
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq)
-	{
-		__asm {
-			push	edi
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			xor	edi, edi
-			xor	eax, eax
-			mov	ecx, TextDotX
-		drawtexttrline2olp:
-			mov	di, word ptr Grp_LineBufSP[edx*2]
-			or	di, di
-			jnz	drawtexttrline2otr
-
-			test	byte ptr (Text_TrFlag+16)[edx], 1
-			jz	drawtexttrline2opal0
-
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			jmp	drawtexttrline2onorm
-
-		drawtexttrline2opal0:
-			xor	ax, ax
-			jmp	drawtexttrline2onorm
-		drawtexttrline2otr:
-						// ねこーねこー
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			and	di, Pal_HalfMask
-			test	ax, Ibit
-			jz	drawtexttrline2otrI
-			add	di, Pal_Ix2
-		drawtexttrline2otrI:
-			and	ax, Pal_HalfMask
-			add	ax, di		// 17bit計算中
-			rcr	ax, 1		// 17bit計算中
-		drawtexttrline2onorm:
-			mov	[ebx], ax
-			inc	edx
-			add	ebx, 2
-			dec	cx
-			jnz	drawtexttrline2olp
-//			loop	drawtexttrline2olp
-			pop	edi
-		}
-	}
-	else
-	{
-		__asm {
-			push	edi
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			mov	ecx, TextDotX
-		drawtexttrline2lp:
-			test	byte ptr (Text_TrFlag+16)[edx], 1
-			jz	drawtexttrline2skip
-
-			mov	di, word ptr Grp_LineBufSP[edx*2]
-			or	di, di
-			jnz	drawtexttrline2tr
-
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			or	ax, ax
-			jz	drawtexttrline2skip
-			jmp	drawtexttrline2norm
-
-		drawtexttrline2tr:
-						// ねこーねこー
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			or	ax, ax
-			jz	drawtexttrline2skip
-			and	di, Pal_HalfMask
-			test	ax, Ibit
-			jz	drawtexttrline2trI
-			add	di, Pal_Ix2
-		drawtexttrline2trI:
-			and	ax, Pal_HalfMask
-			add	ax, di		// 17bit計算中
-			rcr	ax, 1		// 17bit計算中
-		drawtexttrline2norm:
-			mov	[ebx], ax
-		drawtexttrline2skip:
-			inc	edx
-			add	ebx, 2
-			dec	cx
-			jnz	drawtexttrline2lp
-//			loop	drawtexttrline2lp
-			pop	edi
-		}
-	}
-#elif defined(USE_GAS) && defined(__i386__)
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq) {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"xor	%%edx, %%edx;"
-			"xor	%%edi, %%edi;"
-			"xor	%%eax, %%eax;"
-			"mov	(%2), %%ecx;"
-		"0:"
-			"mov	Grp_LineBufSP(, %%edx, 2), %%di;"
-			"or	%%di, %%di;"
-			"jnz	2f;"
-
-			"testb	$1, Text_TrFlag + 16(%%edx);"
-			"jz	1f;"
-
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"jmp	4f;"
-
-		"1:"
-			"xor	%%ax, %%ax;"
-			"jmp	4f;"
-		"2:"
-						// ねこーねこー
-			"mov	BG_LineBuf + 32 (, %%edx, 2), %%ax;"
-			"and	(%3), %%di;"
-			"test	(%4), %%ax;"
-			"jz	3f;"
-			"add	(%5), %%di;"
-		"3:"
-			"and	(%3), %%ax;"
-			"add	%%di, %%ax;"		// 17bit計算中
-			"rcr	$1, %%ax;"		// 17bit計算中
-		"4:"
-			"mov	%%ax, (%%ebx);"
-			"inc	%%edx;"
-			"add	$2, %%ebx;"
-			"dec	%%cx;"
-			"jnz	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (TextDotX),
-		  "g" (Pal_HalfMask), "g" (Ibit), "g" (Pal_Ix2)
-		: "ax", "bx", "cx", "dx", "di", "memory");
-	} else {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"xor	%%edx, %%edx;"
-			"mov	(%2), %%ecx;"
-		".drawtexttrline2lp:"
-			"testb	$1, Text_TrFlag + 16(%%edx);"
-			"jz	.drawtexttrline2skip;"
-
-			"mov	Grp_LineBufSP(, %%edx, 2), %%di;"
-			"or	%%di, %%di;"
-			"jnz	.drawtexttrline2tr;"
-
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"or	%%ax, %%ax;"
-			"jz	.drawtexttrline2skip;"
-			"jmp	.drawtexttrline2norm;"
-
-		".drawtexttrline2tr:"
-						// ねこーねこー
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"or	%%ax, %%ax;"
-			"jz	.drawtexttrline2skip;"
-			"and	(%3), %%di;"
-			"test	(%4), %%ax;"
-			"jz	.drawtexttrline2trI;"
-			"add	(%5), %%di;"
-		".drawtexttrline2trI:"
-			"and	(%3), %%ax;"
-			"add	%%di, %%ax;"	// 17bit計算中
-			"rcr	$1, %%ax;"	// 17bit計算中
-		".drawtexttrline2norm:"
-			"mov	%%ax, (%%ebx);"
-		".drawtexttrline2skip:"
-			"inc	%%edx;"
-			"add	$2, %%ebx;"
-			"dec	%%cx;"
-			"jnz	.drawtexttrline2lp;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (TextDotX),
-		  "g" (Pal_HalfMask), "g" (Ibit), "g" (Pal_Ix2)
-		: "ax", "bx", "cx", "dx", "di", "memory");
-	}
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 	DWORD v;
 	WORD w;
@@ -1368,141 +561,11 @@ INLINE void WinDraw_DrawTextLineTR2(int opaq)
 			}
 		}
 	}
-#endif /* USE_ASM */
 }
 
 
 INLINE void WinDraw_DrawBGLine(int opaq, int td)
 {
-#ifdef USE_ASM
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq)
-	{
-		__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			mov	ecx, TextDotX
-		drawbglineolp:
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-		//	test	byte ptr (Text_TrFlag+16)[edx], 3
-		//	jnz	drawbglineoskip
-		//	mov	ax, TextPal[0]
-		//drawbglineoskip:
-			mov	[ebx], ax
-			inc	edx
-			add	ebx, 2
-			loop	drawbglineolp
-		}
-	}
-	else
-	{
-		if (td)
-		{
-		__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			mov	ecx, TextDotX
-		drawbglinetdlp:
-			test	byte ptr (Text_TrFlag+16)[edx], 2
-			jz	drawbglinetdskip
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			or	ax, ax
-			jz	drawbglinetdskip
-			mov	[ebx], ax
-		drawbglinetdskip:
-			inc	edx
-			add	ebx, 2
-			loop	drawbglinetdlp
-		}
-		}
-		else
-		{
-		__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			mov	ecx, TextDotX
-		drawbglinelp:
-		//	test	byte ptr (Text_TrFlag+16)[edx], 3
-		//	jnz	drawbglinenonskip
-		//	mov	ax, TextPal[0]
-		//	jmp	drawbglinenonskip2
-		//drawbglinenonskip:
-		//	test	byte ptr (Text_TrFlag+16)[edx], 2
-		//	jz	drawbglineskip
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-		//drawbglinenonskip2:
-			or	ax, ax
-			jz	drawbglineskip
-			mov	[ebx], ax
-		drawbglineskip:
-			inc	edx
-			add	ebx, 2
-			loop	drawbglinelp
-		}
-		}
-	}
-#elif defined(USE_GAS) && defined(__i386__)
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq) {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"xor	%%edx, %%edx;"
-			"mov	(%2), %%ecx;"
-		"0:"
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"mov	%%ax, (%%ebx);"
-			"inc	%%edx;"
-			"add	$2, %%ebx;"
-			"loop	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (TextDotX)
-		: "ax", "bx", "cx", "dx", "memory");
-	} else {
-		if (td) {
-			asm (
-				"mov	%0, %%ebx;"
-				"add	%1, %%ebx;"
-				"xor	%%edx, %%edx;"
-				"mov	(%2), %%ecx;"
-			"0:"
-				"testb	$2, Text_TrFlag + 16(%%edx);"
-				"jz	1f;"
-				"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-				"or	%%ax, %%ax;"
-				"jz	1f;"
-				"mov	%%ax, (%%ebx);"
-			"1:"
-				"inc	%%edx;"
-				"add	$2, %%ebx;"
-				"loop	0b;"
-			: /* output: nothing */
-			: "m" (adr), "g" (ScrBuf), "g" (TextDotX)
-			: "ax", "bx", "cx", "dx", "memory");
-		} else {
-			asm (
-				"mov	%0, %%ebx;"
-				"add	%1, %%ebx;"
-				"xor	%%edx, %%edx;"
-				"mov	(%2), %%ecx;"
-			"0:"
-				"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-				"or	%%ax, %%ax;"
-				"jz	1;"
-				"mov	%%ax, (%%ebx);"
-			"1:"
-				"inc	%%edx;"
-				"add	$2, %%ebx;"
-				"loop	0b;"
-			: /* output: nothing */
-			: "m" (adr), "g" (ScrBuf), "g" (TextDotX)
-			: "ax", "bx", "cx", "dx", "memory");
-		}
-	}
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 	WORD w;
 	int i;
@@ -1526,192 +589,11 @@ INLINE void WinDraw_DrawBGLine(int opaq, int td)
 			}
 		}
 	}
-#endif /* USE_ASM */
 }
 
 
 INLINE void WinDraw_DrawBGLineTR(int opaq)
 {
-#ifdef USE_ASM
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq)
-	{
-		__asm {
-			push	edi
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			xor	edi, edi
-			xor	eax, eax
-			mov	ecx, TextDotX
-		drawbgtrlineolp:
-			mov	di, word ptr Grp_LineBufSP[edx*2]
-			or	di, di
-			jnz	drawbgtrlineotr
-
-		//	test	byte ptr (Text_TrFlag+16)[edx], 2
-		//	jz	drawbgtrlineopal0
-
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			jmp	drawbgtrlineonorm
-
-		//drawbgtrlineopal0:
-		//	xor	ax, ax
-		//	jmp	drawbgtrlineonorm
-
-		drawbgtrlineotr:
-
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			and	di, Pal_HalfMask
-			test	ax, Ibit
-			jz	drawbgtrlineotrI
-			add	di, Pal_Ix2
-		drawbgtrlineotrI:
-			and	ax, Pal_HalfMask
-			add	ax, di		// 17bit計算中
-			rcr	ax, 1		// 17bit計算中
-
-		drawbgtrlineonorm:
-			mov	[ebx], ax
-			inc	edx
-			add	ebx, 2
-			dec	cx
-			jnz	drawbgtrlineolp
-//			loop	drawbgtrlineolp
-			pop	edi
-		}
-	}
-	else
-	{
-		__asm {
-			push	edi
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			mov	ecx, TextDotX
-		drawbgtrlinelp:
-			test	byte ptr (Text_TrFlag+16)[edx], 2
-			jz	drawbgtrlineskip
-
-			mov	di, word ptr Grp_LineBufSP[edx*2]
-			or	di, di
-			jnz	drawbgtrlinetr
-
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			or	ax, ax
-			jz	drawbgtrlineskip
-			jmp	drawbgtrlinenorm
-
-		drawbgtrlinetr:
-						// ねこーねこー
-			mov	ax, word ptr (BG_LineBuf+32)[edx*2]
-			or	ax, ax
-			jz	drawbgtrlineskip
-			and	di, Pal_HalfMask
-			test	ax, Ibit
-			jz	drawbgtrlinetrI
-			add	di, Pal_Ix2
-		drawbgtrlinetrI:
-			and	ax, Pal_HalfMask
-			add	ax, di		// 17bit計算中
-			rcr	ax, 1		// 17bit計算中
-
-		drawbgtrlinenorm:
-			mov	[ebx], ax
-		drawbgtrlineskip:
-			inc	edx
-			add	ebx, 2
-			dec	cx
-			jnz	drawbgtrlinelp
-//			loop	drawbgtrlinelp
-			pop	edi
-		}
-	}
-#elif defined(USE_GAS) && defined(__i386__)
-	DWORD adr = ((VLINE+16)*1600+32);
-	if (opaq) {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"xor	%%edx, %%edx;"
-			"xor	%%edi, %%edi;"
-			"xor	%%eax, %%eax;"
-			"mov	(%2), %%ecx;"
-		"0:"
-			"mov	Grp_LineBufSP(, %%edx, 2), %%di;"
-			"or	%%di, %%di;"
-			"jnz	1f;"
-
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"jmp	3f;"
-
-		"1:"
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"and	(%3), %%di;"
-			"test	(%4), %%ax;"
-			"jz	2f;"
-			"add	(%5), %%di;"
-		"2:"
-			"and	(%3), %%ax;"
-			"add	%%di, %%ax;"	// 17bit計算中
-			"rcr	$1, %%ax;"	// 17bit計算中
-
-		"3:"
-			"mov	%%ax, (%%ebx);"
-			"inc	%%edx;"
-			"add	$2, %%ebx;"
-			"dec	%%cx;"
-			"jnz	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (TextDotX),
-		  "g" (Pal_HalfMask), "g" (Ibit), "g" (Pal_Ix2)
-		: "ax", "bx", "cx", "dx", "di", "memory");
-	} else {
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"xor	%%edx, %%edx;"
-			"mov	(%2), %%ecx;"
-		"0:"
-			"testb	$2, Text_TrFlag + 16(%%edx);"
-			"jz	4f;"
-
-			"mov	Grp_LineBufSP(, %%edx, 2), %%di;"
-			"or	%%di, %%di;"
-			"jnz	1f;"
-
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"orw	%%ax, %%ax;"
-			"jz	4f;"
-			"jmp	3f;"
-
-		"1:"
-						// ねこーねこー
-			"mov	BG_LineBuf + 32(, %%edx, 2), %%ax;"
-			"or	%%ax, %%ax;"
-			"jz	4f;"
-			"and	(%3), %%di;"
-			"test	(%4), %%ax;"
-			"jz	2f;"
-			"add	(%5), %%di;"
-		"2:"
-			"and	(%3), %%ax;"
-			"add	%%di, %%ax;"	// 17bit計算中
-			"rcr	$1, %%ax;"	// 17bit計算中
-
-		"3:"
-			"mov	%%ax, (%%ebx);"
-		"4:"
-			"inc	%%edx;"
-			"add	$2, %%ebx;"
-			"dec	%%cx;"
-			"jnz	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (TextDotX),
-		  "g" (Pal_HalfMask), "g" (Ibit), "g" (Pal_Ix2)
-		: "ax", "bx", "cx", "dx", "di", "memory");
-	}
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 	DWORD v;
 	WORD w;
@@ -1752,54 +634,10 @@ INLINE void WinDraw_DrawBGLineTR(int opaq)
 			}
 		}
 	}
-#endif /* USE_ASM */
 }
-
 
 INLINE void WinDraw_DrawPriLine(void)
 {
-#ifdef USE_ASM
-	DWORD adr = ((VLINE+16)*1600+32);
-	{
-		__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			mov	edx, offset Grp_LineBufSP
-			mov	ecx, TextDotX
-		drawprilinelp:
-			mov	ax, [edx]
-			or	ax, ax
-			jz	drawprilineskip
-			mov	[ebx], ax
-		drawprilineskip:
-			add	edx, 2
-			add	ebx, 2
-//			dec	cx
-//			jnz	drawprilinelp
-			loop	drawprilinelp
-		}
-	}
-#elif defined(USE_GAS) && defined(__i386__)
-	DWORD adr = ((VLINE+16)*1600+32);
-
-	asm (
-		"mov	%0, %%ebx;"
-		"add	%1, %%ebx;"
-		"add	%2, %%edx;"
-		"mov	(%3), %%ecx;"
-	"0:"
-		"mov	(%%edx), %%ax;"
-		"or	%%ax, %%ax;"
-		"jz	1f;"
-		"mov	%%ax, (%%ebx);"
-	"1:"
-		"add	$2, %%edx;"
-		"add	$2, %%ebx;"
-		"loop	0b;"
-	: /* output: nothing */
-	: "m" (adr), "g" (ScrBuf), "g" (Grp_LineBufSP), "g" (TextDotX)
-	: "ax", "bx", "cx", "dx", "memory");
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 	WORD w;
 	int i;
@@ -1809,112 +647,10 @@ INLINE void WinDraw_DrawPriLine(void)
 		if (w != 0)
 			ScrBuf[adr] = w;
 	}
-#endif /* USE_ASM */
 }
-
 
 INLINE void WinDraw_DrawTRLine(void)
 {
-#ifdef USE_ASM
-	DWORD adr = ((VLINE+16)*1600+32);
-		__asm {
-			push	edi
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			xor	edx, edx
-			xor	edi, edi
-			xor	eax, eax
-			mov	ecx, TextDotX
-		drawtrlinelp:
-			mov	di, word ptr Grp_LineBufSP[edx]
-			or	di, di
-			jz	drawtrlineskip
-
-//		drawtrlineo:
-#if 1						// ねこーねこー
-			mov	ax, [ebx]
-			and	di, Pal_HalfMask
-			test	ax, Ibit
-			jz	drawtrlineoI
-			add	di, Pal_Ix2
-		drawtrlineoI:
-			and	ax, Pal_HalfMask
-			add	ax, di		// 17bit計算中
-			rcr	ax, 1		// 17bit計算中
-#else
-			push	ecx
-			mov	cx, [ebx]
-			and	cx, WinDraw_Pal16R
-			and	di, WinDraw_Pal16R
-			add	ecx, edi
-			shr	ecx, 1
-			and	cx, WinDraw_Pal16R
-			mov	ax, cx
-			mov	di, word ptr Grp_LineBufSP[edx]
-			mov	cx, [ebx]
-			and	cx, WinDraw_Pal16G
-			and	di, WinDraw_Pal16G
-			add	ecx, edi
-			shr	ecx, 1
-			and	cx, WinDraw_Pal16G
-			or	ax, cx
-			mov	di, word ptr Grp_LineBufSP[edx]
-			mov	cx, [ebx]
-			and	cx, WinDraw_Pal16B
-			and	di, WinDraw_Pal16B
-			add	ecx, edi
-			shr	ecx, 1
-			and	cx, WinDraw_Pal16B
-			or	ax, cx
-			mov	cx, [ebx]
-			and	cx, Ibit
-			or	ax, cx
-			pop	ecx
-#endif
-			mov	[ebx], ax
-		drawtrlineskip:
-			add	edx, 2
-			add	ebx, 2
-			dec	cx
-			jnz	drawtrlinelp
-//			loop	drawtrlinelp
-			pop	edi
-		}
-#elif defined(USE_GAS) && defined(__i386__)
-	DWORD adr = ((VLINE+16)*1600+32);
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"xor	%%edx, %%edx;"
-			"xor	%%edi, %%edi;"
-			"xor	%%eax, %%eax;"
-			"mov	(%2), %%ecx;"
-		"0:"
-			"mov	Grp_LineBufSP(%%edx), %%di;"
-			"or	%%di, %%di;"
-			"jz	2f;"
-
-						// ねこーねこー
-			"mov	(%%ebx), %%ax;"
-			"and	(%3), %%di;"
-			"test	(%4), %%ax;"
-			"jz	1f;"
-			"add	(%5), %%di;"
-		"1:"
-			"and	(%3), %%ax;"
-			"add	%%di, %%ax;"
-			"rcr	$1, %%ax;"
-			"mov	%%ax, (%%ebx);"
-		"2:"
-			"add	$2, %%edx;"
-			"add	$2, %%ebx;"
-			"dec	%%cx;"
-			"jnz	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (TextDotX),
-		  "g" (Pal_HalfMask), "g" (Ibit), "g" (Pal_Ix2)
-		: "ax", "bx", "cx", "dx", "di", "memory");
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 	DWORD v;
 	WORD w;
@@ -1933,9 +669,7 @@ INLINE void WinDraw_DrawTRLine(void)
 			ScrBuf[adr] = (WORD)v;
 		}
 	}
-#endif /* USE_ASM */
 }
-
 
 void WinDraw_DrawLine(void)
 {
@@ -2130,67 +864,11 @@ void WinDraw_DrawLine(void)
 		{
 			if ((VCReg2[1]&0x20)&&(Debug_Text))
 			{
-#ifdef USE_ASM
-				_asm{
-					mov	ax, TextPal[0]
-					shl	eax, 16
-					mov	ax, TextPal[0]
-					mov	edx, 16*2
-					mov	ecx, TextDotX
-					shr	ecx, 1
-				BGLineClr_lp:
-					mov	dword ptr BG_LineBuf[edx], eax
-					add	edx, 4
-					loop	BGLineClr_lp
-				}
-#elif defined(USE_GAS) && defined(__i386__)
-				asm (
-					"mov	(%0), %%ax;"
-					"shl	$16, %%eax;"
-					"mov	(%0), %%ax;"
-					"mov	$16*2, %%edx;"
-					"mov	(%1), %%ecx;"
-					"shr	$1, %%ecx;"
-				"0:"
-					"mov	%%eax, BG_LineBuf(%%edx);"
-					"add	$4, %%edx;"
-					"loop	0b;"
-				: /* output: nothing */
-				: "g" (TextPal[0]), "g" (TextDotX)
-				: "ax", "cx", "dx", "memory");
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 				int i;
 				for (i = 16; i < TextDotX + 16; ++i)
 					BG_LineBuf[i] = TextPal[0];
-#endif /* USE_ASM */
 			} else {		// 20010120 （琥珀色）
-#ifdef USE_ASM
-				_asm{
-					xor	eax, eax
-					mov	edx, 16*2
-					mov	ecx, TextDotX
-					shr	ecx, 1
-				BGLineClr_lp2:
-					mov	dword ptr BG_LineBuf[edx], eax
-					add	edx, 4
-					loop	BGLineClr_lp2
-				}
-#elif defined(USE_GAS) && defined(__i386__)
-				asm (
-					"xor	%%eax, %%eax;"
-					"mov	$16*2, %%edx;"
-					"mov	(%0), %%ecx;"
-					"shr	$1, %%ecx;"
-				"0:"
-					"mov	%%eax, BG_LineBuf(%%edx);"
-					"add	$4, %%edx;"
-					"loop	0b;"
-				: /* output: nothing */
-				: "g" (TextDotX)
-				: "ax", "cx", "dx", "memory");
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 				bzero(&BG_LineBuf[16], TextDotX * 2);
-#endif /* !USE_ASM */
 			}
 			ZeroMemory(Text_TrFlag, TextDotX+16);
 			bgon = 1;
@@ -2376,52 +1054,6 @@ void WinDraw_DrawLine(void)
 		}
 		else if ( ((VCReg2[0]&0x5d)==0x1c)&&(tron) )	// 半透明時に全てが透明なドットをハーフカラーで埋める
 		{						// （AQUALES）
-#ifdef USE_ASM
-			DWORD adr = ((VLINE+16)*1600+32);
-			__asm {
-				mov	ebx, adr
-				add	ebx, offset ScrBuf
-				xor	edx, edx
-				mov	ecx, TextDotX
-			trsublinelp:
-				mov	ax, word ptr Grp_LineBufSP[edx]
-				or	ax, ax
-				jz	trsublineskip
-				test	word ptr [ebx], 0ffffh
-				jnz	trsublineskip
-				and	ax, Pal_HalfMask
-				shr	ax, 1		// 17bit計算中
-				mov	[ebx], ax
-			trsublineskip:
-				add	edx, 2
-				add	ebx, 2
-				loop	trsublinelp
-			}
-#elif defined(USE_GAS) && defined(__i386__)
-			DWORD adr = ((VLINE+16)*1600+32);
-			asm (
-				"mov	%0, %%ebx;"
-				"add	%1, %%ebx;"
-				"xor	%%edx, %%edx;"
-				"mov	(%2), %%ecx;"
-			"0:"
-				"mov	Grp_LineBufSP(%%edx), %%ax;"
-				"or	%%ax, %%ax;"
-				"jz	1f;"
-				"testw	$0xffff, (%%ebx);"
-				"jnz	1f;"
-				"and	(%3), %%ax;"
-				"shr	$1, %%ax;"	// 17bit計算中
-				"mov	%%ax, (%%ebx);"
-			"1:"
-				"add	$2, %%edx;"
-				"add	$2, %%ebx;"
-				"loop	0b;"
-			: /* output: nothing */
-			: "m" (adr), "g" (ScrBuf), "g" (TextDotX),
-			  "g" (Pal_HalfMask)
-			: "ax", "bx", "cx", "dx", "memory");
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 			DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 			WORD w;
 			int i;
@@ -2431,55 +1063,14 @@ void WinDraw_DrawLine(void)
 				if (w != 0 && (ScrBuf[adr] & 0xffff) == 0)
 					ScrBuf[adr] = (w & Pal_HalfMask) >> 1;
 			}
-#endif /* USE_ASM */
 		}
 
 
 	if (opaq)
 	{
-#ifdef USE_ASM
-		DWORD adr = ((VLINE+16)*1600+32);
-		__asm {
-			mov	ebx, adr
-			add	ebx, offset ScrBuf
-			mov	ecx, TextDotX
-			shr	cx, 1
-		clrscrlp:
-			mov	dword ptr [ebx], 0
-			add	ebx, 4
-//			dec	cx
-//			jnz	clrscrlp
-			loop	clrscrlp
-		}
-#elif defined(USE_GAS) && defined(__i386__)
-		DWORD adr = ((VLINE+16)*1600+32);
-		asm (
-			"mov	%0, %%ebx;"
-			"add	%1, %%ebx;"
-			"mov	(%2), %%ecx;"
-			"shr	$1, %%cx;"
-		"0:"
-			"movl	$0, (%%ebx);"
-			"add	$4, %%ebx;"
-			"loop	0b;"
-		: /* output: nothing */
-		: "m" (adr), "g" (ScrBuf), "g" (TextDotX)
-		: "bx", "cx", "memory");
-#else /* !USE_ASM && !(USE_GAS && __i386__) */
 		DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
 		bzero(&ScrBuf[adr], TextDotX * 2);
-#endif /* USE_ASM */
 	}
-
-#if 0
-	switch (screen_mode) {
-	case 0:
-		gdk_draw_image(pixmap,
-		    drawarea->style->fg_gc[GTK_WIDGET_STATE(drawarea)],
-		    surface, 16, 16 + VLINE, 0, VLINE, WindowX, 1);
-		break;
-	}
-#endif
 }
 
 
@@ -2542,108 +1133,3 @@ gcd(unsigned int v0, unsigned int v1)
 	return v1 << c;
 #endif
 }
-
-#if 0
-static void expand16_fast(GdkImage *dest, GdkImage *src, GdkRectangle *dr, GdkRectangle *sr, int ratio[4]);
-
-GdkImage *
-gdk_scale_image(GdkImage *dest, GdkImage *src, GdkRectangle *dest_rect, GdkRectangle *src_rect)
-{
-	GdkRectangle dr, sr;
-	GdkImage *new = dest;
-	int ratio[4];
-	int x_gcd, y_gcd;
-
-	g_return_val_if_fail(src, 0);
-	g_return_val_if_fail((src->visual->depth == 15 || src->visual->depth == 16), 0);
-
-	if (dest_rect == 0) {
-		GdkImage *p = dest ? dest : src;
-		dr.x = dr.y = 0;
-		dr.width = p->width;
-		dr.height = p->height;
-	} else 
-		dr = *dest_rect;
-
-	if (src_rect == 0) {
-		sr.x = sr.y = 0;
-		sr.width = src->width;
-		sr.height = src->height;
-	} else {
-		sr = *src_rect;
-		g_return_val_if_fail((sr.x >= 0 && sr.y >= 0), 0);
-	}
-
-	if (new == 0) {
-		new = gdk_image_new(GDK_IMAGE_FASTEST, src->visual, dr.width + (dr.x > 0 ? dr.x : 0), dr.height + (dr.y > 0 ? dr.y : 0));
-		g_return_val_if_fail(new, 0);
-	}
-
-	x_gcd = gcd(sr.width, dr.width);
-	y_gcd = gcd(sr.height, dr.height);
-
-	if (x_gcd >= 2 && y_gcd >= 2)
-		/* continue */;
-	else {
-		if (dest == 0)
-			gdk_image_destroy(new);
-		g_return_val_if_fail((x_gcd >= 2 && y_gcd >= 2), 0);
-	}
-
-	ratio[0] /* dx_ratio */ = dr.width / x_gcd;
-	ratio[1] /* sx_ratio */ = sr.width / x_gcd;
-	ratio[2] /* dy_ratio */ = dr.height / y_gcd;
-	ratio[3] /* sy_ratio */ = sr.height / y_gcd;
-#if 0
-	if (ratio[0] >= ratio[1] && ratio[2] >= ratio[3])
-		/* continue */;
-	else {
-		printf("sr(width, height) = (%d, %d), dr(width, height) = (%d, %d)\n", sr.width, sr.height, dr.width, dr.height);
-		printf("gcd(x, y) = (%d, %d)\n", x_gcd, y_gcd);
-		printf("ratio(0, 1, 2, 3) = (%d, %d, %d, %d)\n", ratio[0], ratio[1], ratio[2], ratio[3]);
-		if (dest == 0)
-			gdk_image_destroy(new);
-		g_return_val_if_fail((ratio[0] >= ratio[1] && ratio[2] >= ratio[3]), NULL);
-	}
-#endif
-	expand16_fast(new, src, &dr, &sr, ratio);
-
-	return new;
-}
-
-static void
-expand16_fast(GdkImage *dest, GdkImage *src, GdkRectangle *dr, GdkRectangle *sr, int ratio[4])
-{
-	guint16 *dp, *sp;
-	int dest_right, dest_bottom;
-	int sx, sy;
-	int dx, dy;
-	int x_ratio = 0, y_ratio = 0;
-
-	dest_right = dr->x + dr->width;
-	dest_bottom = dr->y + dr->height;
-	if (dest_right < 0 && dest_bottom < 0)
-		return;
-
-	for (sy = sr->y, dy = dr->y; dy < dest_bottom; ++dy) {
-		dp = (guint16 *)(dest->mem + dest->bpl * dy);
-		sp = (guint16 *)(src->mem + src->bpl * sy);
-		for (sx = sr->x, dx = dr->x; dx < dest_right; ++dx) {
-			if (dx >= 0 && dy >= 0)
-				dp[dx] = sp[sx];
-
-			x_ratio += ratio[1] /* sx_ratio */;
-			if (ratio[0] /* dx_ratio */ <= x_ratio) {
-				++sx;
-				x_ratio -= ratio[0] /* dx_ratio */;
-			}
-		}
-
-		y_ratio += ratio[3] /* sy_ratio */;
-		if (ratio[2] /* dy_ratio */ <= y_ratio) {
-			++sy;
-			y_ratio -= ratio[2] /* dy_ratio */;
-		}
-	}
-}
-#endif
