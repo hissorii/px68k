@@ -2,7 +2,7 @@
 PX68K ( Portable (x)keropi PRO-68K )
 
 ソースを自分でコンパイルする際に役に立つかもしれないドキュメント
-                                                          2013/08/07 ひっそりぃ
+                                                          2013/08/12 ひっそりぃ
 
 ■開発環境について
 
@@ -10,6 +10,7 @@ PX68K ( Portable (x)keropi PRO-68K )
 
   Ubuntu Linux 13.04
   SDL 1.2
+  SDL_gfx 1.2-4
 
 ・PSP
 
@@ -23,6 +24,7 @@ PX68K ( Portable (x)keropi PRO-68K )
   SDL2-2.0.0 (http://www.libsdl.org/ から入手)
   android-ndk-r9-linux-x86 (Android NDK)
   adt-bundle-linux-x86-20130729 (Android SDK)
+  OpenGL ES 1.1
 
 ■コンパイルについて
 

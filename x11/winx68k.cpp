@@ -5,6 +5,9 @@ extern "C" {
 #endif 
 
 #include "SDL.h"
+#ifdef ANDROID
+#include "SDL_opengles.h"
+#endif
 #include "common.h"
 #include "fileio.h"
 #include "timer.h"
@@ -641,7 +644,7 @@ int main(int argc, char *argv[])
 	int sdlaudio = -1;
 
 #ifdef ANDROID
-	__android_log_write(ANDROID_LOG_DEBUG,"Tag","333");
+	__android_log_write(ANDROID_LOG_DEBUG,"Tag","555");
 #endif
 
 	if (set_modulepath(winx68k_dir, sizeof(winx68k_dir)))
@@ -651,6 +654,9 @@ int main(int argc, char *argv[])
 	file_setcd(winx68k_dir);
 
 	LoadConfig();
+
+	// xxx 音がおかしくなるのを調べる
+	//Config.SampleRate = 44100;
 
 #ifndef NOSOUND
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
@@ -675,11 +681,35 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 #else
-	sdl_window = SDL_CreateWindow(APPNAME" SDL", 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, 0);
+	// 今回はOpenGL ES 1.1を使う
+	//	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
+	//	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
+	//	SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 5 );
+	//	SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 5 );
+	//	SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 5 );
+	//	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
+	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ); 
+
+	// for Android: window sizeの指定は関係なくフルスクリーンになるみたい
+	sdl_window = SDL_CreateWindow(APPNAME" SDL", 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_SHOWN);
 	if (sdl_window == NULL) {
 		__android_log_print(ANDROID_LOG_DEBUG,"Tag","sdl_window: %ld", sdl_window);
 	}
 
+	SDL_GLContext glcontext = SDL_GL_CreateContext(sdl_window);
+
+        glClearColor( 255, 0, 0, 0 );
+
+	glEnable(GL_TEXTURE_2D);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	//glViewport(0, 0, 800, 600); //ここを増やさないとOpenGLの画面はせまい
+	glViewport(0, 0, 1280, 736);
+	glOrthof(0, 800, 600, 0, -1, 1);
+	//  glOrthof(0, 1024, 0, 1024, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
 #if 0
 	__android_log_write(ANDROID_LOG_DEBUG,"Tag","before SDL_SetWindowDisplaymode()");
 	sdl_dispmode.format = SDL_PIXELFORMAT_RGB555;
@@ -845,7 +875,12 @@ int main(int argc, char *argv[])
                                 goto end_loop;
                         case SDL_KEYDOWN:
                                 break;
-                        }
+#ifdef ANDROID
+			case SDL_FINGERDOWN:
+				__android_log_print(ANDROID_LOG_DEBUG,"Tag","FINGERDOWN: x:%f y:%f", ev.tfinger.x, ev.tfinger.y);
+				break;
+#endif
+			}		  
                 }
         }
 end_loop:

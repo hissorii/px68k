@@ -25,6 +25,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if ANDROID
+#include <GLES/gl.h>
+#endif
 #include <SDL.h>
 //#include <SDL_rotozoom.h>
 #include "common.h"
@@ -72,6 +75,10 @@ WORD WinDraw_Pal16B, WinDraw_Pal16R, WinDraw_Pal16G;
 
 DWORD WindowX = 0;
 DWORD WindowY = 0;
+
+#ifdef ANDROID
+GLuint texid = 0;
+#endif
 
 #if 0
 GdkImage *surface;
@@ -275,8 +282,9 @@ int WinDraw_Init(void)
 	GdkColormap *colormap;
 	GdkBitmap *mask;
 #endif
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_Surface *sdl_surface;
-
+#endif
 	WindowX = 768;
 	WindowY = 512;
 
@@ -303,17 +311,13 @@ int WinDraw_Init(void)
 	}
 #endif
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	sdl_surface = SDL_GetWindowSurface(sdl_window);
-	__android_log_print(ANDROID_LOG_DEBUG,"Tag","BitsPP: %d BytesPP: %d",sdl_surface->format->BitsPerPixel, sdl_surface->format->BytesPerPixel);
-	__android_log_print(ANDROID_LOG_DEBUG,"Tag","Rmask: %x GMask: %x BMask: %x",sdl_surface->format->Rmask, sdl_surface->format->Gmask, sdl_surface->format->Bmask);
-#else
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
 	sdl_surface = SDL_GetVideoSurface();
-#endif
 	if (sdl_surface == NULL) {
 		fprintf(stderr, "can't create surface.\n");
 		return 1;
 	}
+#endif
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	WinDraw_Pal16R = 0xf800;
@@ -326,20 +330,33 @@ int WinDraw_Init(void)
 	printf("R: %x, G: %x, B: %x\n", WinDraw_Pal16R, WinDraw_Pal16G, WinDraw_Pal16B);
 #endif
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	ScrBuf = malloc(800*600*2);
+#ifdef ANDROID
+	ScrBuf = malloc(1024*1024*2); // OpenGL ES 1.1 needs 2^x pixels
+
+	int i;
+	for (i = 0; i < 1024*1024; i++) {
+		*(ScrBuf + i) = i;
+	}
+
+	glGenTextures(1, &texid);
+	glBindTexture(GL_TEXTURE_2D, texid);
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+//	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+//	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, ScrBuf);
 #else
 	//	ScrBuf = (WORD *)sdl_surface->pixels;
-	sdl_rgbsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, 800, 512, 16, sdl_surface->format->Rmask, sdl_surface->format->Gmask, sdl_surface->format->Bmask, sdl_surface->format->Amask);
+	sdl_rgbsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, 800, 600, 16, WinDraw_Pal16R, WinDraw_Pal16G, WinDraw_Pal16B, 0);
 
 	if (sdl_rgbsurface == 0) {
 		puts("ScrBuf allocate failed");
 		exit(1);
 	}
 	ScrBuf = sdl_rgbsurface->pixels;
-#endif
 
 	printf("drawbuf: 0x%x, ScrBuf: 0x%x\n", sdl_surface->pixels, ScrBuf);
+#endif
 
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_LockSurface(sdl_rgbsurface);
@@ -413,58 +430,78 @@ WinDraw_Redraw(void)
 void FASTCALL
 WinDraw_Draw(void)
 {
-	SDL_Surface *sdl_surface, *roto_surface;
-	SDL_Rect srcrect, dstrect;
+	SDL_Surface *sdl_surface, *roto_surface = NULL;
 	int ret;
-#if 0 // PSPだとうまく動かない
-	roto_surface = rotozoomSurfaceXY(sdl_rgbsurface, 0, 0.3, 0.3, 0);
-	if (roto_surface == NULL) {
-		puts("rotozoom failed");
-	}
-
-	srcrect.x = srcrect.y = 200;
-	srcrect.w = 480, srcrect.h = 272;
-	dstrect.x = dstrect.y = 0;
-	dstrect.w = 480, dstrect.h = 272;
-
-	if (sdl_rgbsurface == NULL) {
-		puts("xxx sdl_rgbsurface not allocated yet");
-		return;
-	}
-	sdl_surface = SDL_GetVideoSurface();
-	if (sdl_surface == NULL) {
-		puts("xxx sdl_sururface not allocated yet");
-		return;
-	}
-	ret = SDL_BlitSurface(roto_surface, NULL, sdl_surface, NULL);
-	if (ret < 0) {
-		printf("SDL_BlitSurface() failed %d\n", ret);
-	}
-#else
 	int x, y, Bpp;
 	WORD c, *p, *p2, dummy, *dst16;
 	DWORD *dst32, dat32;
+	static int oldtextx = -1, oldtexty = -1;
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	sdl_surface = SDL_GetWindowSurface(sdl_window);
+	if (oldtextx != TextDotX) {
+		oldtextx = TextDotX;
+#ifdef ANDROID
+		__android_log_print(ANDROID_LOG_DEBUG,"Tag","TextDotX: %d", TextDotX);
 #else
-	sdl_surface = SDL_GetVideoSurface();
+		printf("TextDotX: %d", TextDotX);
+#endif
+	}
+	if (oldtexty != TextDotY) {
+		oldtexty = TextDotY;
+#ifdef ANDROID
+		__android_log_print(ANDROID_LOG_DEBUG,"Tag","TextDotY: %d", TextDotY);
+#else
+		printf("TextDotY: %d", TextDotY);
+#endif
+	}
+
+#if defined(ANDROID)
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glBindTexture(GL_TEXTURE_2D, texid);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, ScrBuf);
+
+#if 1 // 1024x1024から800x600を抜き出して表示
+	GLfloat texture_coordinates[] = {0.0f, (GLfloat)600/1024,
+					 0.0f, 0.0f,
+					 (GLfloat)800/1024, (GLfloat)600/1024,
+					 (GLfloat)800/1024, 0.0f};
+#else // 1024x1024をそのまま表示
+	GLfloat texture_coordinates[] = {0.0f, 1.0f,
+					 0.0f, 0.0f,
+					 1.0f, 1.0f,
+					 1.0f, 0.0f};
 #endif
 
-#ifdef PSP
-#if 0 //縦横1/2拡大。未完成
-	p = ScrBuf;
-	p2 = ScrBuf + 800;
-	for (y = 0; y < 512 / 2; y += 2) {
-		dst16 = sdl_surface->pixels + 512 * 4 * y / 2;
-		p = ScrBuf + 800 * y;
-		p2 = p + 800;
-		for (x = 0; x < 800; x += 2) {
-			*dst16++ = (*p++ + *p++ + *p2++ + *p2++) / 4;
-//			dummy = (*p++ + *p++ + *p2++ + *p2++) / 4;
-		}
-	}
-#else // とりあえず指定範囲内のみblit
+	glTexCoordPointer(2, GL_FLOAT, 0, texture_coordinates);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+#if 1
+	GLfloat vertices[] = {0.0f, 600.0f,
+			      0.0f, 0.0f,
+			      800.0f, 600.0f,
+			      800.0f, 0.0f};
+#else
+	GLfloat vertices[] = {0.0f, 600.0f,
+			      0.0f, 0.0f,
+			      1200.0f, 600.0f,
+			      1200.0f, 0.0f};
+#endif
+
+	glVertexPointer(2, GL_FLOAT, 0, vertices);
+	glEnableClientState(GL_VERTEX_ARRAY);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+
+	//	glDeleteTextures(1, &texid);
+
+	SDL_GL_SwapWindow(sdl_window);
+#elif defined(PSP)
+	sdl_surface = SDL_GetVideoSurface();
+
+	// とりあえず指定範囲内のみblit
 	// PSPのsdl_surfaceのバッファは幅512
 	p = ScrBuf;
 	dst16 = sdl_surface->pixels;
@@ -476,84 +513,30 @@ WinDraw_Draw(void)
 			*dst16++ = *p++;
 		}
 	}
-#endif
-#else
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	p = ScrBuf;
-	dst32 = sdl_surface->pixels;
-	static int oldtextx = 0, oldtexty = 0;
-	if (oldtextx != TextDotX) {
-		oldtextx = TextDotX;
-		__android_log_print(ANDROID_LOG_DEBUG,"Tag","TextDotX: %d", TextDotX);
-	}
-	if (oldtexty != TextDotY) {
-		oldtexty = TextDotY;
-		__android_log_print(ANDROID_LOG_DEBUG,"Tag","TextDotY: %d", TextDotY);
-	}
+	SDL_UpdateRect(sdl_surface, 0, 0, 480, 272);
+#else // Unix系 (要SDL_gfx)
+	sdl_surface = SDL_GetVideoSurface();
 
-	Bpp = sdl_surface->format->BytesPerPixel;
-	// 2倍に拡大する
-	if (TextDotX <= 256 && TextDotY <= 256) {
-		for (y = 0; y < 256; y++) {
-			p = ScrBuf + 800 * y;
-			// surface->pixelsはvoid *
-			dst32 = dst16 = sdl_surface->pixels + sdl_surface->w * Bpp * y * 2;
-			for (x = 0; x < 256; x++) {
-				if  (Bpp == 4) {
-					dat32 = (DWORD)(*p & 0xf800) << 8 | (*p & 0x07e0) << 5 | (*p & 0x001f) << 3;
-					*dst32++ = dat32;
-					*dst32 = dat32;
-					dst32 += sdl_surface->w;
-					*dst32-- = dat32;
-					*dst32 = dat32;
-					p++;
-					dst32 -= sdl_surface->w;
-					dst32 += 2;
-				} else if (Bpp == 2) {
-					*dst16++ = *p;
-					*dst16 = *p;
-					dst16 += sdl_surface->w;
-					*dst16-- = *p;
-					*dst16 = *p;
-					p++;
-					dst16 -= sdl_surface->w;
-					dst16 += 2;
-				} else {
-					// xxx 未サポート
-				}
-			}
-		}
-	} else {
-		for (y = 0; y < 512; y++) {
-			p = ScrBuf + 800 * y;
-			// surface->pixelsはvoid *
-			dst32 = dst16 = sdl_surface->pixels + sdl_surface->w * Bpp * y;
-			for (x = 0; x < 800; x++) {
-				if (Bpp == 4) {
-					*dst32++ = (DWORD)(*p & 0xf800) << 8 | (*p & 0x07e0) << 5 | (*p & 0x001f) << 3;
-				} else if (Bpp == 2) {
-					*dst16++ = *p;
-				}
-				p++;
-			}
-		}
+	if (sdl_rgbsurface == NULL) {
+		puts("xxx sdl_rgbsurface not allocated yet");
+		return;
 	}
-#else
-	ret = SDL_BlitSurface(sdl_rgbsurface, NULL, sdl_surface, NULL);
+	if (TextDotX <= 256 && TextDotY <= 256) {
+		roto_surface = rotozoomSurfaceXY(sdl_rgbsurface, 0.0, 2.66666, 2.0, 0);
+	} else if (TextDotX == 512 && TextDotY == 512) {
+		roto_surface = rotozoomSurfaceXY(sdl_rgbsurface, 0.0, 1.33333, 1.0, 0);
+	}
+	if (roto_surface) {
+		ret = SDL_BlitSurface(roto_surface, NULL, sdl_surface, NULL);
+		SDL_FreeSurface(roto_surface);
+	} else {
+		ret = SDL_BlitSurface(sdl_rgbsurface, NULL, sdl_surface, NULL);
+	}
 	if (ret < 0) {
 		printf("SDL_BlitSurface() failed %d\n", ret);
 	}
-#endif
-#endif
-#endif
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	SDL_UpdateWindowSurface(sdl_window);
-#else
-#ifdef PSP
-	SDL_UpdateRect(sdl_surface, 0, 0, 480, 272);
-#else
+
 	SDL_UpdateRect(sdl_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
-#endif
 #endif
 
 #if 0

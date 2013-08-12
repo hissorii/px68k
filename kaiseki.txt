@@ -196,3 +196,67 @@ spline_%1_ed:
 
 * gtk/x11関連のソースをなくす
 
+** 2013/08/08
+
+SDL2.0の研究
+
+int SDL_GetNumVideoDisplays(void)
+Disp num: 1
+
+int SDL_GetNumDisplayModes(0) // 引数は0 origin?
+DispMode num: 1
+
+SDL_GetDisplayMode(0, 0, &dm);
+format: 0x15151002 w: 1280 h: 736 refresh_rate: 0 driverdata: 0
+
+
+0x X X X X XX XX
+   | | | |  |  |
+   | | | |  |  +-- bytes
+   | | | |  +-- bites
+   | | | +-- layout
+   | | +--order
+   | +-- type
+   +-- always 1
+
+#define SDL_DEFINE_PIXELFORMAT(type, order, layout, bits, bytes) \
+    ((1 << 28) | ((type) << 24) | ((order) << 20) | ((layout) << 16) | \
+     ((bits) << 8) | ((bytes) << 0))
+
+    SDL_PIXELFORMAT_RGB565 =
+        SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED16, SDL_PACKEDORDER_XRGB,
+                               SDL_PACKEDLAYOUT_565, 16, 2),
+
+
+SDL_GetWindowSurface()のタイミングで初めてSDL_Surfaceが作成される。
+これが32ビットdepthでXRGBフォーマットだ。
+struct SDL_Windowはsrc/video/SDL_sysvideo.h で定義されている
+SDL_Windowの>surface_validをセットするのはSDL_GetWindowSurface()。
+
+ということは、SDL_GetWindowSurface()するしかWindowにSurfaceをつける手段が
+ない？わかりずらいわ！！
+
+* 2013/08/09
+
+OpenGL ESの研究
+
+- OpenGL ES 2.0のライブラリをリンクしても、デフォルトでは1.1で開始される。
+2.0で開始するには、以下が必要
+
+SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
+SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
+
+- OpenGL ESの開始はSDL_GL_CreateContext()呼び出しの延長で行われる
+
+- glClearColor() はクリアする時の色を指定するだけ。clear本体はglClear()
+
+* 2013/08/10
+
+OpenGL ESの研究の２
+
+- SDL_CreateContext()でEGL Contextが作られる
+- SDL_GetWindowSurface()の延長でSDL_Surfaceが作られてしまい、こちらにEGL Contextが移ってしまう?
+-> Textureが真っ白になってしまう。
+   -> 元々sdl_surfaceはスクリーンバッファだが実画面に2倍blitするようにしていたので、単なるmalloc()で確保してもよい。
+      -> ではスクリーンバッファはmalloc()にする
+         -> をぉ、textureが反映されるようになった！！
