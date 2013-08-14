@@ -581,7 +581,7 @@ int main(int argc, char *argv[])
 
 	SDL_GLContext glcontext = SDL_GL_CreateContext(sdl_window);
 
-        glClearColor( 255, 0, 0, 0 );
+        glClearColor( 0, 0, 0, 0 );
 
 	glEnable(GL_TEXTURE_2D);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -699,6 +699,22 @@ int main(int argc, char *argv[])
 #ifdef ANDROID
 			case SDL_FINGERDOWN:
 				__android_log_print(ANDROID_LOG_DEBUG,"Tag","FINGERDOWN: x:%f y:%f", ev.tfinger.x, ev.tfinger.y);
+				int jx, jy;
+				jx = ev.tfinger.x * 800;
+				jy = ev.tfinger.y * 600 * 800 / 736;
+				if (20 <= jx && jx <= (20 + 32) && 450 <= jy && jy <= (450 + 32)) {
+					JoyKeyState |= JOY_TRG1;
+					__android_log_write(ANDROID_LOG_DEBUG,"Tag","button1 down");
+				}
+				break;
+			case SDL_FINGERUP:
+				__android_log_print(ANDROID_LOG_DEBUG,"Tag","FINGERUP: x:%f y:%f", ev.tfinger.x, ev.tfinger.y);
+				jx = ev.tfinger.x * 800;
+				jy = ev.tfinger.y * 600 * 800 / 736;
+				if (20 <= jx && jx <= (20 + 32) && 450 <= jy && jy <= (450 + 32)) {
+					JoyKeyState &= ~JOY_TRG1;
+					__android_log_write(ANDROID_LOG_DEBUG,"Tag","button1 up");
+				}
 				break;
 #endif
 			}		  

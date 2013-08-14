@@ -75,7 +75,7 @@ DWORD WindowX = 0;
 DWORD WindowY = 0;
 
 #ifdef ANDROID
-GLuint texid = 0;
+GLuint texid[7] = {0, 0, 0, 0, 0, 0, 0};
 #endif
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -229,20 +229,29 @@ int WinDraw_Init(void)
 #ifdef ANDROID
 	ScrBuf = malloc(1024*1024*2); // OpenGL ES 1.1 needs 2^x pixels
 
-	int i;
-	for (i = 0; i < 1024*1024; i++) {
-		*(ScrBuf + i) = i;
-	}
-
-	glGenTextures(1, &texid);
-	glBindTexture(GL_TEXTURE_2D, texid);
+	glGenTextures(7, &texid[0]);
+	glBindTexture(GL_TEXTURE_2D, texid[0]);
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 //	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
 //	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, ScrBuf);
+
+	WORD BtnTex[32*32];
+	int i;
+	//とりあえず薄めの緑で。
+	for (i = 0; i < 32*32; i++) {
+		BtnTex[i] = 0x03e0;
+	}
+
+	// ボタン用テクスチャ。とりあえず全部同じ色。
+	for (i = 1; i < 7; i++) {
+		glBindTexture(GL_TEXTURE_2D, texid[i]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 32, 32, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, BtnTex);
+	}
 #else
-	//	ScrBuf = (WORD *)sdl_surface->pixels;
 	sdl_rgbsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, 800, 600, 16, WinDraw_Pal16R, WinDraw_Pal16G, WinDraw_Pal16B, 0);
 
 	if (sdl_rgbsurface == 0) {
@@ -283,6 +292,34 @@ WinDraw_Redraw(void)
 	TVRAM_SetAllDirty();
 }
 
+#ifdef ANDROID
+#define SET_GLFLOATS(dst, a, b, c, d, e, f, g, h)		\
+{								\
+	dst[0] = (a); dst[1] = (b); dst[2] = (c); dst[3] = (d);	\
+	dst[4] = (e); dst[5] = (f); dst[6] = (g); dst[7] = (h);	\
+}
+
+static void draw_texture(GLfloat *coor, GLfloat *vert)
+{
+	glTexCoordPointer(2, GL_FLOAT, 0, coor);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 0, vert);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+}
+
+#define draw_button(texid, x, y)					\
+{									\
+	glBindTexture(GL_TEXTURE_2D, texid);				\
+	/* Texture から必要な部分を抜き出す(32x32を全部使う) */		\
+	SET_GLFLOATS(texture_coordinates, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f); \
+	SET_GLFLOATS(vertices, (GLfloat)(x), (y)+32.0f, (GLfloat)(x), (GLfloat)(y), (x)+32.0f, (y)+32.0f, (x)+32.0f, (y)+0.0f); \
+	draw_texture(texture_coordinates, vertices);			\
+}
+#endif
+
 void FASTCALL
 WinDraw_Draw(void)
 {
@@ -298,7 +335,7 @@ WinDraw_Draw(void)
 #ifdef ANDROID
 		__android_log_print(ANDROID_LOG_DEBUG,"Tag","TextDotX: %d", TextDotX);
 #else
-		printf("TextDotX: %d", TextDotX);
+		printf("TextDotX: %d\n", TextDotX);
 #endif
 	}
 	if (oldtexty != TextDotY) {
@@ -306,50 +343,50 @@ WinDraw_Draw(void)
 #ifdef ANDROID
 		__android_log_print(ANDROID_LOG_DEBUG,"Tag","TextDotY: %d", TextDotY);
 #else
-		printf("TextDotY: %d", TextDotY);
+		printf("TextDotY: %d\n", TextDotY);
 #endif
 	}
 
 #if defined(ANDROID)
+	GLfloat texture_coordinates[8];
+	GLfloat vertices[8];
+	GLfloat w;
+
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glBindTexture(GL_TEXTURE_2D, texid);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, ScrBuf);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-#if 1 // 1024x1024から800x600を抜き出して表示
-	GLfloat texture_coordinates[] = {0.0f, (GLfloat)600/1024,
-					 0.0f, 0.0f,
-					 (GLfloat)800/1024, (GLfloat)600/1024,
-					 (GLfloat)800/1024, 0.0f};
-#else // 1024x1024をそのまま表示
-	GLfloat texture_coordinates[] = {0.0f, 1.0f,
-					 0.0f, 0.0f,
-					 1.0f, 1.0f,
-					 1.0f, 0.0f};
-#endif
+	glBindTexture(GL_TEXTURE_2D, texid[0]);
+glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, ScrBuf);
 
-	glTexCoordPointer(2, GL_FLOAT, 0, texture_coordinates);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	// Texture から必要な部分を抜き出す
+	// Texutre座標は0.0fから1.0fの間
+	SET_GLFLOATS(texture_coordinates,
+		    0.0f, (GLfloat)TextDotY/1024,
+		    0.0f, 0.0f,
+		    (GLfloat)TextDotX/1024, (GLfloat)TextDotY/1024,
+		    (GLfloat)TextDotX/1024, 0.0f);
 
-#if 1
-	GLfloat vertices[] = {0.0f, 600.0f,
-			      0.0f, 0.0f,
-			      800.0f, 600.0f,
-			      800.0f, 0.0f};
-#else
-	GLfloat vertices[] = {0.0f, 600.0f,
-			      0.0f, 0.0f,
-			      1200.0f, 600.0f,
-			      1200.0f, 0.0f};
-#endif
+	// 実機の解像度(1280x736)に関係なく、座標は800x600
+	w = (736*1.33333)/1280*800;
+	SET_GLFLOATS(vertices,
+		     (800.0f - w)/2, (GLfloat)600,
+		     (800.0f - w)/2, 0.0f,
+		     (800.0f - w)/2 + w, (GLfloat)600,
+		     (800.0f - w)/2 + w, 0.0f);
 
-	glVertexPointer(2, GL_FLOAT, 0, vertices);
-	glEnableClientState(GL_VERTEX_ARRAY);
+	draw_texture(texture_coordinates, vertices);
 
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	// 左右上下 上上下下左右左右BA
+	draw_button(texid[1], 20, 450);
+	draw_button(texid[2], 100, 450);
+	draw_button(texid[3], 60, 400);
+	draw_button(texid[4], 60, 500);
 
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	// ボタン
+	draw_button(texid[5], 680, 450);
+	draw_button(texid[6], 750, 450);
 
 	//	glDeleteTextures(1, &texid);
 
@@ -372,15 +409,12 @@ WinDraw_Draw(void)
 	SDL_UpdateRect(sdl_surface, 0, 0, 480, 272);
 #else // Unix系 (要SDL_gfx)
 	sdl_surface = SDL_GetVideoSurface();
-
 	if (sdl_rgbsurface == NULL) {
 		puts("xxx sdl_rgbsurface not allocated yet");
 		return;
 	}
-	if (TextDotX <= 256 && TextDotY <= 256) {
-		roto_surface = rotozoomSurfaceXY(sdl_rgbsurface, 0.0, 2.66666, 2.0, 0);
-	} else if (TextDotX == 512 && TextDotY == 512) {
-		roto_surface = rotozoomSurfaceXY(sdl_rgbsurface, 0.0, 1.33333, 1.0, 0);
+	if (TextDotX <= 512) {
+		roto_surface = rotozoomSurfaceXY(sdl_rgbsurface, 0.0, 512.0*1.33333/TextDotX, 512.0/TextDotY, 0);
 	}
 	if (roto_surface) {
 		ret = SDL_BlitSurface(roto_surface, NULL, sdl_surface, NULL);
@@ -406,7 +440,7 @@ WinDraw_Draw(void)
 
 INLINE void WinDraw_DrawGrpLine(int opaq)
 {
-	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	WORD w;
 	int i;
 
@@ -423,7 +457,7 @@ INLINE void WinDraw_DrawGrpLine(int opaq)
 
 INLINE void WinDraw_DrawGrpLineNonSP(int opaq)
 {
-	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	WORD w;
 	int i;
 
@@ -441,7 +475,7 @@ INLINE void WinDraw_DrawGrpLineNonSP(int opaq)
 
 INLINE void WinDraw_DrawTextLine(int opaq, int td)
 {
-	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	WORD w;
 	int i;
 
@@ -469,7 +503,7 @@ INLINE void WinDraw_DrawTextLine(int opaq, int td)
 
 INLINE void WinDraw_DrawTextLineTR(int opaq)
 {
-	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	DWORD v;
 	WORD w;
 	int i;
@@ -517,7 +551,7 @@ INLINE void WinDraw_DrawTextLineTR(int opaq)
 
 INLINE void WinDraw_DrawTextLineTR2(int opaq)
 {
-	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	DWORD v;
 	WORD w;
 	int i;
@@ -566,9 +600,20 @@ INLINE void WinDraw_DrawTextLineTR2(int opaq)
 
 INLINE void WinDraw_DrawBGLine(int opaq, int td)
 {
-	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	WORD w;
 	int i;
+
+	static int log_start = 0;
+
+#if 0 // debug for segv
+	if (TextDotX == 128 && TextDotY == 128) {
+		log_start = 1;
+	}
+	if (log_start) {
+		printf("opaq/td: %d/%d VLINE: %d, TextDotX: %d\n", opaq, td, VLINE, TextDotX);
+	}
+#endif
 
 	if (opaq) {
 		memcpy(&ScrBuf[adr], &BG_LineBuf[16], TextDotX * 2);
@@ -594,7 +639,7 @@ INLINE void WinDraw_DrawBGLine(int opaq, int td)
 
 INLINE void WinDraw_DrawBGLineTR(int opaq)
 {
-	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	DWORD v;
 	WORD w;
 	int i;
@@ -638,7 +683,7 @@ INLINE void WinDraw_DrawBGLineTR(int opaq)
 
 INLINE void WinDraw_DrawPriLine(void)
 {
-	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	WORD w;
 	int i;
 
@@ -651,7 +696,7 @@ INLINE void WinDraw_DrawPriLine(void)
 
 INLINE void WinDraw_DrawTRLine(void)
 {
-	DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	DWORD v;
 	WORD w;
 	int i;
@@ -1054,7 +1099,7 @@ void WinDraw_DrawLine(void)
 		}
 		else if ( ((VCReg2[0]&0x5d)==0x1c)&&(tron) )	// 半透明時に全てが透明なドットをハーフカラーで埋める
 		{						// （AQUALES）
-			DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+			DWORD adr = VLINE*FULLSCREEN_WIDTH;
 			WORD w;
 			int i;
 
@@ -1068,7 +1113,7 @@ void WinDraw_DrawLine(void)
 
 	if (opaq)
 	{
-		DWORD adr = ((VLINE+16)*FULLSCREEN_WIDTH+16);
+		DWORD adr = VLINE*FULLSCREEN_WIDTH;
 		bzero(&ScrBuf[adr], TextDotX * 2);
 	}
 }
