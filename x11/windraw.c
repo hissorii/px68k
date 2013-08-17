@@ -23,8 +23,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if ANDROID
+#if defined(ANDROID)
 #include <GLES/gl.h>
+#elif defined(PSP)
+#include <pspdisplay.h>
+#include <pspgu.h>
 #endif
 #include <SDL.h>
 //#include <SDL_rotozoom.h>
@@ -49,7 +52,12 @@
 
 extern BYTE Debug_Text, Debug_Grp, Debug_Sp;
 
+#ifdef PSP
+WORD *ScrBufL = 0, *ScrBufR = 0;
+#else
 WORD *ScrBuf = 0;
+#endif
+
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
 SDL_Surface *sdl_rgbsurface;
 #endif
@@ -198,6 +206,60 @@ void WinDraw_HideSplash(void)
 {
 }
 
+#ifdef PSP
+
+/*
+          <----- 512byte ------>
+0x04000000+--------------------+
+          |                    |A
+          | draw/disp 0 buffer ||272*2byte (16bit color)
+          |                    |V
+0x04044000+--------------------+
+          |                    |A
+          | draw/disp 1 buffer ||272*2byte
+          |                    |V
+0x04088000+--------------------+
+          |                    |A
+          | z bufer            ||272*2byte
+          |                    |V
+0x040cc000+--------------------+
+          |                    |A
+          | ScrBufL (left)     ||512*2byte (x68k screen size: 756x512)
+          |                    |V
+0x0414c000+----------+---------+
+          |<- 256B ->|A
+          |  ScrBufR ||512*2byte (x68k screen size: 756x512)
+          |  (right) |V
+0x0418c000+----------+---------+
+          |仮想キーボード用    |
+          |    に使うかも領域  |
+0x041cc000+--------------------+
+          |                    |
+          | Virtexes           |
+          |                    |
+          +--------------------+
+*/
+
+static unsigned int __attribute__((aligned(16))) list[262144];
+
+void *fbp0, *fbp1, *zbp;
+struct Vertexes {
+	unsigned short u, v;   // Texture (sx, sy)
+	unsigned short color;
+	short x, y, z;         // Screen (sx, sy, sz)
+	unsigned short u2, v2; // Texture (ex, ey)
+	unsigned short color2;
+	short x2, y2, z2;      // Screen (ex, ey, ez)
+};
+
+struct Vertexes *vtxl = (struct Vertexes *)0x41cc000;
+struct Vertexes *vtxr = (struct Vertexes *)(0x41cc000 + sizeof(struct Vertexes));
+
+#define PSP_BUF_WIDTH (512)
+#define PSP_SCR_WIDTH (480)
+#define PSP_SCR_HEIGHT (272)
+
+#endif // PSP
 
 int WinDraw_Init(void)
 {
@@ -251,6 +313,34 @@ int WinDraw_Init(void)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 32, 32, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, BtnTex);
 	}
+#elif defined(PSP)
+
+	fbp0 = 0; // offset 0
+	fbp1 = (void *)((unsigned int)fbp0 + PSP_BUF_WIDTH * PSP_SCR_HEIGHT * 2);
+	zbp = (void *)((unsigned int)fbp1 + PSP_BUF_WIDTH * PSP_SCR_HEIGHT * 2);
+
+	sceGuInit();
+
+	sceGuStart(GU_DIRECT,list);
+	sceGuDrawBuffer(GU_PSM_5650, fbp0, PSP_BUF_WIDTH);
+	sceGuDispBuffer(PSP_SCR_WIDTH, PSP_SCR_HEIGHT, fbp1, PSP_BUF_WIDTH);
+	sceGuDepthBuffer(zbp, PSP_BUF_WIDTH);
+	sceGuOffset(2048 - (PSP_SCR_WIDTH/2), 2048 - (PSP_SCR_HEIGHT/2));
+	sceGuViewport(2048, 2048, PSP_SCR_WIDTH, PSP_SCR_HEIGHT);
+	sceGuDepthRange(65535, 0);
+	sceGuScissor(0, 0, PSP_SCR_WIDTH, PSP_SCR_HEIGHT);
+	sceGuEnable(GU_SCISSOR_TEST);
+	sceGuFrontFace(GU_CW);
+	sceGuEnable(GU_TEXTURE_2D);
+	sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
+	sceGuFinish();
+	sceGuSync(0, 0);
+
+	sceDisplayWaitVblankStart();
+	sceGuDisplay(GU_TRUE);
+
+	ScrBufL = (WORD *)0x040cc000;
+	ScrBufR = (WORD *)0x0414c000;
 #else
 	sdl_rgbsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, 800, 600, 16, WinDraw_Pal16R, WinDraw_Pal16G, WinDraw_Pal16B, 0);
 
@@ -262,21 +352,6 @@ int WinDraw_Init(void)
 
 	printf("drawbuf: 0x%x, ScrBuf: 0x%x\n", sdl_surface->pixels, ScrBuf);
 #endif
-
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
-	SDL_LockSurface(sdl_rgbsurface);
-#endif
-	{
-//		printf("hoge\n");
-		int i;
-		for (i = 0; i < 80; i++) {
-			*(ScrBuf + i) = 0xffff;
-		}
-	}
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
-	SDL_UnlockSurface(sdl_rgbsurface);
-#endif
-
 	return TRUE;
 }
 
@@ -378,7 +453,7 @@ glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_
 
 	draw_texture(texture_coordinates, vertices);
 
-	// 左右上下 上上下下左右左右BA
+	// 左右上下 上上下下左右左右BAではない。
 	draw_button(texid[1], 20, 450);
 	draw_button(texid[2], 100, 450);
 	draw_button(texid[3], 60, 400);
@@ -391,22 +466,63 @@ glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_
 	//	glDeleteTextures(1, &texid);
 
 	SDL_GL_SwapWindow(sdl_window);
-#elif defined(PSP)
-	sdl_surface = SDL_GetVideoSurface();
 
-	// とりあえず指定範囲内のみblit
-	// PSPのsdl_surfaceのバッファは幅512
-	p = ScrBuf;
-	dst16 = sdl_surface->pixels;
-	for (y = 0; y < 272; y++) {
-		p = ScrBuf + 800 * y;
-		// surface->pixelsはvoid *
-		dst16 = sdl_surface->pixels + 512 * 2 * y;
-		for (x = 0; x < 480; x++) {
-			*dst16++ = *p++;
-		}
+#elif defined(PSP)
+	sceGuStart(GU_DIRECT, list);
+
+	sceGuClear(0);
+
+	// 左半分
+	vtxl->u = 0;
+	vtxl->v = 0;
+	vtxl->color = 0;
+	vtxl->x = (480 - (272 * 1.33333)) / 2; // 1.3333 = 4 : 3
+	vtxl->y = 0;
+	vtxl->z = 0;
+	vtxl->u2 = (TextDotX >= 512)? 512 : TextDotX;
+	vtxl->v2 = TextDotY;
+	vtxl->color2 = 0;
+	vtxl->x2 = (TextDotX >= 512)?
+		vtxl->x + 272 * 1.33333 * (512.0 / TextDotX) :
+		vtxl->x + 272 * 1.33333;
+	vtxl->y2 = 272;
+	vtxl->z2 = 0;
+
+	sceGuTexMode(GU_PSM_5650, 0, 0, 0);
+	sceGuTexImage(0, 512, 512, 512, ScrBufL);
+	sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
+	sceGuTexFilter(GU_LINEAR, GU_LINEAR);
+
+	sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT|GU_COLOR_5650|GU_VERTEX_16BIT|GU_TRANSFORM_2D, 2, 0, vtxl);
+
+	if (TextDotX > 512) {
+		// 右半分
+		vtxr->u = 0;
+		vtxr->v = 0;
+		vtxr->color = 0;
+		vtxr->x = vtxl->x2;
+		vtxr->y = 0;
+		vtxr->z = 0;
+		vtxr->u2 = TextDotX - 512;
+		vtxr->v2 = TextDotY;
+		vtxr->color2 = 0;
+		vtxr->x2 = vtxl->x + 272 * 1.33333;
+		vtxr->y2 = 272;
+		vtxr->z2 = 0;
+
+		sceGuTexMode(GU_PSM_5650, 0, 0, 0);
+		sceGuTexImage(0, 256, 512, 256, ScrBufR);
+		sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
+		sceGuTexFilter(GU_LINEAR, GU_LINEAR);
+
+		sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT|GU_COLOR_5650|GU_VERTEX_16BIT|GU_TRANSFORM_2D, 2, 0, vtxr);
 	}
-	SDL_UpdateRect(sdl_surface, 0, 0, 480, 272);
+
+        sceGuFinish();
+        sceGuSync(0, 0);
+
+        sceGuSwapBuffers();
+
 #else // Unix系 (要SDL_gfx)
 	sdl_surface = SDL_GetVideoSurface();
 	if (sdl_rgbsurface == NULL) {
@@ -438,175 +554,193 @@ glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_
 		WinDraw_ShowSplash();
 }
 
+#ifdef PSP
+#ifdef FULLSCREEN_WIDTH
+#undef FULLSCREEN_WIDTH
+#endif
+//PSPのテクスチャは一辺が最大512なので、X68000の768x512画面を
+//512x512と256x512の左右二つに分ける。
+//以下のDrawLine系の関数処理もPSPは左右のテクスチャを別々に
+//処理しなければならない。
+//ということで、以下のdefineは左側テクスチャの横幅を表している。
+#define FULLSCREEN_WIDTH 512
+#endif
+
+#ifdef PSP
+#define WD_MEMCPY(src)						\
+{								\
+	if (TextDotX > 512) {					\
+		memcpy(&ScrBufL[adr], (src), 512 * 2);		\
+		adr = VLINE * 256;				\
+		memcpy(&ScrBufR[adr], (WORD *)(src) + 512, TextDotX * 2 - 512 * 2); \
+	} else {						\
+		memcpy(&ScrBufL[adr], (src), TextDotX * 2);	\
+	}							\
+}
+#else
+#define WD_MEMCPY(src) memcpy(&ScrBuf[adr], (src), TextDotX * 2)
+#endif
+
+#ifdef PSP
+#define WD_LOOP(start, end, sub)				\
+{								\
+	if (TextDotX > 512) {					\
+		for (i = (start); i < 512 + (start); i++, adr++) {	\
+			sub(L);						\
+		}							\
+		adr = VLINE * 256;					\
+		for (i = 512 + (start); i < (end); i++, adr++) {	\
+			sub(R);						\
+		}							\
+	} else {							\
+		for (i = (start); i < (end); i++, adr++) {		\
+			sub(L);						\
+		}							\
+	}								\
+}
+#else
+#define WD_LOOP(start, end, sub)			\
+{ 							\
+	for (i = (start); i < (end); i++, adr++) {	\
+		sub();					\
+	}						\
+}
+#endif
+
+#define WD_SUB(SUFFIX, src)			\
+{						\
+	w = (src);				\
+	if (w != 0)				\
+		ScrBuf##SUFFIX[adr] = w;	\
+}
+
+
 INLINE void WinDraw_DrawGrpLine(int opaq)
 {
+#define _DGL_SUB(SUFFIX) WD_SUB(SUFFIX, Grp_LineBuf[i])
+
 	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	WORD w;
 	int i;
 
 	if (opaq) {
-		memcpy(&ScrBuf[adr], Grp_LineBuf, TextDotX * 2);
+		WD_MEMCPY(Grp_LineBuf);
 	} else {
-		for (i = 0; i < TextDotX; i++, adr++) {
-			w = Grp_LineBuf[i];
-			if (w != 0)
-				ScrBuf[adr] = w;
-		}
+		WD_LOOP(0,  TextDotX, _DGL_SUB);
 	}
 }
 
 INLINE void WinDraw_DrawGrpLineNonSP(int opaq)
 {
+#define _DGL_NSP_SUB(SUFFIX) WD_SUB(SUFFIX, Grp_LineBufSP2[i])
+
 	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	WORD w;
 	int i;
 
 	if (opaq) {
-		memcpy(&ScrBuf[adr], Grp_LineBufSP2, TextDotX * 2);
+		WD_MEMCPY(Grp_LineBufSP2);
 	} else {
-		for (i = 0; i < TextDotX; i++, adr++) {
-			w = Grp_LineBufSP2[i];
-			if (w != 0)
-				ScrBuf[adr] = w;
-		}
+		WD_LOOP(0,  TextDotX, _DGL_NSP_SUB);
 	}
 }
-
 
 INLINE void WinDraw_DrawTextLine(int opaq, int td)
 {
+#define _DTL_SUB2(SUFFIX) WD_SUB(SUFFIX, BG_LineBuf[i])
+#define _DTL_SUB(SUFFIX)		\
+{					\
+	if (Text_TrFlag[i] & 1) {	\
+		_DTL_SUB2(SUFFIX);	\
+	}				\
+}	
+
 	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	WORD w;
 	int i;
 
 	if (opaq) {
-		memcpy(&ScrBuf[adr], &BG_LineBuf[16], TextDotX * 2);
+		WD_MEMCPY(&BG_LineBuf[16]);
 	} else {
 		if (td) {
-			for (i = 16; i < TextDotX + 16; i++, adr++) {
-				if (Text_TrFlag[i] & 1) {
-					w = BG_LineBuf[i];
-					if (w != 0)
-						ScrBuf[adr] = w;
-				}
-			}
+			WD_LOOP(16, TextDotX + 16, _DTL_SUB);
 		} else {
-			for (i = 16; i < TextDotX + 16; i++, adr++) {
-				w = BG_LineBuf[i];
-				if (w != 0)
-					ScrBuf[adr] = w;
-			}
+			WD_LOOP(16, TextDotX + 16, _DTL_SUB2);
 		}
 	}
 }
-
 
 INLINE void WinDraw_DrawTextLineTR(int opaq)
 {
+#define _DTL_TR_SUB(SUFFIX)			   \
+{						   \
+	w = Grp_LineBufSP[i - 16];		   \
+	if (w != 0) {				   \
+		w &= Pal_HalfMask;		   \
+		v = BG_LineBuf[i];		   \
+		if (v & Ibit)			   \
+			w += Pal_Ix2;		   \
+		v &= Pal_HalfMask;		   \
+		v += w;				   \
+		v >>= 1;			   \
+	} else {				   \
+		if (Text_TrFlag[i] & 1)		   \
+			v = BG_LineBuf[i];	   \
+		else				   \
+			v = 0;			   \
+	}					   \
+	ScrBuf##SUFFIX[adr] = (WORD)v;		   \
+}
+
+#define _DTL_TR_SUB2(SUFFIX)			   \
+{						   \
+	if (Text_TrFlag[i] & 1) {		   \
+		w = Grp_LineBufSP[i - 16];	   \
+		v = BG_LineBuf[i];		   \
+						   \
+		if (v != 0) {			   \
+			if (w != 0) {			\
+				w &= Pal_HalfMask;	\
+				if (v & Ibit)		\
+					w += Pal_Ix2;	\
+				v &= Pal_HalfMask;	\
+				v += w;			\
+				v >>= 1;		\
+			}				\
+			ScrBuf##SUFFIX[adr] = (WORD)v;	\
+		}					\
+	}						\
+}
+
 	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	DWORD v;
 	WORD w;
 	int i;
 
 	if (opaq) {
-		for (i = 16; i < TextDotX + 16; i++, adr++) {
-			w = Grp_LineBufSP[i - 16];
-			if (w != 0) {
-				w &= Pal_HalfMask;
-				v = BG_LineBuf[i];
-				if (v & Ibit)
-					w += Pal_Ix2;
-				v &= Pal_HalfMask;
-				v += w;
-				v >>= 1;
-			} else {
-				if (Text_TrFlag[i] & 1)
-					v = BG_LineBuf[i];
-				else
-					v = 0;
-			}
-			ScrBuf[adr] = (WORD)v;
-		}
+		WD_LOOP(16, TextDotX + 16, _DTL_TR_SUB);
 	} else {
-		for (i = 16; i < TextDotX + 16; i++, adr++) {
-			if (Text_TrFlag[i] & 1) {
-				w = Grp_LineBufSP[i - 16];
-				v = BG_LineBuf[i];
-
-				if (v != 0) {
-					if (w != 0) {
-						w &= Pal_HalfMask;
-						if (v & Ibit)
-							w += Pal_Ix2;
-						v &= Pal_HalfMask;
-						v += w;
-						v >>= 1;
-					}
-					ScrBuf[adr] = (WORD)v;
-				}
-			}
-		}
+		WD_LOOP(16, TextDotX + 16, _DTL_TR_SUB2);
 	}
 }
-
-INLINE void WinDraw_DrawTextLineTR2(int opaq)
-{
-	DWORD adr = VLINE*FULLSCREEN_WIDTH;
-	DWORD v;
-	WORD w;
-	int i;
-
-	if (opaq) {
-		for (i = 16; i < TextDotX + 16; i++, adr++) {
-			w = Grp_LineBufSP[i - 16];
-			if (w != 0) {
-				w &= Pal_HalfMask;
-				v = BG_LineBuf[i];
-				if (v & Ibit)
-					w += Pal_Ix2;
-				v &= Pal_HalfMask;
-				v += w;
-				v >>= 1;
-			} else {
-				if (Text_TrFlag[i] & 1)
-					v = BG_LineBuf[i];
-				else
-					v = 0;
-			}
-			ScrBuf[adr] = (WORD)v;
-		}
-	} else {
-		for (i = 16; i < TextDotX + 16; i++, adr++) {
-			if (Text_TrFlag[i] & 1) {
-				w = Grp_LineBufSP[i - 16];
-				v = BG_LineBuf[i];
-
-				if (v != 0) {
-					if (w != 0) {
-						w &= Pal_HalfMask;
-						if (v & Ibit)
-							w += Pal_Ix2;
-						v &= Pal_HalfMask;
-						v += w;
-						v >>= 1;
-					}
-					ScrBuf[adr] = (WORD)v;
-				}
-			}
-		}
-	}
-}
-
 
 INLINE void WinDraw_DrawBGLine(int opaq, int td)
 {
+#define _DBL_SUB2(SUFFIX) WD_SUB(SUFFIX, BG_LineBuf[i])
+#define _DBL_SUB(SUFFIX)			 \
+{						 \
+	if (Text_TrFlag[i] & 2) {		 \
+		_DBL_SUB2(SUFFIX); \
+	} \
+}
+
 	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	WORD w;
 	int i;
 
+#if 0 // debug for segv
 	static int log_start = 0;
 
-#if 0 // debug for segv
 	if (TextDotX == 128 && TextDotY == 128) {
 		log_start = 1;
 	}
@@ -616,104 +750,75 @@ INLINE void WinDraw_DrawBGLine(int opaq, int td)
 #endif
 
 	if (opaq) {
-		memcpy(&ScrBuf[adr], &BG_LineBuf[16], TextDotX * 2);
+		WD_MEMCPY(&BG_LineBuf[16]);
 	} else {
 		if (td) {
-			for (i = 16; i < TextDotX + 16; i++, adr++) {
-				if (Text_TrFlag[i] & 2) {
-					w = BG_LineBuf[i];
-					if (w != 0)
-						ScrBuf[adr] = w;
-				}
-			}
+			WD_LOOP(16, TextDotX + 16, _DBL_SUB);
 		} else {
-			for (i = 16; i < TextDotX + 16; i++, adr++) {
-				w = BG_LineBuf[i];
-				if (w != 0)
-					ScrBuf[adr] = w;
-			}
+			WD_LOOP(16, TextDotX + 16, _DBL_SUB2);
 		}
 	}
 }
 
-
 INLINE void WinDraw_DrawBGLineTR(int opaq)
 {
+
+#define _DBL_TR_SUB3()			\
+{					\
+	if (w != 0) {			\
+		w &= Pal_HalfMask;	\
+		if (v & Ibit)		\
+			w += Pal_Ix2;	\
+		v &= Pal_HalfMask;	\
+		v += w;			\
+		v >>= 1;		\
+	}				\
+}
+
+#define _DBL_TR_SUB(SUFFIX) \
+{					\
+	w = Grp_LineBufSP[i - 16];	\
+	v = BG_LineBuf[i];		\
+					\
+	_DBL_TR_SUB3()			\
+	ScrBuf##SUFFIX[adr] = (WORD)v;	\
+}
+
+#define _DBL_TR_SUB2(SUFFIX) \
+{							\
+	if (Text_TrFlag[i] & 2) {  			\
+		w = Grp_LineBufSP[i - 16];		\
+		v = BG_LineBuf[i];			\
+							\
+		if (v != 0) {				\
+			_DBL_TR_SUB3()			\
+			ScrBuf##SUFFIX[adr] = (WORD)v;	\
+		}					\
+	}						\
+}
+
 	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	DWORD v;
 	WORD w;
 	int i;
 
 	if (opaq) {
-		for (i = 16; i < TextDotX + 16; i++, adr++) {
-			w = Grp_LineBufSP[i - 16];
-			v = BG_LineBuf[i];
-
-			if (w != 0) {
-				w &= Pal_HalfMask;
-				if (v & Ibit)
-					w += Pal_Ix2;
-				v &= Pal_HalfMask;
-				v += w;
-				v >>= 1;
-			}
-			ScrBuf[adr] = (WORD)v;
-		}
+		WD_LOOP(16, TextDotX + 16, _DBL_TR_SUB);
 	} else {
-		for (i = 16; i < TextDotX + 16; i++, adr++) {
-			if (Text_TrFlag[i] & 2) {
-				w = Grp_LineBufSP[i - 16];
-				v = BG_LineBuf[i];
-
-				if (v != 0) {
-					if (w != 0) {
-						w &= Pal_HalfMask;
-						if (v & Ibit)
-							w += Pal_Ix2;
-						v &= Pal_HalfMask;
-						v += w;
-						v >>= 1;
-					}
-					ScrBuf[adr] = (WORD)v;
-				}
-			}
-		}
+		WD_LOOP(16, TextDotX + 16, _DBL_TR_SUB2);
 	}
+
 }
 
 INLINE void WinDraw_DrawPriLine(void)
 {
+#define _DPL_SUB(SUFFIX) WD_SUB(SUFFIX, Grp_LineBufSP[i])
+
 	DWORD adr = VLINE*FULLSCREEN_WIDTH;
 	WORD w;
 	int i;
 
-	for (i = 0; i < TextDotX; i++, adr++) {
-		w = Grp_LineBufSP[i];
-		if (w != 0)
-			ScrBuf[adr] = w;
-	}
-}
-
-INLINE void WinDraw_DrawTRLine(void)
-{
-	DWORD adr = VLINE*FULLSCREEN_WIDTH;
-	DWORD v;
-	WORD w;
-	int i;
-
-	for (i = 0; i < TextDotX; i++, adr++) {
-		w = Grp_LineBufSP[i];
-		if (w != 0) {
-			v = ScrBuf[adr];
-			w &= Pal_HalfMask;
-			if (v & Ibit)
-				w += Pal_Ix2;
-			v &= Pal_HalfMask;
-			v += w;
-			v >>= 1;
-			ScrBuf[adr] = (WORD)v;
-		}
-	}
+	WD_LOOP(0, TextDotX, _DPL_SUB);
 }
 
 void WinDraw_DrawLine(void)
@@ -1099,22 +1204,36 @@ void WinDraw_DrawLine(void)
 		}
 		else if ( ((VCReg2[0]&0x5d)==0x1c)&&(tron) )	// 半透明時に全てが透明なドットをハーフカラーで埋める
 		{						// （AQUALES）
+
+#define _DL_SUB(SUFFIX) \
+{								\
+	w = Grp_LineBufSP[i];					\
+	if (w != 0 && (ScrBuf##SUFFIX[adr] & 0xffff) == 0)	\
+		ScrBuf##SUFFIX[adr] = (w & Pal_HalfMask) >> 1;	\
+}
+
 			DWORD adr = VLINE*FULLSCREEN_WIDTH;
 			WORD w;
 			int i;
 
-			for (i = 0; i < TextDotX; ++i, ++adr) {
-				w = Grp_LineBufSP[i];
-				if (w != 0 && (ScrBuf[adr] & 0xffff) == 0)
-					ScrBuf[adr] = (w & Pal_HalfMask) >> 1;
-			}
+			WD_LOOP(0, TextDotX, _DL_SUB);
 		}
 
 
 	if (opaq)
 	{
 		DWORD adr = VLINE*FULLSCREEN_WIDTH;
+#ifdef PSP
+		if (TextDotX > 512) {
+			bzero(&ScrBufL[adr], TextDotX * 2);
+			adr = VLINE * 256;
+			bzero(&ScrBufR[adr], (TextDotX - 512) * 2);
+		} else {
+			bzero(&ScrBufL[adr], TextDotX * 2);
+		}
+#else
 		bzero(&ScrBuf[adr], TextDotX * 2);
+#endif
 	}
 }
 

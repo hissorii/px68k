@@ -1,12 +1,9 @@
-/*	$Id: windraw.h,v 1.1.1.1 2003/04/28 18:06:56 nonaka Exp $	*/
-
 #ifndef _winx68k_windraw_h
 #define _winx68k_windraw_h
 
 extern BYTE Draw_DrawFlag;
 extern int winx, winy;
 extern int winh, winw;
-extern WORD *ScrBuf;
 extern int FullScreenFlag;
 extern BYTE Draw_ClrMenu;
 extern WORD FrameCount;
