@@ -23,6 +23,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <SDL.h>
 #include "common.h"
 #include "joystick.h"
 #include "prop.h"
@@ -55,19 +56,15 @@ Keyboard_Init(void)
 //	¤Æ¡¼¤Ö¤ëÎà
 // ----------------------------------
 
-#if 0
-#include <gdk/gdkkeysyms.h>
-#endif
-
 #define	NC	0
 
 BYTE KeyTable[512] = {
 	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x00
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
-	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x08
-		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
+	//	    ,    ,    ,    ,    , RET,    ,    		; 0x08
+		  NC,  NC,  NC,  NC,  NC,0x1d,  NC,  NC,
 	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x10
-		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
+		  NC,  NC,  NC,0x1d,  NC,  NC,  NC,  NC,
 	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x18
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
 	//	 SPC,  ! ,  " ,  # ,  $ ,  % ,  & ,  '		; 0x20
@@ -133,16 +130,16 @@ BYTE KeyTable[512] = {
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
 	//	  BS, TAB,  LF, CLR,    , RET,    ,   		; 0x08
 		0x0f,0x10,0x1d,  NC,  NC,0x1d,  NC,  NC,
-	//	    ,    ,    ,PAUS,SCRL,SYSQ,    ,  		; 0x10
-		  NC,  NC,  NC,0x61,  NC,  NC,  NC,  NC,
+	//	    ,  ¢¬,  ¢­,  ¢ª,  ¢«,SYSQ,    ,  		; 0x10
+		  NC,0x3c,0x3e,0x3d,0x3b,  NC,  NC,  NC,
 	//	    ,    ,    , ESC,    ,    ,    ,   		; 0x18
 		  NC,  NC,  NC,0x01,  NC,  NC,  NC,  NC,
 	//	    ,KANJ,MUHE,HENM,HENK,RONM,HIRA,KATA		; 0x20
 		  NC,  NC,0x56,  NC,  NC,  NC,  NC,  NC,
 	//	HIKA,ZENK,HANK,ZNHN,    ,KANA,    ,   		; 0x28
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
-	//	ALNU,    ,    ,    ,    ,    ,    ,    		; 0x30
-		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
+	//	SFTL,    ,    ,    ,    ,    ,    ,    		; 0x30
+		0x70,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
 	//	    ,    ,    ,    ,    ,ZKOU,MKOU,   		; 0x38
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
 	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x40
@@ -336,10 +333,10 @@ BYTE KeyTableMaster[512] = {
 void
 Keyboard_KeyDown(DWORD wp)
 {
-#if 0
+
 	BYTE code;
 	BYTE newwp;
-
+#if 0
 	if (wp & ~0xff) {
 		if (wp == GDK_VoidSymbol)
 			code = NC;
@@ -349,53 +346,62 @@ Keyboard_KeyDown(DWORD wp)
 			code = NC;
 	} else
 		code = KeyTable[wp & 0xff];
+#endif
+
+	code = KeyTable[wp];
+
+	printf("wp=0x%x, code=0x%x\n", wp, code);
+	printf("SDLK_UP: 0x%x", SDLK_UP);
 
 	if (code != NC) {
 		newwp = ((KeyBufWP + 1) & (KeyBufSize - 1));
 		if (newwp != KeyBufRP) {
 			KeyBuf[KeyBufWP] = code;
 			KeyBufWP = newwp;
+			printf("KeyBufWP: %d\n", KeyBufWP);
 		}
 	}
 
+	printf("JoyKeyState: 0x%x\n", JoyKeyState);
+
 	switch (wp) {
-	case GDK_Up:
+	case SDLK_UP:
+		puts("key up");
 		if (!(JoyKeyState&JOY_DOWN))
 			JoyKeyState |= JOY_UP;
 		break;
 
-	case GDK_Down:
+	case SDLK_DOWN:
 		if (!(JoyKeyState&JOY_UP))
 			JoyKeyState |= JOY_DOWN;
 		break;
 
-	case GDK_Left:
+	case SDLK_LEFT:
 		if (!(JoyKeyState&JOY_RIGHT))
 			JoyKeyState |= JOY_LEFT;
 		break;
 
-	case GDK_Right:
+	case SDLK_RIGHT:
 		if (!(JoyKeyState&JOY_LEFT))
 			JoyKeyState |= JOY_RIGHT;
 		break;
 
-	case GDK_Z:
-	case GDK_z:
+	case SDLK_z:
+		puts("key z");
 		if (Config.JoyKeyReverse)
 			JoyKeyState |= JOY_TRG2;
 		else
 			JoyKeyState |= JOY_TRG1;
 		break;
 
-	case GDK_X:
-	case GDK_x:
+	case SDLK_x:
+		puts("key x");
 		if (Config.JoyKeyReverse)
 			JoyKeyState |= JOY_TRG1;
 		else
 			JoyKeyState |= JOY_TRG2;
 		break;
 	}
-#endif
 }
 
 // ----------------------------------
@@ -404,10 +410,9 @@ Keyboard_KeyDown(DWORD wp)
 void
 Keyboard_KeyUp(DWORD wp)
 {
-#if 0
 	BYTE code;
 	BYTE newwp;
-
+#if 0
 	if (wp & ~0xff) {
 		if (wp == GDK_VoidSymbol)
 			code = NC;
@@ -417,6 +422,9 @@ Keyboard_KeyUp(DWORD wp)
 			code = NC;
 	} else
 		code = KeyTable[wp & 0xff];
+#endif
+
+	code = KeyTable[wp];
 
 	if (code != NC) {
 		newwp = ((KeyBufWP + 1) & (KeyBufSize - 1));
@@ -426,40 +434,41 @@ Keyboard_KeyUp(DWORD wp)
 		}
 	}
 
+	printf("JoyKeyState: 0x%x\n", JoyKeyState);
+
 	switch(wp) {
-	case GDK_Up:
+	case SDLK_UP:
 		JoyKeyState &= ~JOY_UP;
 		break;
 
-	case GDK_Down:
+	case SDLK_DOWN:
 		JoyKeyState &= ~JOY_DOWN;
 		break;
 
-	case GDK_Left:
+	case SDLK_LEFT:
 		JoyKeyState &= ~JOY_LEFT;
 		break;
 
-	case GDK_Right:
+	case SDLK_RIGHT:
 		JoyKeyState &= ~JOY_RIGHT;
 		break;
 
-	case GDK_Z:
-	case GDK_z:
+	case SDLK_z:
 		if (Config.JoyKeyReverse)
 			JoyKeyState &= ~JOY_TRG2;
 		else
 			JoyKeyState &= ~JOY_TRG1;
 		break;
 
-	case GDK_X:
-	case GDK_x:
+	case SDLK_x:
 		if (Config.JoyKeyReverse)
 			JoyKeyState &= ~JOY_TRG1;
 		else
 			JoyKeyState &= ~JOY_TRG2;
 		break;
+
 	}
-#endif
+
 }
 
 // ----------------------------------
@@ -471,6 +480,7 @@ void
 Keyboard_Int(void)
 {
 	if (KeyBufRP != KeyBufWP) {
+		printf("KeyBufRP:%d, KeyBufWP:%d\n", KeyBufRP, KeyBufWP);
 		if (!KeyIntFlag) {
 			LastKey = KeyBuf[KeyBufRP];
 			KeyBufRP = ((KeyBufRP+1)&(KeyBufSize-1));

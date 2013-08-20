@@ -4,10 +4,12 @@
 #include "common.h"
 #include "prop.h"
 #include "joystick.h"
+#ifdef PSP
+#include <pspctrl.h>
+#endif
 
 #if 0
 LPDIRECTINPUT		dinput = NULL;
-LPDIRECTINPUTDEVICE2	joy[2] = {NULL, NULL};
 #endif
 
 #ifndef MAX_BUTTON
@@ -19,12 +21,13 @@ char joybtnname[2][MAX_BUTTON][MAX_PATH];
 BYTE joybtnnum[2] = {0, 0};
 
 //static	int		joyactive = 0;
-BYTE JoyKeyState = 0;
-BYTE JoyKeyState0 = 0;
-BYTE JoyKeyState1 = 0;
-BYTE JoyState0[2] = {0xff, 0xff};
-BYTE JoyState1[2] = {0xff, 0xff};
-BYTE JoyPortData[2] = {0, 0};
+BYTE joy[2];
+BYTE JoyKeyState;
+BYTE JoyKeyState0;
+BYTE JoyKeyState1;
+BYTE JoyState0[2];
+BYTE JoyState1[2];
+BYTE JoyPortData[2];
 
 
 #if 0
@@ -106,7 +109,9 @@ void Joystick_Init(void)
 	DIPROPRANGE diprg;
 	DIDEVICEINSTANCE dev;
 #endif
-
+	joy[0] = 1;  // とりあえず一つ目だけ有効
+	joy[1] = 0;
+	JoyKeyState = 0;
 	JoyKeyState0 = 0;
 	JoyKeyState1 = 0;
 	JoyState0[0] = 0xff;
@@ -115,6 +120,7 @@ void Joystick_Init(void)
 	JoyState1[1] = 0xff;
 	JoyPortData[0] = 0;
 	JoyPortData[1] = 0;
+
 
 #if 0
 	if (FAILED(DirectInputCreate(hInst, DIRECTINPUT_VERSION, &dinput, NULL))) {
@@ -223,12 +229,14 @@ BYTE FASTCALL Joystick_Read(BYTE num)
 {
 	BYTE joynum = num;
 	BYTE ret0 = 0xff, ret1 = 0xff, ret;
-#if 1
+
 	(void)joynum;
 	(void)ret0;
 	(void)ret1;
 	ret = 0xff;
-#else
+
+	Config.JoyKey = 1;
+
 	if (Config.JoySwap) joynum ^= 1;
 	if (joy[num]) {
 		ret0 = JoyState0[num];
@@ -244,10 +252,11 @@ BYTE FASTCALL Joystick_Read(BYTE num)
 	}
 
 	ret = ((~JoyPortData[num])&ret0)|(JoyPortData[num]&ret1);
-//ret = ret0;
-#endif
-	return ret;
 
+	if (ret0 != 0xff || ret != 0xff)
+		printf("ret0: 0x%x, ret: 0x%x\n", ret0, ret);
+
+	return ret;
 }
 
 
@@ -259,6 +268,35 @@ void FASTCALL Joystick_Write(BYTE num, BYTE data)
 
 void FASTCALL Joystick_Update(void)
 {
+#ifdef PSP
+	BYTE ret0 = 0xff, ret1 = 0xff;
+	int num = 0; //xxx とりあえずJOY1のみ。
+
+	SceCtrlData psppad;
+	sceCtrlPeekBufferPositive(&psppad, 1);
+
+	if (psppad.Buttons & PSP_CTRL_LEFT) {
+		ret0 ^= JOY_LEFT;
+	}
+	if (psppad.Buttons & PSP_CTRL_RIGHT) {
+		ret0 ^= JOY_RIGHT;
+	}
+	if (psppad.Buttons & PSP_CTRL_UP) {
+		ret0 ^= JOY_UP;
+	}
+	if (psppad.Buttons & PSP_CTRL_DOWN) {
+		ret0 ^= JOY_DOWN;
+	}
+	if (psppad.Buttons & PSP_CTRL_CIRCLE) {
+		ret0 ^= JOY_TRG1;
+	}
+	if (psppad.Buttons & PSP_CTRL_CROSS) {
+		ret0 ^= JOY_TRG2;
+	}
+
+	JoyState0[num] = ret0;
+	JoyState1[num] = ret1;
+#endif
 #if 0
 	BYTE ret0, ret1;
 	HRESULT hres;

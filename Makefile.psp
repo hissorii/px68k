@@ -1,3 +1,5 @@
+VERSION=0.01
+
 #if defined(NO_SOUND)
 EXTRA_DEFINES+= -DNOSOUND
 #endif
@@ -60,9 +62,9 @@ SDL_INCLUDE=	`$(SDL_CONFIG) --cflags`
 SDL_LIB=	`$(SDL_CONFIG) --libs`
 
 INCDIR = ./x11 ./x68k ./fmgen ./win32api
-#CFLAGS = -G0 -Wall $(SDL_INCLUDE)
+CFLAGS = -G0 -O2 -Wall $(SDL_INCLUDE)
 # for debugging
-CFLAGS = -g -G0 -Wall $(SDL_INCLUDE)
+#CFLAGS = -g -G0 -Wall $(SDL_INCLUDE)
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 
 LIBDIR =
@@ -70,7 +72,7 @@ LDFLAGS =
 LIBS= -lpspgum -lpspgu -lm -lstdc++ $(SDL_LIB)
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = PX68K for PSP
+PSP_EBOOT_TITLE = PX68K for PSP ver.$(VERSION)
 
 PSPSDK=$(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak

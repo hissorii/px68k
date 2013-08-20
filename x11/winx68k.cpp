@@ -641,6 +641,7 @@ int main(int argc, char *argv[])
 #endif
 	}
 
+	Keyboard_Init();
 	Mouse_Init();
 	Joystick_Init();
 	SRAM_Init();
@@ -695,7 +696,14 @@ int main(int argc, char *argv[])
                         case SDL_QUIT:
                                 goto end_loop;
                         case SDL_KEYDOWN:
+				printf("keydown: 0x%x\n", ev.key.keysym.sym);
+				Keyboard_KeyDown(ev.key.keysym.sym);
                                 break;
+                        case SDL_KEYUP:
+				printf("keyup: 0x%x\n", ev.key.keysym.sym);
+				Keyboard_KeyUp(ev.key.keysym.sym);
+                                break;
+
 #ifdef ANDROID
 			case SDL_FINGERDOWN:
 				__android_log_print(ANDROID_LOG_DEBUG,"Tag","FINGERDOWN: x:%f y:%f", ev.tfinger.x, ev.tfinger.y);

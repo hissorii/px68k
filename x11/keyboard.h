@@ -13,6 +13,7 @@ extern	BYTE	KeyTableMaster[512];
 extern	BYTE	KeyEnable;
 extern	BYTE	KeyIntFlag;
 
+void Keyboard_Init(void);
 void Keyboard_KeyDown(DWORD vkcode);
 void Keyboard_KeyUp(DWORD vkcode);
 void Keyboard_Int(void);
