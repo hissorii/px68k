@@ -24,6 +24,10 @@ extern	BYTE	FrameChanged;
 
 extern const BYTE PrgTitle[];
 
+#ifdef ANDROID
+extern int realdisp_w, realdisp_h;
+#endif
+
 int WinX68k_Reset(void);
 
 #ifndef	winx68k_gtkwarpper_h

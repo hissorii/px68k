@@ -7,6 +7,10 @@
 #ifdef PSP
 #include <pspctrl.h>
 #endif
+#ifdef ANDROID
+#include <SDL.h>
+#include <android/log.h>
+#endif
 
 #if 0
 LPDIRECTINPUT		dinput = NULL;
@@ -29,86 +33,38 @@ BYTE JoyState0[2];
 BYTE JoyState1[2];
 BYTE JoyPortData[2];
 
+#ifdef ANDROID
 
-#if 0
-BOOL CALLBACK EnumButtonProc(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pv)
-{
-	BYTE j = *(BYTE*)pv;
-	if (joybtnnum[j]<MAX_BUTTON)
-	{
-		strcpy(joybtnname[j][joybtnnum[j]], lpddoi->tszName);
-		joybtnnum[j]++;
-		return DIENUM_CONTINUE;
-	}
-	else
-		return DIENUM_STOP;
-}
- 
+#define VBTN_MAX 32
+#define VBTN_ON 2
+#define VBTN_OFF 1
+#define VBTN_NOUSE 0
+#define FINGER_MAX 10
 
-BOOL CALLBACK JoyEnumProc(LPDIDEVICEINSTANCE pdidi, LPVOID pv)
-{
-	GUID *guid = NULL;
-	LPDIRECTINPUTDEVICE tmpdev = NULL;
+// SDL_FINGERと比較するので範囲は0~1.0
+typedef struct _vbtn_rect {
+	float x;
+	float y;
+	float x2;
+	float y2;
+} VBTN_RECT;
 
-	guid = (GUID *)pv;
-	*guid = pdidi->guidInstance;
+VBTN_RECT vbtn_rect[VBTN_MAX];
+BYTE vbtn_state[VBTN_MAX];
 
-	if (!joy[0])
-	{
-		if ((IDirectInput_CreateDevice(dinput, guid, &tmpdev, NULL)) == DI_OK)
-		{
-			if ((IDirectInputDevice_QueryInterface(tmpdev, &IID_IDirectInputDevice2, &joy[0])) == DI_OK)
-			{
-				IDirectInputDevice_Release(tmpdev);
-				return DIENUM_CONTINUE;
-			}
-			else
-			{
-				joy[0] = NULL;
-				return DIENUM_CONTINUE;
-			}
-		}
-		else
-		{
-			joy[0] = NULL;
-			return DIENUM_CONTINUE;
-		}
-	}
-	if (!joy[1])
-	{
-		if ((IDirectInput_CreateDevice(dinput, guid, &tmpdev, NULL)) == DI_OK)
-		{
-			if ((IDirectInputDevice_QueryInterface(tmpdev, &IID_IDirectInputDevice2, &joy[1])) == DI_OK)
-			{
-				IDirectInputDevice_Release(tmpdev);
-				return DIENUM_STOP;
-			}
-			else
-			{
-				joy[1] = NULL;
-				return DIENUM_CONTINUE;
-			}
-		}
-		else
-		{
-			joy[1] = NULL;
-			return DIENUM_CONTINUE;
-		}
-	}
-	return DIENUM_CONTINUE;
-}
 #endif
 
+#define SET_VBTN(id, bx, by)					\
+{								\
+	vbtn_state[id] = VBTN_OFF;				\
+	vbtn_rect[id].x = (float)(bx) / 800.0;			\
+	vbtn_rect[id].y = (float)(by) / 600.0;			\
+	vbtn_rect[id].x2 = ((float)(bx) + 32.0) / 800.0;	\
+	vbtn_rect[id].y2 = ((float)(by) + 32.0) / 600.0;	\
+}
 
 void Joystick_Init(void)
 {
-#if 0
-	BYTE jnum;
-	HRESULT	hres;
-	GUID guid;
-	DIPROPRANGE diprg;
-	DIDEVICEINSTANCE dev;
-#endif
 	joy[0] = 1;  // とりあえず一つ目だけ有効
 	joy[1] = 0;
 	JoyKeyState = 0;
@@ -120,79 +76,24 @@ void Joystick_Init(void)
 	JoyState1[1] = 0xff;
 	JoyPortData[0] = 0;
 	JoyPortData[1] = 0;
+#ifdef ANDROID
+	int i;
 
-
-#if 0
-	if (FAILED(DirectInputCreate(hInst, DIRECTINPUT_VERSION, &dinput, NULL))) {
-		return;
+	for (i = 0; i < VBTN_MAX; i++) {
+		vbtn_state[i] = VBTN_NOUSE;
 	}
 
-	IDirectInput_EnumDevices(dinput, DIDEVTYPE_JOYSTICK,
-					(LPDIENUMDEVICESCALLBACK)JoyEnumProc,
-					&guid, DIEDFL_ATTACHEDONLY);
+	//テクスチャの設定といっしょにしたいがとりあえず別々に設定
+	//ボタンのTexture idは1 origin、ボタンidは0 originなので注意
+	// 左右上下 (上上下下左右左右BAではない)
+	SET_VBTN(0, 20, 450);
+	SET_VBTN(1, 100, 450);
+	SET_VBTN(2, 60, 400);
+	SET_VBTN(3, 60, 500);
 
-	if ((joy[0] != NULL) && (SUCCEEDED(IDirectInputDevice2_SetDataFormat(joy[0], &c_dfDIJoystick))))
-	{
-		hres = IDirectInputDevice2_SetCooperativeLevel(joy[0], hWndMain,
-						DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
-		if (SUCCEEDED(hres)) {
-			ZeroMemory(&diprg, sizeof(diprg));
-			diprg.diph.dwSize = sizeof(diprg);
-			diprg.diph.dwHeaderSize	= sizeof(diprg.diph);
-			diprg.diph.dwObj = DIJOFS_X;
-			diprg.diph.dwHow = DIPH_BYOFFSET;
-			diprg.lMin = 0;
-			diprg.lMax = 255;
-			IDirectInputDevice2_SetProperty(joy[0], DIPROP_RANGE, &diprg.diph);
-			diprg.diph.dwObj = DIJOFS_Y;
-			IDirectInputDevice2_SetProperty(joy[0], DIPROP_RANGE, &diprg.diph);
-			IDirectInputDevice2_Acquire(joy[0]);
-
-			ZeroMemory(&dev, sizeof(DIDEVICEINSTANCE));
-			dev.dwSize = sizeof(DIDEVICEINSTANCE);
-			if (IDirectInputDevice2_GetDeviceInfo(joy[0], &dev) == DI_OK)
-				strcpy(joyname[0], dev.tszProductName);
-			else
-				strcpy(joyname[0], "不明なデバイス");
-
-			joybtnnum[0] = 0;
-			jnum = 0;
-			IDirectInputDevice_EnumObjects(joy[0],
-						(LPDIENUMDEVICEOBJECTSCALLBACK)EnumButtonProc,
-						&jnum, DIDFT_BUTTON);
-		}
-	}
-	if ((joy[1] != NULL) && (SUCCEEDED(IDirectInputDevice2_SetDataFormat(joy[1], &c_dfDIJoystick))))
-	{
-		hres = IDirectInputDevice2_SetCooperativeLevel(joy[1], hWndMain,
-						DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
-		if (SUCCEEDED(hres)) {
-			ZeroMemory(&diprg, sizeof(diprg));
-			diprg.diph.dwSize = sizeof(diprg);
-			diprg.diph.dwHeaderSize	= sizeof(diprg.diph);
-			diprg.diph.dwObj = DIJOFS_X;
-			diprg.diph.dwHow = DIPH_BYOFFSET;
-			diprg.lMin = 0;
-			diprg.lMax = 255;
-			IDirectInputDevice2_SetProperty(joy[1], DIPROP_RANGE, &diprg.diph);
-			diprg.diph.dwObj = DIJOFS_Y;
-			IDirectInputDevice2_SetProperty(joy[1], DIPROP_RANGE, &diprg.diph);
-			IDirectInputDevice2_Acquire(joy[1]);
-		}
-
-			ZeroMemory(&dev, sizeof(DIDEVICEINSTANCE));
-			dev.dwSize = sizeof(DIDEVICEINSTANCE);
-			if (IDirectInputDevice2_GetDeviceInfo(joy[1], &dev) == DI_OK)
-				strcpy(joyname[1], dev.tszProductName);
-			else
-				strcpy(joyname[1], "不明なデバイス");
-
-			joybtnnum[1] = 0;
-			jnum = 1;
-			IDirectInputDevice_EnumObjects(joy[1],
-						(LPDIENUMDEVICEOBJECTSCALLBACK)EnumButtonProc,
-						&jnum, DIDFT_BUTTON);
-	}
+	// ボタン
+	SET_VBTN(4, 680, 450);
+	SET_VBTN(5, 750, 450);
 #endif
 }
 
@@ -265,10 +166,9 @@ void FASTCALL Joystick_Write(BYTE num, BYTE data)
 	if ( (num==0)||(num==1) ) JoyPortData[num] = data;
 }
 
-
 void FASTCALL Joystick_Update(void)
 {
-#ifdef PSP
+#if defined(PSP)
 	BYTE ret0 = 0xff, ret1 = 0xff;
 	int num = 0; //xxx とりあえずJOY1のみ。
 
@@ -296,75 +196,93 @@ void FASTCALL Joystick_Update(void)
 
 	JoyState0[num] = ret0;
 	JoyState1[num] = ret1;
-#endif
-#if 0
-	BYTE ret0, ret1;
-	HRESULT hres;
-	DIJOYSTATE state;
-	int num;
+#elif defined(ANDROID)
+	SDL_Finger *finger;
+	static SDL_TouchID touchId = -1;
+	SDL_FingerID fid;
+	float fx, fy;
+	int i, j;
 
-	for (num=0; num<2; num++)
-	{
-
-	ret0 = 0xff;
-	ret1 = 0xff;
-
-	if (joy[num])
-	{
-		hres = IDirectInputDevice2_Poll(joy[num]);
-		if (hres!=DI_OK)
-		{
-			if (hres == DIERR_INPUTLOST) {		// ロストしてたらAquireしてみる(S.J.PAD2)
-				IDirectInputDevice2_Acquire(joy[num]);
-				hres = IDirectInputDevice2_Poll(joy[num]);
-				if (hres!=DI_OK)		// それでもダメなら諦める
-					continue;
+	// こんなtouchId取得法でよいのかしらん
+	if (touchId == -1) {
+		// とりあえず10個くらいチェックすればいいかな？
+		for (i = 0; i < 10; i++) {
+			// とりあえず指3本分ぐらいチェック
+			for (j = 0; j < 3; j++) {
+				if (SDL_GetTouchFinger(i, j) != NULL) {
+					touchId = i;
+					__android_log_print(ANDROID_LOG_DEBUG,"Tag","id: %d x: %f y: %f", i, fx, fy);
+					goto done;
+				}
 			}
 		}
-		hres = IDirectInputDevice2_GetDeviceState(joy[num], sizeof(DIJOYSTATE), &state);
-		if (SUCCEEDED(hres))
-		{
-			if (state.lX < 32)
-				ret0 ^= JOY_LEFT;
-			else if (state.lX >= 224)
-				ret0 ^= JOY_RIGHT;
+	}
+done:
+	if (touchId == -1)
+		return;
 
-			if (state.lY < 32)
-				ret0 ^= JOY_UP;
-			else if (state.lY >= 224)
-				ret0 ^= JOY_DOWN;
-
-			if (Config.JOY_BTN[num][0]<joybtnnum[num])
-				if (state.rgbButtons[Config.JOY_BTN[num][0]] & 0x80)
-					ret0 ^= JOY_TRG1;
-			if (Config.JOY_BTN[num][1]<joybtnnum[num])
-				if (state.rgbButtons[Config.JOY_BTN[num][1]] & 0x80)
-					ret0 ^= JOY_TRG2;
-			if (Config.JOY_BTN[num][2]<joybtnnum[num])
-				if (state.rgbButtons[Config.JOY_BTN[num][2]] & 0x80)
-					ret1 ^= JOY_TRG3;
-			if (Config.JOY_BTN[num][3]<joybtnnum[num])
-				if (state.rgbButtons[Config.JOY_BTN[num][3]] & 0x80)
-					ret1 ^= JOY_TRG4;
-			if (Config.JOY_BTN[num][4]<joybtnnum[num])
-				if (state.rgbButtons[Config.JOY_BTN[num][4]] & 0x80)
-					ret1 ^= JOY_TRG5;
-			if (Config.JOY_BTN[num][5]<joybtnnum[num])
-				if (state.rgbButtons[Config.JOY_BTN[num][5]] & 0x80)
-					ret1 ^= JOY_TRG6;
-			if (Config.JOY_BTN[num][6]<joybtnnum[num])
-				if (state.rgbButtons[Config.JOY_BTN[num][6]] & 0x80)
-					ret1 ^= JOY_TRG7;
-			if (Config.JOY_BTN[num][7]<joybtnnum[num])
-				if (state.rgbButtons[Config.JOY_BTN[num][7]] & 0x80)
-					ret1 ^= JOY_TRG8;
+	// 使用中の物は全てオフにリセットする
+	for (i = 0; i < VBTN_MAX; i++) {
+		if (vbtn_state[i] != VBTN_NOUSE) {
+			vbtn_state[i] = VBTN_OFF;
 		}
-		else if (hres == DIERR_INPUTLOST)
-			IDirectInputDevice2_Acquire(joy[num]);
+	}
+
+	// この瞬間押されているボタンだけをオンにする
+	for (i = 0; i < FINGER_MAX; i++) {
+		finger = SDL_GetTouchFinger(touchId, i);
+		if (!finger)
+			continue;
+
+		fx = finger->x;
+		fy = finger->y;
+
+		//__android_log_print(ANDROID_LOG_DEBUG,"Tag","id: %d x: %f y: %f", i, fx, fy);
+
+		for (j = 0; j < VBTN_MAX; j++) {
+			if (vbtn_state[j] == VBTN_NOUSE)
+				continue;
+			// 性能を考え一個ずつ判定
+			if (vbtn_rect[j].x > fx)
+				continue;
+			if (vbtn_rect[j].x2 < fx)
+				continue;
+			if (vbtn_rect[j].y > fy)
+				continue;
+			if (vbtn_rect[j].y2 < fy)
+				continue;
+
+			//マッチしたらオンにする
+			vbtn_state[j] = VBTN_ON;
+			//仮想ボタンは重ならない
+			break;
+		}
+	}
+
+	BYTE ret0 = 0xff, ret1 = 0xff;
+	int num = 0; //xxx とりあえずJOY1のみ。
+
+	if (vbtn_state[0] == VBTN_ON) {
+		ret0 ^= JOY_LEFT;
+	}
+	if (vbtn_state[1] == VBTN_ON) {
+		ret0 ^= JOY_RIGHT;
+	}
+	if (vbtn_state[2] == VBTN_ON) {
+		ret0 ^= JOY_UP;
+	}
+	if (vbtn_state[3] == VBTN_ON) {
+		ret0 ^= JOY_DOWN;
+	}
+	if (vbtn_state[4] == VBTN_ON) {
+		ret0 ^= JOY_TRG1;
+	}
+	if (vbtn_state[5] == VBTN_ON) {
+		ret0 ^= JOY_TRG2;
 	}
 
 	JoyState0[num] = ret0;
 	JoyState1[num] = ret1;
-	}
 #endif
 }
+

@@ -433,7 +433,11 @@ WinDraw_Draw(void)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
 	glBindTexture(GL_TEXTURE_2D, texid[0]);
-glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, ScrBuf);
+	//ScrBufから800x600の領域を切り出してテクスチャに転送
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, ScrBuf);
+
+	// magic numberがやたら多いが、テクスチャのサイズが1024x1024
+	// OpenGLでの描画領域がglOrthof()で定義した800x600
 
 	// Texture から必要な部分を抜き出す
 	// Texutre座標は0.0fから1.0fの間
@@ -443,8 +447,9 @@ glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_
 		    (GLfloat)TextDotX/1024, (GLfloat)TextDotY/1024,
 		    (GLfloat)TextDotX/1024, 0.0f);
 
-	// 実機の解像度(1280x736)に関係なく、座標は800x600
-	w = (736*1.33333)/1280*800;
+	// 実機の解像度(realdisp_w x realdisp_h)に関係なく、
+	// 座標は800x600
+	w = (realdisp_h * 1.33333) / realdisp_w * 800;
 	SET_GLFLOATS(vertices,
 		     (800.0f - w)/2, (GLfloat)600,
 		     (800.0f - w)/2, 0.0f,
@@ -453,7 +458,7 @@ glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_
 
 	draw_texture(texture_coordinates, vertices);
 
-	// 左右上下 上上下下左右左右BAではない。
+	// 左右上下 (上上下下左右左右BAではない)
 	draw_button(texid[1], 20, 450);
 	draw_button(texid[2], 100, 450);
 	draw_button(texid[3], 60, 400);

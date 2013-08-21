@@ -2,7 +2,7 @@
 extern "C" {
 #endif 
 
-#include "SDL.h"
+#include <SDL.h>
 #ifdef ANDROID
 #include "SDL_opengles.h"
 #endif
@@ -104,7 +104,7 @@ static int FrameSkipQueue = 0;
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 SDL_Window *sdl_window;
-SDL_DisplayMode sdl_dispmode;
+int realdisp_w, realdisp_h;
 #endif
 
 void
@@ -564,6 +564,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 #else
+	SDL_DisplayMode sdl_dispmode;
+	SDL_GetCurrentDisplayMode(0, &sdl_dispmode);
+	__android_log_print(ANDROID_LOG_DEBUG,"Tag","width: %d height: %d", sdl_dispmode.w, sdl_dispmode.h);
+	// ナビゲーションバーを除くアプリが触れる画面
+	realdisp_w = sdl_dispmode.w, realdisp_h = sdl_dispmode.h;
+
 	// 今回はOpenGL ES 1.1を使う
 	//	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
 	//	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
@@ -589,7 +595,9 @@ int main(int argc, char *argv[])
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	//glViewport(0, 0, 800, 600); //ここを増やさないとOpenGLの画面はせまい
-	glViewport(0, 0, 1280, 736);
+	glViewport(0, 0, sdl_dispmode.w, sdl_dispmode.h);
+	// スマホやタブの実画面に関係なくOpenGLの描画領域を800x600とする。
+	// 800x600にした意味は特にない。
 	glOrthof(0, 800, 600, 0, -1, 1);
 	//  glOrthof(0, 1024, 0, 1024, -1, 1);
 	glMatrixMode(GL_MODELVIEW);
@@ -691,43 +699,21 @@ int main(int argc, char *argv[])
 					WinDraw_HideSplash();
 			}
 		}
-                while (SDL_PollEvent(&ev)) {
-                        switch (ev.type) {
-                        case SDL_QUIT:
-                                goto end_loop;
-                        case SDL_KEYDOWN:
+		while (SDL_PollEvent(&ev)) {
+			switch (ev.type) {
+			case SDL_QUIT:
+				goto end_loop;
+			case SDL_KEYDOWN:
 				printf("keydown: 0x%x\n", ev.key.keysym.sym);
 				Keyboard_KeyDown(ev.key.keysym.sym);
-                                break;
-                        case SDL_KEYUP:
+				break;
+			case SDL_KEYUP:
 				printf("keyup: 0x%x\n", ev.key.keysym.sym);
 				Keyboard_KeyUp(ev.key.keysym.sym);
-                                break;
-
-#ifdef ANDROID
-			case SDL_FINGERDOWN:
-				__android_log_print(ANDROID_LOG_DEBUG,"Tag","FINGERDOWN: x:%f y:%f", ev.tfinger.x, ev.tfinger.y);
-				int jx, jy;
-				jx = ev.tfinger.x * 800;
-				jy = ev.tfinger.y * 600 * 800 / 736;
-				if (20 <= jx && jx <= (20 + 32) && 450 <= jy && jy <= (450 + 32)) {
-					JoyKeyState |= JOY_TRG1;
-					__android_log_write(ANDROID_LOG_DEBUG,"Tag","button1 down");
-				}
 				break;
-			case SDL_FINGERUP:
-				__android_log_print(ANDROID_LOG_DEBUG,"Tag","FINGERUP: x:%f y:%f", ev.tfinger.x, ev.tfinger.y);
-				jx = ev.tfinger.x * 800;
-				jy = ev.tfinger.y * 600 * 800 / 736;
-				if (20 <= jx && jx <= (20 + 32) && 450 <= jy && jy <= (450 + 32)) {
-					JoyKeyState &= ~JOY_TRG1;
-					__android_log_write(ANDROID_LOG_DEBUG,"Tag","button1 up");
-				}
-				break;
-#endif
-			}		  
-                }
-        }
+			}
+		}
+	}
 end_loop:
 
 	Memory_WriteB(0xe8e00d, 0x31);	// SRAM書き込み許可
