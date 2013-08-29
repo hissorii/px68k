@@ -494,7 +494,6 @@ void WinX68k_Exec(void)
 	}
 
 	Joystick_Update();
-	DSound_Send();
 	FDD_SetFDInt();
 	if ( !DispFrame )
 		WinDraw_Draw();
@@ -538,8 +537,10 @@ int main(int argc, char *argv[])
 
 	LoadConfig();
 
-	// xxx 音がおかしくなるのを調べる
-	//Config.SampleRate = 44100;
+	// xxx PSPで音がおかしくなるのを調べる
+#ifndef PSP
+	Config.SampleRate = 22050;
+#endif
 
 #ifndef NOSOUND
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {

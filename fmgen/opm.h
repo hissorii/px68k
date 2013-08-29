@@ -2,7 +2,6 @@
 //	OPM-like Sound Generator
 //	Copyright (C) cisc 1998, 2003.
 // ---------------------------------------------------------------------------
-//	$fmgen-Id: opm.h,v 1.14 2003/06/07 08:25:53 cisc Exp $
 
 #ifndef FM_OPM_H
 #define FM_OPM_H
@@ -89,7 +88,7 @@ namespace FM
 		uint	GetReg(uint addr);
 		uint	ReadStatus() { return status & 0x03; }
 		
-		void 	Mix(Sample* buffer, int nsamples);
+		void 	Mix(Sample* buffer, int nsamples, BYTE* pbsp, BYTE* pbep);
 		
 		void	SetVolume(int db);
 		void	SetChannelMask(uint mask);

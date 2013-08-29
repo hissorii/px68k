@@ -31,31 +31,27 @@
 #include	"mercury.h"
 #include	"fmg_wrap.h"
 
+#ifdef ANDROID
+#include <android/log.h>
+#endif
+
 	short	playing = FALSE;
 
-	BYTE	pcmbuffer[2*2*48000];
-	BYTE	*pcmbufp = pcmbuffer;
-	DWORD	pcmfreemax = 22050;
-	DWORD	pcmfree = 22050;
-	DWORD	ds_halfbuffer = 22050 * 4;
+	#define PCMBUF_SIZE 2*2*48000
+	BYTE	pcmbuffer[PCMBUF_SIZE];
+	BYTE	*pbsp = pcmbuffer;
+	BYTE	*pbrp = pcmbuffer, *pbwp = pcmbuffer;
+	BYTE	*pbep = &pcmbuffer[PCMBUF_SIZE];
 	DWORD	ratebase1000 = 22;
 	DWORD	ratebase = 22050;
 	long	DSound_PreCounter = 0;
-
-#ifndef	NAUDIOBUFFER
-#define	NAUDIOBUFFER	3
-#endif
+	BYTE sdlsndbuf[PCMBUF_SIZE];
+int inlen = 0;
 
 	int	audio_fd = -1;
-	int	audio_nextbuf;
-	char	*audio_event;
-	char	*audio_buffer[NAUDIOBUFFER];
 
 // ????????????
-DWORD calc_blocksize(DWORD size);
 static void sdlaudio_callback(void *userdata, unsigned char *stream, int len);
-static BOOL buffer_init(DWORD rate, DWORD samples);
-static void buffer_cleanup(void);
 
 // ---------------------------------------------------------------------------
 //  ??????
@@ -81,16 +77,14 @@ DSound_Init(unsigned long rate, unsigned long buflen)
 		return TRUE;
 	}
 
-	// pcmfreemax = Dsound??????????????????????????
-	pcmfree = pcmfreemax = (DWORD)rate * buflen / 200 / 2;
-	ds_halfbuffer = pcmfreemax * 4;
-	pcmbufp = pcmbuffer;
+	printf("pbsp 0x%x, pbep 0x%x\n", pbsp, pbep);
+
 	ratebase1000 = rate / 1000;
 	ratebase = rate;
 
-	samples = calc_blocksize(pcmfreemax);
-	audio_nextbuf = 0;
-	audio_event = 0;
+	// Linuxは2倍(SDL1.2)、Android(SDL2.0)は4倍のlenでcallbackされた。
+	// この値を小さくした方が音の遅延は少なくなるが負荷があがる
+	samples = 2048;
 
 	// ??????????????????????????????
 	bzero(&fmt, sizeof(fmt));
@@ -99,18 +93,16 @@ DSound_Init(unsigned long rate, unsigned long buflen)
 	fmt.channels = 2;
 	fmt.samples = samples;
 	fmt.callback = sdlaudio_callback;
-	fmt.userdata = (void *)ds_halfbuffer;
+	fmt.userdata = NULL;
 	audio_fd = SDL_OpenAudio(&fmt, NULL);
 	if (audio_fd < 0) {
 		SDL_Quit();
 		return FALSE;
 	}
-	buffer_init(rate, samples);
 
 	playing = TRUE;
 	return TRUE;
 }
-
 
 void
 DSound_Play(void)
@@ -141,7 +133,6 @@ DSound_Cleanup(void)
 	if (audio_fd >= 0) {
 		SDL_CloseAudio();
 		SDL_Quit();
-		buffer_cleanup();
 		audio_fd = -1;
 	}
 	return TRUE;
@@ -163,113 +154,130 @@ DSound_Send0(long clock)
 			length++;
 			DSound_PreCounter -= 10000000L;
 		}
-		if (length) {
-			if ((long)pcmfree > (long)length) {
-				ADPCM_Update((short *)pcmbufp, length);
-				OPM_Update((short *)pcmbufp, length);
-#ifndef	NO_MERCURY
-				Mcry_Update((short *)pcmbufp, length);
-#endif
-				pcmbufp += length * sizeof(WORD) * 2;
-				pcmfree -= length;
-			} else {
-				ADPCM_Update((short *)pcmbufp, pcmfree);
-				OPM_Update((short *)pcmbufp, pcmfree);
-#ifndef	NO_MERCURY
-				Mcry_Update((short *)pcmbufp, pcmfree);
-#endif
-				pcmbufp += pcmfree * sizeof(WORD) * 2;
-				pcmfree = 0;
-			}
+		if (length == 0) {
+			return;
 		}
-	}
-}
 
-
-void FASTCALL
-DSound_Send(void)
-{
-	short *q;
-
-	if (audio_fd >= 0) {
-		if (audio_event) {
-			q = (short *)audio_event;
-			audio_event = 0;
-
-			ADPCM_Update((short *)pcmbufp, pcmfree);
-			OPM_Update((short *)pcmbufp, pcmfree);
+		SDL_LockAudio();
+		inlen += length * 4;
+		ADPCM_Update((short *)pbwp, length, pbsp, pbep);
+		OPM_Update((short *)pbwp, length, pbsp, pbep);
 #ifndef	NO_MERCURY
-			Mcry_Update((short *)pcmbufp, pcmfree);
+		//Mcry_Update((short *)pcmbufp, length);
 #endif
-
-			memcpy(q, pcmbuffer, ds_halfbuffer);
-
-			// ????????
-			pcmbufp = pcmbuffer;
-			pcmfree = pcmfreemax;
+		pbwp += length * sizeof(WORD) * 2;
+		if (pbwp >= pbep) {
+			pbwp = pbsp;
 		}
+		SDL_UnlockAudio();
 	}
 }
 
 static void
 sdlaudio_callback(void *userdata, unsigned char *stream, int len)
 {
+	int lena, lenb, datalen;
+	BYTE *buf, *pbrp0;
+	static DWORD bef;
+	DWORD now;
+	static int under = 0;
 
-	if (audio_event != NULL)
-		bzero(audio_event, (DWORD)userdata);
+	SDL_LockAudio();
 
-	SDL_MixAudio(stream, audio_buffer[audio_nextbuf], len,
-	    SDL_MIX_MAXVOLUME);
+	now = timeGetTime();
+	
+#ifdef ANDROID
+	//__android_log_print(ANDROID_LOG_DEBUG,"Tag","tdiff %4d : pbrp = 0x%x, pbwp = 0x%x : len %d", now - bef, pbrp, pbwp, len);
+#else
+	//printf("tdiff %4d : pbrp = 0x%x, pbwp = 0x%x : ", now - bef, pbrp, pbwp);
+#endif
+	pbrp0 = pbrp;
 
-	audio_nextbuf = (audio_nextbuf + 1) % NAUDIOBUFFER;
-	audio_event = audio_buffer[audio_nextbuf];
-}
+	if (pbrp <= pbwp) {
+		// pcmbuffer
+		// +---------+-------------+----------+
+		// |         |/////////////|          |     
+		// +---------+-------------+----------+
+		// A         A<--datalen-->A          A
+		// |         |             |          |
+		// pbsp     pbrp          pbwp       pbep
 
-// ---------------------------------------------------------------------------
-//  ??????
-// ---------------------------------------------------------------------------
+		datalen = pbwp - pbrp;
+		if (datalen >= len) {
+			buf = pbrp;
+			pbrp += len;
+			//printf("TYPEA: ");
+		} else {
+			memcpy(sdlsndbuf, pbrp, datalen);
+			// xxx underrun : 不足分はとりあえず0で埋める
+			memset(&sdlsndbuf[datalen], 0, len - datalen);
+			buf = sdlsndbuf;
+			pbrp += datalen;
+			//printf("TYPEB: ");
+		}
+	} else {
+		// pcmbuffer
+		// +---------+-------------+----------+
+		// |/////////|             |//////////|     
+		// +------+--+-------------+----------+
+		// <-lenb->  A             <---lena--->
+		// A         |             A          A
+		// |         |             |          |
+		// pbsp     pbwp          pbrp       pbep
 
-DWORD
-calc_blocksize(DWORD size)
-{
-	DWORD s = size;
+		lena = pbep - pbrp;
+		if (lena >= len) {
+			buf = pbrp;
+			pbrp += len;
+			//printf("***** TYPEC: ");
+		} else {
+			lenb = len - lena;
+			if (pbwp - pbsp >= lenb) {
+				memcpy(sdlsndbuf, pbrp, lena);
+				memcpy(&sdlsndbuf[lena], pbsp, lenb);
+				buf = sdlsndbuf;
+				pbrp = pbsp + lenb;
+				//printf("********** TYPED: ");
+			} else {
+				memcpy(sdlsndbuf, pbrp, lena);
+				memcpy(&sdlsndbuf[lena], pbsp, pbwp - pbsp);
+				// xxx underrun : 不足分はとりあえず0で埋める
+				memset(&sdlsndbuf[lena + pbwp - pbsp], 0, lenb - (pbwp - pbsp));
+				buf = sdlsndbuf;
+				pbrp = pbwp;
+				//printf("*************** TYPEE: ");
+			}
 
-	if (size & (size - 1))
-		for (s = 32; s < size; s <<= 1)
-			continue;
-	return s;
-}
-
-static BOOL
-buffer_init(DWORD rate, DWORD samples)
-{
-	int i;
-
-	UNUSED(rate);
-
-	for (i = 0; i < NAUDIOBUFFER; i++) {
-		audio_buffer[i] = (char *)calloc(samples * 4, 1);
-		if (audio_buffer[i] == NULL) {
-			fprintf(stderr, "buffer_init: can't alloc memory\n");
-			return FAILURE;
 		}
 	}
 
-	return SUCCESS;
-}
+	under = under + inlen - len;
+	//printf("inlen %4d under %4d\n", inlen, under);
+	inlen = 0;
 
-static void
-buffer_cleanup(void)
-{
-	int i;
+#if SDL_VERSION_ATLEAST(2, 0, 0)	
+	// SDL2.0ではstream bufferのクリアが必要
+	memset(stream, 0, len);
+#endif
+	SDL_MixAudio(stream, buf, len, SDL_MIX_MAXVOLUME);
 
-	for (i = 0; i < NAUDIOBUFFER; i++) {
-		if (audio_buffer[i]) {
-			free(audio_buffer[i]);
-			audio_buffer[i] = 0;
-		}
+	//printf("pbrp0 0x%x, pbrp 0x%x\n", pbrp0, pbrp);
+
+#if 0
+	// ADPCMがバッファ書き込み -> OPMがバッファにデータをMix なので
+	// ADPCMを無効にする場合はリングバッファのクリアが必要
+	if (pbrp >= pbrp0) {
+		memset(pbrp0, 0, pbrp - pbrp0);
+	} else {
+		memset(pbsp, 0, pbrp - pbsp);
+		memset(pbrp0, 0, pbep - pbrp0);
 	}
+#endif
+
+	bef = now;
+	SDL_UnlockAudio();
 }
+
 #else	/* NOSOUND */
 int
 DSound_Init(unsigned long rate, unsigned long buflen)
@@ -300,8 +308,4 @@ DSound_Send0(long clock)
 {
 }
 
-void FASTCALL
-DSound_Send(void)
-{
-}
 #endif	/* !NOSOUND */

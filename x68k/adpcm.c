@@ -114,14 +114,20 @@ void FASTCALL ADPCM_PreUpdate(DWORD clock)
 // -----------------------------------------------------------------------
 //   DSoundが指定してくる分だけバッファにデータを書き出す
 // -----------------------------------------------------------------------
-void FASTCALL ADPCM_Update(signed short *buffer, DWORD length)
+void FASTCALL ADPCM_Update(signed short *buffer, DWORD length, BYTE *pbsp, BYTE *pbep)
 {
 	int outs;
 	signed int outl, outr;
 
 	if ( length<=0 ) return;
+
 	while ( length ) {
 		int tmp;
+
+		if (buffer >= pbep) {
+			buffer = pbsp;
+		}
+
 		if ( (ADPCM_WrPtr==ADPCM_RdPtr)&&(!(DMA[3].CCR&0x40)) ) DMA_Exec(3);
 		if ( ADPCM_WrPtr!=ADPCM_RdPtr ) {
 			OldR = outr = ADPCM_BufL[ADPCM_RdPtr];

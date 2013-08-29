@@ -299,3 +299,78 @@ Nexus 7の場合は oy / 600 * (736 / 800)
 
 keycodeはキーダウンは0x80が0で、キーアップは0x80が1な感じで。
 
+** 2013/08/22, 23 PSPの遅さについて
+
+MIDI_DelayOut()がものすごく遅くね？
+これ削ると早くなる。
+
+mainloopでNoWaitModeを有効にすれば早くなるけど早くなりすぎる
+(オートフレームスキップ時)。
+
+FrameRateは7でAuto Frame Skip
+1だとフルフレーム描画
+2だと2回に一回画面描画 -> 30fps
+3だと3回に一回画面描画 -> 20fps
+4だと4回に一回画面描画 -> 15fps
+
+--> MIDI_DelayOut()削り、NoWaitModeでフレームスキップ4ぐらいだとよさげ。
+
+
+** 2013/08/23
+
+* サウンド関連の解析
+
+ddwin.c/DSound_Init()内でSDL_OpenAudio()を呼び出す。この時のsamples
+pcmfree = pcmfreemax = rate * buflen / 200 / 2 -> 2756
+rateはConfig.SampleRate 22050
+buflenはConfig.BufferSize 50
+ds_halfbuffer = pcmfreemax * 4 -> 11024
+
+samplesはpsfreemaxより大きい2のべき乗 -> 4096
+samplesは1チャンネル分の大きさなのでステレオの場合はバッファ8192になる。
+
+
+Send0呼び出し時のclock
+216?, 432?の繰り返し px68k
+210, 420の繰り返し xkeropi
+
+** 2013/08/26
+
+* サウンドバッファの見直し
+
+- 現状だと、作成したデータの後半を取りこぼしたり、空のデータを食わせたり
+してしまっている。
+
+-> サウンドバッファをリングバッファに作り直す
+
+pcmbuffer
++------+----------+----------------+
+|      |//////////|                |
++------+----------+----------------+
+       A          A
+       |          |
+       |        pcmbufwp 書き込みポインタ
+       |
+     pcmbufrp 読み込みポインタ
+
+* fmgenの修正点
+
+fmgen/fmgen.h
+#define FM_SAMPLETYPE  int16
+
+fmgen/psg.h
+#define PSG_SAMPLETYPE         int16
+
+** 2013/08/27
+
+* winx68k-065s
+
++------------------+------------------+
+|                  |                  |
++------------------+------------------+
+<--ds_halfbuffer--> <--ds_halfbuffer-->
+
+前半のバッファを書き出したらEvent=0
+後半のバッファを書き出したらEvent=1
+
+

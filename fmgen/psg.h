@@ -2,12 +2,11 @@
 //	PSG-like sound generator
 //	Copyright (C) cisc 1997, 1999.
 // ---------------------------------------------------------------------------
-//	$fmgen-Id: psg.h,v 1.8 2003/04/22 13:12:53 cisc Exp $
 
 #ifndef PSG_H
 #define PSG_H
 
-#define PSG_SAMPLETYPE		int32		// int32 or int16
+#define PSG_SAMPLETYPE		int16		// int32 or int16
 
 // ---------------------------------------------------------------------------
 //	class PSG

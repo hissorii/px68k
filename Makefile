@@ -185,7 +185,7 @@ TCLIBDIR = /usr/lib
 
            CXXLIB = -lstdc++
 
-    CXXDEBUGFLAGS = -g -O2 -fno-strict-aliasing
+    CXXDEBUGFLAGS = -g -O0 -fno-strict-aliasing
 CXXDEPENDINCLUDES =
  CXXEXTRA_DEFINES =
 CXXEXTRA_INCLUDES =
@@ -324,7 +324,7 @@ MODLDCOMBINEFLAGS = -r
 
       PROJECTROOT = /usr
 
-      CDEBUGFLAGS = -g -O2 -fno-strict-aliasing
+      CDEBUGFLAGS = -g -O0 -fno-strict-aliasing
         CCOPTIONS =
 
       ALLINCLUDES = $(INCLUDES) $(EXTRA_INCLUDES) $(TOP_INCLUDES) $(INSTALLED_INCLUDES) $(STD_INCLUDES)
@@ -1075,6 +1075,9 @@ CXXPROJECT_DEFINES =
 # CDEBUGFLAGS+= -Werror
 # CDEBUGFLAGS+= -DINLINE=
 # CDEBUGFLAGS+= -DUSE_GAS
+
+# CDEBUGFLAGS+= -pg -DNO_MERCURY
+CDEBUGFLAGS+= -DNO_MERCURY
 
 # GTK+
 # for 1.2.x

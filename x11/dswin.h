@@ -1,5 +1,3 @@
-/*	$Id: dswin.h,v 1.1.1.1 2003/04/28 18:06:56 nonaka Exp $	*/
-
 #ifndef dswin_h__
 #define dswin_h__
 
@@ -11,7 +9,6 @@ int DSound_Cleanup(void);
 void DSound_Play(void);
 void DSound_Stop(void);
 void FASTCALL DSound_Send0(long clock);
-void FASTCALL DSound_Send(void);
 
 void DS_SetVolumeOPM(long vol);
 void DS_SetVolumeADPCM(long vol);

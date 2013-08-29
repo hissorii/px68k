@@ -2,7 +2,6 @@
 //	OPM interface
 //	Copyright (C) cisc 1998, 2003.
 // ---------------------------------------------------------------------------
-//	$fmgen-Id: opm.cpp,v 1.26 2003/08/25 13:53:08 cisc Exp $
 
 #include "headers.h"
 #include "misc.h"
@@ -458,14 +457,17 @@ inline void OPM::MixSubL(int activech, ISample** idest)
 // ---------------------------------------------------------------------------
 //	¹çÀ® (stereo)
 //
-void OPM::Mix(Sample* buffer, int nsamples)
+void OPM::Mix(Sample* buffer, int nsamples, BYTE* pbsp, BYTE* pbep)
 {
 #define IStoSample(s)	((Limit(s, 0xffff, -0x10000) * fmvolume) >> 14)
 //#define IStoSample(s)	((s * fmvolume) >> 14)
+
+	Sample* dest;
+	int i;
 	
 	// odd bits - active, even bits - lfo
 	uint activech=0;
-	for (int i=0; i<8; i++)
+	for (i=0; i<8; i++)
 		activech = (activech << 2) | ch[i].Prepare();
 
 	if (activech & 0x5555)
@@ -486,9 +488,11 @@ void OPM::Mix(Sample* buffer, int nsamples)
 		idest[6] = &ibuf[pan[6]];
 		idest[7] = &ibuf[pan[7]];
 		
-		Sample* limit = buffer + nsamples * 2;
-		for (Sample* dest = buffer; dest < limit; dest+=2)
-		{
+		for (i = 0, dest = buffer; i < nsamples; i++, dest += 2) {
+			if ((BYTE *)dest >= pbep) {
+				dest = (Sample *)pbsp;
+			}
+
 			ibuf[1] = ibuf[2] = ibuf[3] = 0;
 			if (activech & 0xaaaa)
 				LFO(), MixSubL(activech, idest);
