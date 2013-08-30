@@ -436,7 +436,7 @@ void WinX68k_Exec(void)
 
 		if ( clk_count>=clk_next ) {
 			//OPM_RomeoOut(Config.BufferSize*5);
-			MIDI_DelayOut((Config.MIDIAutoDelay)?(Config.BufferSize*5):Config.MIDIDelay);
+			//MIDI_DelayOut((Config.MIDIAutoDelay)?(Config.BufferSize*5):Config.MIDIDelay);
 			MFP_TimerA();
 			if ( (MFP[MFP_AER]&0x40)&&(vline==CRTC_IntLine) )
 				MFP_Int(1);
@@ -470,7 +470,6 @@ void WinX68k_Exec(void)
 				MouseIntCnt = 0;
 				SCC_IntCheck();
 			}
-			DSound_Send0(clk_line);			// Bufferがでかいとき用
 
 			vline++;
 			clk_next  = (clk_total*(vline+1))/VLINE_TOTAL;
@@ -513,6 +512,7 @@ void WinX68k_Exec(void)
 #ifdef PSP
 
 #include <pspmoduleinfo.h>
+#include <psppower.h>
 
 PSP_HEAP_SIZE_KB(-1024);
 
@@ -524,6 +524,10 @@ int main(int argc, char *argv[])
 {
 	SDL_Event ev;
 	int sdlaudio = -1;
+
+#ifdef PSP
+	scePowerSetClockFrequency(333, 333, 166);
+#endif
 
 #ifdef ANDROID
 	__android_log_write(ANDROID_LOG_DEBUG,"Tag","555");
@@ -537,9 +541,12 @@ int main(int argc, char *argv[])
 
 	LoadConfig();
 
-	// xxx PSPで音がおかしくなるのを調べる
 #ifndef PSP
 	Config.SampleRate = 22050;
+#else
+	Config.SampleRate = 11025;
+	FrameRate = 5;
+	NoWaitMode = 0;
 #endif
 
 #ifndef NOSOUND
@@ -700,6 +707,7 @@ int main(int argc, char *argv[])
 					WinDraw_HideSplash();
 			}
 		}
+#ifndef PSP
 		while (SDL_PollEvent(&ev)) {
 			switch (ev.type) {
 			case SDL_QUIT:
@@ -714,6 +722,7 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
+#endif
 	}
 end_loop:
 

@@ -114,7 +114,7 @@ void FASTCALL ADPCM_PreUpdate(DWORD clock)
 // -----------------------------------------------------------------------
 //   DSoundが指定してくる分だけバッファにデータを書き出す
 // -----------------------------------------------------------------------
-void FASTCALL ADPCM_Update(signed short *buffer, DWORD length, BYTE *pbsp, BYTE *pbep)
+void FASTCALL ADPCM_Update(signed short *buffer, DWORD length, int rate)
 {
 	int outs;
 	signed int outl, outr;
@@ -122,11 +122,7 @@ void FASTCALL ADPCM_Update(signed short *buffer, DWORD length, BYTE *pbsp, BYTE 
 	if ( length<=0 ) return;
 
 	while ( length ) {
-		int tmp;
-
-		if (buffer >= pbep) {
-			buffer = pbsp;
-		}
+		int tmpl, tmpr;
 
 		if ( (ADPCM_WrPtr==ADPCM_RdPtr)&&(!(DMA[3].CCR&0x40)) ) DMA_Exec(3);
 		if ( ADPCM_WrPtr!=ADPCM_RdPtr ) {
@@ -172,12 +168,24 @@ void FASTCALL ADPCM_Update(signed short *buffer, DWORD length, BYTE *pbsp, BYTE 
 		OutsIpL[3] = outs;
 
 #if 1
-		tmp = INTERPOLATE(OutsIpR, 0);
-		if ( tmp>32767 ) tmp = 32767; else if ( tmp<(-32768) ) tmp = -32768;
-		*(buffer++) = (short)tmp;
-		tmp = INTERPOLATE(OutsIpL, 0);
-		if ( tmp>32767 ) tmp = 32767; else if ( tmp<(-32768) ) tmp = -32768;
-		*(buffer++) = (short)tmp;
+		tmpr = INTERPOLATE(OutsIpR, 0);
+		if ( tmpr>32767 ) tmpr = 32767; else if ( tmpr<(-32768) ) tmpr = -32768;
+		*(buffer++) = (short)tmpr;
+		tmpl = INTERPOLATE(OutsIpL, 0);
+		if ( tmpl>32767 ) tmpl = 32767; else if ( tmpl<(-32768) ) tmpl = -32768;
+		*(buffer++) = (short)tmpl;
+		// PSP以外はrateは0
+		if (rate == 22050) {
+			*(buffer++) = (short)tmpr;
+			*(buffer++) = (short)tmpl;
+		} else if (rate == 11025) {
+			*(buffer++) = (short)tmpr;
+			*(buffer++) = (short)tmpl;
+			*(buffer++) = (short)tmpr;
+			*(buffer++) = (short)tmpl;
+			*(buffer++) = (short)tmpr;
+			*(buffer++) = (short)tmpl;
+		}
 #else
 		*(buffer++) = (short)OutsIpR[3];
 		*(buffer++) = (short)OutsIpL[3];

@@ -4,7 +4,7 @@
 int OPM_Init(int clock, int rate);
 void OPM_Cleanup(void);
 void OPM_Reset(void);
-void OPM_Update(short *buffer, int length, BYTE *pbsp, BYTE *pbep);
+void OPM_Update(short *buffer, int length, int rate);
 void FASTCALL OPM_Write(DWORD r, BYTE v);
 BYTE FASTCALL OPM_Read(WORD a);
 void FASTCALL OPM_Timer(DWORD step);

@@ -457,7 +457,7 @@ inline void OPM::MixSubL(int activech, ISample** idest)
 // ---------------------------------------------------------------------------
 //	合成 (stereo)
 //
-void OPM::Mix(Sample* buffer, int nsamples, BYTE* pbsp, BYTE* pbep)
+void OPM::Mix(Sample* buffer, int nsamples, int rate)
 {
 #define IStoSample(s)	((Limit(s, 0xffff, -0x10000) * fmvolume) >> 14)
 //#define IStoSample(s)	((s * fmvolume) >> 14)
@@ -488,11 +488,7 @@ void OPM::Mix(Sample* buffer, int nsamples, BYTE* pbsp, BYTE* pbep)
 		idest[6] = &ibuf[pan[6]];
 		idest[7] = &ibuf[pan[7]];
 		
-		for (i = 0, dest = buffer; i < nsamples; i++, dest += 2) {
-			if ((BYTE *)dest >= pbep) {
-				dest = (Sample *)pbsp;
-			}
-
+		for (i = 0, dest = buffer; i < nsamples; i++) {
 			ibuf[1] = ibuf[2] = ibuf[3] = 0;
 			if (activech & 0xaaaa)
 				LFO(), MixSubL(activech, idest);
@@ -501,6 +497,18 @@ void OPM::Mix(Sample* buffer, int nsamples, BYTE* pbsp, BYTE* pbep)
 
 			StoreSample(dest[0], IStoSample(ibuf[1] + ibuf[3]));
 			StoreSample(dest[1], IStoSample(ibuf[2] + ibuf[3]));
+			// PSP以外はrateは0
+			if (rate == 0 || rate == 44100) {
+				dest += 2;
+			} else if (rate == 22050) {
+				dest[2] = dest[0];
+				dest[3] = dest[1];
+				dest += 4;
+			} else if (rate == 11025) {
+				dest[2] = dest[4] = dest[6] = dest[0];
+				dest[3] = dest[5] = dest[7] = dest[1];
+				dest += 8;
+			}
 		}
 	}
 #undef IStoSample

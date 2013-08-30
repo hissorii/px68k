@@ -35,18 +35,11 @@
 #include <android/log.h>
 #endif
 
-	short	playing = FALSE;
+#define PCMBUF_SIZE 2*2*48000*2
 
-	#define PCMBUF_SIZE 2*2*48000
+	short	playing = FALSE;
 	BYTE	pcmbuffer[PCMBUF_SIZE];
-	BYTE	*pbsp = pcmbuffer;
-	BYTE	*pbrp = pcmbuffer, *pbwp = pcmbuffer;
-	BYTE	*pbep = &pcmbuffer[PCMBUF_SIZE];
-	DWORD	ratebase1000 = 22;
-	DWORD	ratebase = 22050;
 	long	DSound_PreCounter = 0;
-	BYTE sdlsndbuf[PCMBUF_SIZE];
-int inlen = 0;
 
 	int	audio_fd = -1;
 
@@ -77,23 +70,30 @@ DSound_Init(unsigned long rate, unsigned long buflen)
 		return TRUE;
 	}
 
-	printf("pbsp 0x%x, pbep 0x%x\n", pbsp, pbep);
-
-	ratebase1000 = rate / 1000;
-	ratebase = rate;
+	//printf("pbsp 0x%x, pbep 0x%x\n", pbsp, pbep);
 
 	// Linuxは2倍(SDL1.2)、Android(SDL2.0)は4倍のlenでcallbackされた。
 	// この値を小さくした方が音の遅延は少なくなるが負荷があがる
-	samples = 2048;
+	samples = 1024;
 
 	// ??????????????????????????????
 	bzero(&fmt, sizeof(fmt));
+#ifdef PSP
+	// PSPは常に44kを要求するので、rateが22Kの場合はデータを2倍にする
+	// r0, l0, r1, l1, ... -> r0, l0, r0, l0, r1, l1, r1, l1, ...
+	fmt.freq = 44100;
+#else
 	fmt.freq = rate;
+#endif
 	fmt.format = AUDIO_S16SYS;
 	fmt.channels = 2;
 	fmt.samples = samples;
 	fmt.callback = sdlaudio_callback;
-	fmt.userdata = NULL;
+#ifdef PSP
+	fmt.userdata = rate;
+#else
+	fmt.userdata = 0;
+#endif
 	audio_fd = SDL_OpenAudio(&fmt, NULL);
 	if (audio_fd < 0) {
 		SDL_Quit();
@@ -143,146 +143,59 @@ DSound_Cleanup(void)
 //  ??????????????
 // ---------------------------------------------------------------------------
 
-void FASTCALL
-DSound_Send0(long clock)
+static void FASTCALL
+DSound_Send(long length, int rate)
 {
-	int length = 0;
-
 	if (audio_fd >= 0) {
-		DSound_PreCounter += (ratebase * clock);
-		while (DSound_PreCounter >= 10000000L) {
-			length++;
-			DSound_PreCounter -= 10000000L;
-		}
-		if (length == 0) {
-			return;
-		}
-
-		SDL_LockAudio();
-		inlen += length * 4;
-		ADPCM_Update((short *)pbwp, length, pbsp, pbep);
-		OPM_Update((short *)pbwp, length, pbsp, pbep);
+		ADPCM_Update((short *)pcmbuffer, length, rate);
+		OPM_Update((short *)pcmbuffer, length, rate);
 #ifndef	NO_MERCURY
 		//Mcry_Update((short *)pcmbufp, length);
 #endif
-		pbwp += length * sizeof(WORD) * 2;
-		if (pbwp >= pbep) {
-			pbwp = pbsp;
-		}
-		SDL_UnlockAudio();
 	}
 }
 
 static void
 sdlaudio_callback(void *userdata, unsigned char *stream, int len)
 {
-	int lena, lenb, datalen;
-	BYTE *buf, *pbrp0;
 	static DWORD bef;
 	DWORD now;
-	static int under = 0;
-
-	SDL_LockAudio();
+	int rate;
 
 	now = timeGetTime();
+
+	//PSP以外はrateは0
+	rate = (int)userdata;
+#ifdef PSP
+	DSound_Send(len / (44100 / rate) / 4, rate);
+#else
+	DSound_Send(len / 4, rate);
+#endif
 	
 #ifdef ANDROID
 	//__android_log_print(ANDROID_LOG_DEBUG,"Tag","tdiff %4d : pbrp = 0x%x, pbwp = 0x%x : len %d", now - bef, pbrp, pbwp, len);
 #else
-	//printf("tdiff %4d : pbrp = 0x%x, pbwp = 0x%x : ", now - bef, pbrp, pbwp);
+	//printf("tdiff %4d : pbrp = 0x%x, pbwp = 0x%x : len %d", now - bef, pbrp, pbwp, len);
 #endif
-	pbrp0 = pbrp;
-
-	if (pbrp <= pbwp) {
-		// pcmbuffer
-		// +---------+-------------+----------+
-		// |         |/////////////|          |     
-		// +---------+-------------+----------+
-		// A         A<--datalen-->A          A
-		// |         |             |          |
-		// pbsp     pbrp          pbwp       pbep
-
-		datalen = pbwp - pbrp;
-		if (datalen >= len) {
-			buf = pbrp;
-			pbrp += len;
-			//printf("TYPEA: ");
-		} else {
-			memcpy(sdlsndbuf, pbrp, datalen);
-			// xxx underrun : 不足分はとりあえず0で埋める
-			memset(&sdlsndbuf[datalen], 0, len - datalen);
-			buf = sdlsndbuf;
-			pbrp += datalen;
-			//printf("TYPEB: ");
-		}
-	} else {
-		// pcmbuffer
-		// +---------+-------------+----------+
-		// |/////////|             |//////////|     
-		// +------+--+-------------+----------+
-		// <-lenb->  A             <---lena--->
-		// A         |             A          A
-		// |         |             |          |
-		// pbsp     pbwp          pbrp       pbep
-
-		lena = pbep - pbrp;
-		if (lena >= len) {
-			buf = pbrp;
-			pbrp += len;
-			//printf("***** TYPEC: ");
-		} else {
-			lenb = len - lena;
-			if (pbwp - pbsp >= lenb) {
-				memcpy(sdlsndbuf, pbrp, lena);
-				memcpy(&sdlsndbuf[lena], pbsp, lenb);
-				buf = sdlsndbuf;
-				pbrp = pbsp + lenb;
-				//printf("********** TYPED: ");
-			} else {
-				memcpy(sdlsndbuf, pbrp, lena);
-				memcpy(&sdlsndbuf[lena], pbsp, pbwp - pbsp);
-				// xxx underrun : 不足分はとりあえず0で埋める
-				memset(&sdlsndbuf[lena + pbwp - pbsp], 0, lenb - (pbwp - pbsp));
-				buf = sdlsndbuf;
-				pbrp = pbwp;
-				//printf("*************** TYPEE: ");
-			}
-
-		}
-	}
-
-	under = under + inlen - len;
-	//printf("inlen %4d under %4d\n", inlen, under);
-	inlen = 0;
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)	
 	// SDL2.0ではstream bufferのクリアが必要
 	memset(stream, 0, len);
 #endif
-	SDL_MixAudio(stream, buf, len, SDL_MIX_MAXVOLUME);
-
-	//printf("pbrp0 0x%x, pbrp 0x%x\n", pbrp0, pbrp);
-
+	SDL_MixAudio(stream, pcmbuffer, len, SDL_MIX_MAXVOLUME);
 #if 0
 	// ADPCMがバッファ書き込み -> OPMがバッファにデータをMix なので
-	// ADPCMを無効にする場合はリングバッファのクリアが必要
-	if (pbrp >= pbrp0) {
-		memset(pbrp0, 0, pbrp - pbrp0);
-	} else {
-		memset(pbsp, 0, pbrp - pbsp);
-		memset(pbrp0, 0, pbep - pbrp0);
-	}
+	// ADPCMを無効にする場合はリングバッファのクリアが必要なので
+	// この#if 0を有効にする
+	memset(pcmbuffer, 0, len);
 #endif
-
 	bef = now;
-	SDL_UnlockAudio();
 }
 
 #else	/* NOSOUND */
 int
 DSound_Init(unsigned long rate, unsigned long buflen)
 {
-
 	return FALSE;
 }
 
@@ -301,11 +214,6 @@ DSound_Cleanup(void)
 {
 
 	return TRUE;
-}
-
-void FASTCALL
-DSound_Send0(long clock)
-{
 }
 
 #endif	/* !NOSOUND */

@@ -88,7 +88,7 @@ namespace FM
 		uint	GetReg(uint addr);
 		uint	ReadStatus() { return status & 0x03; }
 		
-		void 	Mix(Sample* buffer, int nsamples, BYTE* pbsp, BYTE* pbep);
+		void 	Mix(Sample* buffer, int nsamples, int rate);
 		
 		void	SetVolume(int db);
 		void	SetChannelMask(uint mask);
