@@ -57,8 +57,10 @@ Keyboard_Init(void)
 // ----------------------------------
 
 #define	NC	0
+#define KEYTABLE_MAX 512
 
-BYTE KeyTable[512] = {
+
+BYTE KeyTable[KEYTABLE_MAX] = {
 	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x00
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
 	//	    ,    ,    ,    ,    , RET,    ,    		; 0x08
@@ -192,7 +194,7 @@ BYTE KeyTable[512] = {
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,0x37
 };
 
-BYTE KeyTableMaster[512] = {
+BYTE KeyTableMaster[KEYTABLE_MAX] = {
 	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x00
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
 	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x08
@@ -347,6 +349,11 @@ Keyboard_KeyDown(DWORD wp)
 	} else
 		code = KeyTable[wp & 0xff];
 #endif
+	if (wp >= KEYTABLE_MAX) {
+		// 拾う必要のあるkeycodeは個別に処理を追加する
+
+		return;
+	}
 
 	code = KeyTable[wp];
 
@@ -423,6 +430,11 @@ Keyboard_KeyUp(DWORD wp)
 	} else
 		code = KeyTable[wp & 0xff];
 #endif
+	if (wp >= KEYTABLE_MAX) {
+		// 拾う必要のあるkeycodeは個別に処理を追加する
+
+		return;
+	}
 
 	code = KeyTable[wp];
 
