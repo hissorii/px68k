@@ -5,7 +5,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := main
 
 SDL_PATH := ../SDL
-PX68K_PATH := ../../../px68k
+PX68K_PATH := ../../..
 
 LOCAL_C_INCLUDES := /usr/local/android-ndk-r9/platforms/android-18/arch-arm/usr/include $(LOCAL_PATH)/$(SDL_PATH)/include \
 	$(PX68K_PATH)/x68k $(PX68K_PATH)/m68000 $(PX68K_PATH)/fmgen $(PX68K_PATH)/x11 $(PX68K_PATH)/win32api
