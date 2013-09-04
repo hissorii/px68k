@@ -55,7 +55,9 @@ PX68K ( Portable (x)keropi PRO-68K )
        Android Project from Existing Code を選択して[Next]
 
     ・[Root Directory:]にandroid-projectのディレクトリを指定する
-      (例) /home/hissorii/src/px68k/px68k-anddroid
+      (例) /home/hissorii/src/px68k/px68k-android
+
+    ・[Projects:]の[New Project Name]のSDLActivityを二つともPX68Kに変更
 
     ・[Finish] をクリック
 

@@ -1,7 +1,7 @@
 #ifndef _winx68k_memory
 #define _winx68k_memory
 
-#include "common.h"
+#include "../x11/common.h"
 
 #define	Memory_ReadB		cpu_readmem24
 #define Memory_ReadW		cpu_readmem24_word
