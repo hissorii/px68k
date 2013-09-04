@@ -51,6 +51,7 @@ typedef struct _vbtn_rect {
 
 VBTN_RECT vbtn_rect[VBTN_MAX];
 BYTE vbtn_state[VBTN_MAX];
+SDL_TouchID touchId = -1;
 
 #endif
 
@@ -198,26 +199,10 @@ void FASTCALL Joystick_Update(void)
 	JoyState1[num] = ret1;
 #elif defined(ANDROID)
 	SDL_Finger *finger;
-	static SDL_TouchID touchId = -1;
 	SDL_FingerID fid;
 	float fx, fy;
 	int i, j;
 
-	// こんなtouchId取得法でよいのかしらん
-	if (touchId == -1) {
-		// とりあえず10個くらいチェックすればいいかな？
-		for (i = 0; i < 10; i++) {
-			// とりあえず指3本分ぐらいチェック
-			for (j = 0; j < 3; j++) {
-				if (SDL_GetTouchFinger(i, j) != NULL) {
-					touchId = i;
-					__android_log_print(ANDROID_LOG_DEBUG,"Tag","id: %d x: %f y: %f", i, fx, fy);
-					goto done;
-				}
-			}
-		}
-	}
-done:
 	if (touchId == -1)
 		return;
 

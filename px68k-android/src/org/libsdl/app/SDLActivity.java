@@ -699,7 +699,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             // The app already exists, we resume via handleResume
             // Multiple sequential calls to surfaceChanged are handled internally by handleResume
 
-            SDLActivity.handleResume();
+	    if (!SDLActivity.mIsPaused) SDLActivity.handleResume();
         }
     }
 

@@ -68,6 +68,10 @@ extern	WORD	BG_BGTOP;
 extern	WORD	BG_BGEND;
 extern	BYTE	BG_CHRSIZE;
 
+#ifdef ANDROID
+extern SDL_TouchID touchId;
+#endif
+
 const	BYTE	PrgName[] = "Keropi";
 const	BYTE	PrgTitle[] = APPNAME;
 
@@ -640,7 +644,7 @@ int main(int argc, char *argv[])
 	if (!WinX68k_LoadROMs()) {
 		WinX68k_Cleanup();
 		WinDraw_Cleanup();
-		return 1;
+		exit (1);
 	}
 
 	if ( SoundSampleRate ) {
@@ -712,7 +716,32 @@ int main(int argc, char *argv[])
 			switch (ev.type) {
 			case SDL_QUIT:
 				goto end_loop;
+#ifdef ANDROID
+			case SDL_APP_WILLENTERBACKGROUND:
+				DSound_Stop();
+				break;
+			case SDL_APP_WILLENTERFOREGROUND:
+				DSound_Play();
+				break;
+			case SDL_FINGERDOWN:
+				//__android_log_print(ANDROID_LOG_DEBUG,"Tag","FINGERDOWN: tid: %lld,,, x:%f y:%f", ev.tfinger.touchId, ev.tfinger.x, ev.tfinger.y);
+				if (touchId == -1) {
+					touchId = ev.tfinger.touchId;
+				}
+				break;
+#endif
 			case SDL_KEYDOWN:
+#ifdef ANDROID
+				static DWORD bef = 0;
+				DWORD now;
+				if (ev.key.keysym.sym == SDLK_AC_BACK) {
+					now = timeGetTime();
+					if (now - bef < 1000) {
+						goto end_loop;
+					}
+					bef = now;
+				}
+#endif
 				printf("keydown: 0x%x\n", ev.key.keysym.sym);
 				Keyboard_KeyDown(ev.key.keysym.sym);
 				break;
@@ -747,5 +776,8 @@ end_loop:
 
 	SaveConfig();
 
+#ifdef ANDROID
+	exit(0);
+#endif
 	return 0;
 }
