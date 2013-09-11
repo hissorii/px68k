@@ -38,6 +38,7 @@
 #include "bg.h"
 #include "crtc.h"
 #include "gvram.h"
+#include "joystick.h"
 #include "mouse.h"
 #include "palette.h"
 #include "prop.h"
@@ -83,7 +84,8 @@ DWORD WindowX = 0;
 DWORD WindowY = 0;
 
 #ifdef ANDROID
-GLuint texid[7] = {0, 0, 0, 0, 0, 0, 0};
+GLuint background_tex = 0;
+GLuint texid[VBTN_MAX] = {};
 #endif
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -291,27 +293,27 @@ int WinDraw_Init(void)
 #ifdef ANDROID
 	ScrBuf = malloc(1024*1024*2); // OpenGL ES 1.1 needs 2^x pixels
 
-	glGenTextures(7, &texid[0]);
-	glBindTexture(GL_TEXTURE_2D, texid[0]);
+	glGenTextures(7, &background_tex);
+	glBindTexture(GL_TEXTURE_2D, background_tex);
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 //	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
 //	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, ScrBuf);
 
-	WORD BtnTex[32*32];
+	WORD BtnTex[vbtn_width*vbtn_height];
 	int i;
 	//とりあえず薄めの緑で。
-	for (i = 0; i < 32*32; i++) {
+	for (i = 0; i < vbtn_width*vbtn_height; i++) {
 		BtnTex[i] = 0x03e0;
 	}
 
 	// ボタン用テクスチャ。とりあえず全部同じ色。
-	for (i = 1; i < 7; i++) {
+	for (i = 0; i < VBTN_MAX; i++) {
 		glBindTexture(GL_TEXTURE_2D, texid[i]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 32, 32, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, BtnTex);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, vbtn_width, vbtn_height, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, BtnTex);
 	}
 #elif defined(PSP)
 
@@ -384,15 +386,6 @@ static void draw_texture(GLfloat *coor, GLfloat *vert)
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
-
-#define draw_button(texid, x, y)					\
-{									\
-	glBindTexture(GL_TEXTURE_2D, texid);				\
-	/* Texture から必要な部分を抜き出す(32x32を全部使う) */		\
-	SET_GLFLOATS(texture_coordinates, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f); \
-	SET_GLFLOATS(vertices, (GLfloat)(x), (y)+32.0f, (GLfloat)(x), (GLfloat)(y), (x)+32.0f, (y)+32.0f, (x)+32.0f, (y)+0.0f); \
-	draw_texture(texture_coordinates, vertices);			\
-}
 #endif
 
 void FASTCALL
@@ -426,13 +419,14 @@ WinDraw_Draw(void)
 	GLfloat texture_coordinates[8];
 	GLfloat vertices[8];
 	GLfloat w;
+	int i;
 
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-	glBindTexture(GL_TEXTURE_2D, texid[0]);
+	glBindTexture(GL_TEXTURE_2D, background_tex);
 	//ScrBufから800x600の領域を切り出してテクスチャに転送
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, ScrBuf);
 
@@ -455,18 +449,23 @@ WinDraw_Draw(void)
 		     (800.0f - w)/2, 0.0f,
 		     (800.0f - w)/2 + w, (GLfloat)600,
 		     (800.0f - w)/2 + w, 0.0f);
-
+//ここまで画面描画
 	draw_texture(texture_coordinates, vertices);
 
-	// 左右上下 (上上下下左右左右BAではない)
-	draw_button(texid[1], 20, 450);
-	draw_button(texid[2], 100, 450);
-	draw_button(texid[3], 60, 400);
-	draw_button(texid[4], 60, 500);
-
 	// ボタン
-	draw_button(texid[5], 680, 450);
-	draw_button(texid[6], 750, 450);
+	for (i = 0; i < VBTN_MAX; i++) {
+		if (vbtn_state[i] == VBTN_NOUSE) continue;
+
+		glBindTexture(GL_TEXTURE_2D, texid[i]);
+		/* Texture から必要な部分を抜き出す(32x32を全部使う) */
+		SET_GLFLOATS(texture_coordinates, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f);
+		SET_GLFLOATS(vertices,
+			vbtn_rect[i].x, vbtn_rect[i].y2,
+			vbtn_rect[i].x, vbtn_rect[i].y,
+			vbtn_rect[i].x2, vbtn_rect[i].y2,
+			vbtn_rect[i].x2, vbtn_rect[i].y);
+		draw_texture(texture_coordinates, vertices);
+	}
 
 	//	glDeleteTextures(1, &texid);
 

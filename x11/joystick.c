@@ -8,7 +8,9 @@
 #include <pspctrl.h>
 #endif
 #ifdef ANDROID
+#include "winx68k.h"
 #include <SDL.h>
+#include <jni.h>
 #include <android/log.h>
 #endif
 
@@ -35,34 +37,31 @@ BYTE JoyPortData[2];
 
 #ifdef ANDROID
 
-#define VBTN_MAX 32
-#define VBTN_ON 2
-#define VBTN_OFF 1
-#define VBTN_NOUSE 0
-#define FINGER_MAX 10
-
-// SDL_FINGERと比較するので範囲は0~1.0
-typedef struct _vbtn_rect {
-	float x;
-	float y;
-	float x2;
-	float y2;
-} VBTN_RECT;
-
-VBTN_RECT vbtn_rect[VBTN_MAX];
-BYTE vbtn_state[VBTN_MAX];
 SDL_TouchID touchId = -1;
 
-#endif
-
-#define SET_VBTN(id, bx, by)					\
-{								\
-	vbtn_state[id] = VBTN_OFF;				\
-	vbtn_rect[id].x = (float)(bx) / 800.0;			\
-	vbtn_rect[id].y = (float)(by) / 600.0;			\
-	vbtn_rect[id].x2 = ((float)(bx) + 32.0) / 800.0;	\
-	vbtn_rect[id].y2 = ((float)(by) + 32.0) / 600.0;	\
+#define VBTN_REF_UP 0
+#define VBTN_REF_DOWN 1
+#define VBTN_REF_LEFT 0
+#define VBTN_REF_RIGHT 2
+// SET_VBTN - 仮想ボタン設定
+// id: 固有番号
+// bx, by: 画面の縁から右上の頂点への距離(単位はdp)
+// ref: 基準となる画面の縁
+// (上下(VBTN_REF_UPかVBTN_REF_DOWN)と左右(VBTN_REF_LEFTかVBTN_REF_RIGHT)の二つを加算する)
+#define SET_VBTN(id, bx, by, ref)						\
+{										\
+	vbtn_state[id] = VBTN_OFF;						\
+	vbtn_rect[id].x = (ref) & VBTN_REF_RIGHT ?				\
+				(1 - (bx) * density / realdisp_w) * 800 :	\
+				(bx) * density / realdisp_w * 800;		\
+	vbtn_rect[id].y = (ref) & VBTN_REF_DOWN ?				\
+				(1 - (by) * density / realdisp_h) * 600 :	\
+				(by) * density / realdisp_h * 600;		\
+	vbtn_rect[id].x2 = vbtn_rect[id].x + vbtn_width;			\
+	vbtn_rect[id].y2 = vbtn_rect[id].y + vbtn_height;			\
 }
+
+#endif
 
 void Joystick_Init(void)
 {
@@ -78,23 +77,62 @@ void Joystick_Init(void)
 	JoyPortData[0] = 0;
 	JoyPortData[1] = 0;
 #ifdef ANDROID
+	float density;
 	int i;
+
+	JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+	// DisplayMetrics
+	jclass dispmetrics_class = (*env)->FindClass(env, "android/util/DisplayMetrics");
+	// new DisplayMetrics()
+	jmethodID dispmetrics_init = (*env)->GetMethodID(env, dispmetrics_class, "<init>", "()V");
+	jobject *obj0;
+	jobject *obj1;
+
+	// SDLActivity.getContext
+	obj0 = (jobject *)SDL_AndroidGetActivity();
+	// SDLActivity.getContext.getWindowManager
+	obj1 = (*env)->CallObjectMethod(
+		env,
+		obj0,
+		(*env)->GetMethodID(env, (*env)->GetObjectClass(env, obj0),
+                	"getWindowManager", "()Landroid/view/WindowManager;"));
+	// SDLActivity.getContext.getWindowManager().getDefaultDisplay()
+	obj0 = (*env)->CallObjectMethod(
+		env,
+		obj1,
+		(*env)->GetMethodID(env, (*env)->GetObjectClass(env, obj1),
+                	"getDefaultDisplay", "()Landroid/view/Display;"));
+	// obj1 = new DisplayMetrics();
+	obj1 = (*env)->NewObject(env, dispmetrics_class, dispmetrics_init);
+	// SDLActivity.getContext.getWindowManager().getDefaultDisplay().getMetrics(obj1);
+	(*env)->CallObjectMethod(
+		env,
+		obj0,
+		(*env)->GetMethodID(env, (*env)->GetObjectClass(env, obj0),
+                	"getMetrics", "(Landroid/util/DisplayMetrics;)V"),
+		obj1);
+	// density(C) = obj1.density
+	density = (float)((*env)->GetFloatField(
+		env,
+		obj1,
+		(*env)->GetFieldID(env, dispmetrics_class, "density", "F")));
 
 	for (i = 0; i < VBTN_MAX; i++) {
 		vbtn_state[i] = VBTN_NOUSE;
 	}
 
-	//テクスチャの設定といっしょにしたいがとりあえず別々に設定
-	//ボタンのTexture idは1 origin、ボタンidは0 originなので注意
+	// 一辺64dpの正方形
+	vbtn_width = vbtn_height = (int)(64 * density / realdisp_w * 800);
+
 	// 左右上下 (上上下下左右左右BAではない)
-	SET_VBTN(0, 20, 450);
-	SET_VBTN(1, 100, 450);
-	SET_VBTN(2, 60, 400);
-	SET_VBTN(3, 60, 500);
+	SET_VBTN(0, 16, 120, VBTN_REF_DOWN + VBTN_REF_LEFT);
+	SET_VBTN(1, 176, 120, VBTN_REF_DOWN + VBTN_REF_LEFT);
+	SET_VBTN(2, 96, 160, VBTN_REF_DOWN + VBTN_REF_LEFT);
+	SET_VBTN(3, 96, 80, VBTN_REF_DOWN + VBTN_REF_LEFT);
 
 	// ボタン
-	SET_VBTN(4, 680, 450);
-	SET_VBTN(5, 750, 450);
+	SET_VBTN(4, 80, 120, VBTN_REF_DOWN + VBTN_REF_RIGHT);
+	SET_VBTN(5, 160, 120, VBTN_REF_DOWN + VBTN_REF_RIGHT);
 #endif
 }
 
@@ -228,13 +266,13 @@ void FASTCALL Joystick_Update(void)
 			if (vbtn_state[j] == VBTN_NOUSE)
 				continue;
 			// 性能を考え一個ずつ判定
-			if (vbtn_rect[j].x > fx)
+			if (vbtn_rect[j].x / 800.0 > fx)
 				continue;
-			if (vbtn_rect[j].x2 < fx)
+			if (vbtn_rect[j].x2 / 800.0 < fx)
 				continue;
-			if (vbtn_rect[j].y > fy)
+			if (vbtn_rect[j].y / 600.0 > fy)
 				continue;
-			if (vbtn_rect[j].y2 < fy)
+			if (vbtn_rect[j].y2 / 600.0 < fy)
 				continue;
 
 			//マッチしたらオンにする
