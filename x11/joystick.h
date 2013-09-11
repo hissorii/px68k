@@ -26,4 +26,27 @@ void FASTCALL Joystick_Update(void);
 
 extern BYTE JoyKeyState;
 
+#ifdef ANDROID
+#include <SDL.h>
+
+#define VBTN_MAX 32
+#define VBTN_ON 2
+#define VBTN_OFF 1
+#define VBTN_NOUSE 0
+#define FINGER_MAX 10
+
+typedef struct _vbtn_rect {
+	float x;
+	float y;
+	float x2;
+	float y2;
+} VBTN_RECT;
+
+VBTN_RECT vbtn_rect[VBTN_MAX];
+BYTE vbtn_state[VBTN_MAX];
+int vbtn_width;
+int vbtn_height;
+
+#endif
+
 #endif

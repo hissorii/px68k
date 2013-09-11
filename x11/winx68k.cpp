@@ -622,6 +622,10 @@ int main(int argc, char *argv[])
 	SplashFlag = 20;
 	SoundSampleRate = Config.SampleRate;
 
+	Keyboard_Init();
+	Mouse_Init();
+	Joystick_Init();
+
 	StatBar_Show(Config.WindowFDDStat);
 	WinDraw_ChangeSize();
 	WinDraw_ChangeMode(FALSE);
@@ -661,9 +665,6 @@ int main(int argc, char *argv[])
 #endif
 	}
 
-	Keyboard_Init();
-	Mouse_Init();
-	Joystick_Init();
 	SRAM_Init();
 	WinX68k_Reset();
 	Timer_Init();
