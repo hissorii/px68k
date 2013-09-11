@@ -1,6 +1,3 @@
-#ifndef winx68k_common_h
-#define winx68k_common_h
-
 #include "windows.h"
 #include <stdio.h>
 #include <string.h>
@@ -21,6 +18,10 @@
 #endif
 #define MAX_PATH 256
 #endif
+
+
+#ifndef winx68k_common_h
+#define winx68k_common_h
 
 typedef unsigned char	UINT8;
 typedef unsigned short	UINT16;

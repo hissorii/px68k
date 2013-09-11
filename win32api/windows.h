@@ -1,6 +1,3 @@
-#ifndef	__NP2_WIN32EMUL_H__
-#define	__NP2_WIN32EMUL_H__
-
 #include <sys/param.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +48,10 @@ typedef	HANDLE		HLOCAL;
 typedef	HANDLE		HGLOBAL;
 
 typedef	void *		DRAWITEMSTRUCT;
+
+
+#ifndef	__NP2_WIN32EMUL_H__
+#define	__NP2_WIN32EMUL_H__
 
 #ifndef	TRUE
 #define	TRUE	1
