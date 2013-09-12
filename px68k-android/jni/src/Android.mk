@@ -7,7 +7,7 @@ LOCAL_MODULE := main
 SDL_PATH := ../SDL
 PX68K_PATH := ../../..
 
-LOCAL_C_INCLUDES := /usr/local/android-ndk-r9/platforms/android-18/arch-arm/usr/include $(LOCAL_PATH)/$(SDL_PATH)/include \
+LOCAL_C_INCLUDES := /usr/local/android-ndk-r9/platforms/android-18/arch-arm/usr/include $(LOCAL_PATH)/$(SDL_PATH)/include /usr/local/android-ndk-r9/sources/android/support/include \
 	$(PX68K_PATH)/x68k $(PX68K_PATH)/m68000 $(PX68K_PATH)/fmgen $(PX68K_PATH)/x11 $(PX68K_PATH)/win32api
 
 CPUSRCS= \

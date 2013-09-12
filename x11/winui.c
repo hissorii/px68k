@@ -63,6 +63,10 @@
 #include "adpcm.h"
 #include "mercury.h"
 #include "tvram.h"
+#include "winui.h"
+
+#include <dirent.h>
+#include <sys/stat.h>
 
 #include "fmg_wrap.h"
 
@@ -94,10 +98,30 @@ extern  int		dmatrace;
 /******************************************************************************
  * init
  ******************************************************************************/
+
+// xxx configの値にセットしなければならない
+int mval_y[] = {0, 0, 0, 0, 2, 1, 1};
+
+struct menu_flist mfl;
+
 void
 WinUI_Init(void)
 {
+	if (FrameRate == 7) {
+		mval_y[3] = 0;
+	} else if (FrameRate == 8) {
+		mval_y[3] = 7;
+	} else {
+		mval_y[3] = FrameRate;
+	}
+
+	mval_y[6] = NoWaitMode;
+
+	// xxx configのFDイメージファイル名のディレクトリを取得する
+	strcpy(mfl.dir[0], "./");
+	strcpy(mfl.dir[1], "./");
 }
+
 
 #if 0
 /*
@@ -230,3 +254,342 @@ FDType(const char *fname)
 	return FD_Non;
 }
 #endif
+
+/********** menu 関連ルーチン **********/
+
+// xxx 上下スクロール未実装なのでキー数固定
+char menu_item_key[][15] = {"SYSTEM", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VKey Pos", "No Wait Mode", ""};
+
+// 文字列は30文字まで。各アイテム要素は終端含め10個まで。
+// 追加/拡張する場合は配列要素を適宜増加すること。
+// アイテム数はいくら追加してもよい。
+// 各アイテム要素は終端として""を置くこと。
+char menu_items[][10][30] = {
+	{"RESET", "NMI RESET", "QUIT", ""},
+	{"dummy", "EJECT", ""},
+	{"dummy", "EJECT", ""},
+	{"Auto Frame Skip", "Full Frame", "1/2 Frame", "1/3 Frame", "1/4 Frame", "1/5 Frame", "1/6 Frame", "1/8 Frame", ""},
+	{"Huge", "Large", "Medium", "Small", ""},
+	{"High", "Middle", "Low", ""},
+	{"Off", "On", ""}
+};
+
+int menu_state = ms_key;
+int mkey_y = 0;
+
+static void menu_system(int v)
+{
+	printf("menu_system func called %d\n", v);
+	switch (v) {
+	case 0 :
+		WinX68k_Reset();
+		break;
+	case 1:
+		IRQH_Int(7, NULL);
+		break;
+	}
+}
+
+static void upper(char *s)
+{
+	while (*s != '\0') {
+		if (*s >= 'a' && *s <= 'z') {
+			*s = 'A' + *s - 'a';
+		}
+		s++;
+	}
+}
+
+static void menu_create_flist(int v)
+{
+	if (v == 1) {
+		FDD_EjectFD(mkey_y - 1);
+		Config.FDDImage[mkey_y - 1][0] = '\0';
+		strcpy(mfl.dir[mkey_y - 1], "./");
+		return;
+	}
+
+	// ファイル一覧取得ルーチン
+	DIR *dp;
+	struct dirent *dent;
+	struct stat buf;
+	int i, len;
+	char *n, ext[4], *p;
+	char support[] = "D8888DHDMDUP2HDDIMXDFIMG"; //FDイメージ拡張子
+	char ent_name[MAX_PATH];
+
+	dp = opendir(mfl.dir[mkey_y - 1]);
+	// xxx とりあえずファイルをMFL_MAX個取得
+	for (i = 0 ; i < MFL_MAX; i++) {
+		dent = readdir(dp);
+		if (dent == NULL) {
+			break;
+		}
+		n = dent->d_name;
+		strcpy(ent_name, mfl.dir[mkey_y - 1]);
+		strcat(ent_name, n);
+		stat(ent_name, &buf);
+
+		// ファイルなら拡張子チェック
+		if (!S_ISDIR(buf.st_mode)) {
+			len = strlen(n);
+			if (len < 4 || *(n + len - 4) != '.') {
+				i--;
+				continue;
+			}
+			strcpy(ext, n + len - 3);
+			upper(ext);
+			p = strstr(support, ext);
+			if (p == NULL || (p - support) % 3 != 0) {
+				i--;
+				continue;
+			}
+		} else {
+			if (!strcmp(n, ".")) {
+				i--;
+				continue;
+			}
+		}
+
+		strcpy(mfl.name[i], n);
+		// ディレクトリなら1をセット
+		mfl.type[i] = S_ISDIR(buf.st_mode)? 1 : 0;
+		printf("%s 0x%x\n", n, buf.st_mode);
+	}
+	closedir(dp);
+
+	strcpy(mfl.name[i], "");
+	mfl.num = i;
+
+	printf("mfl.num %d\n", mfl.num);
+
+	mfl.ptr = 0;
+}
+
+static void menu_frame_skip(int v)
+{
+	if (v == 0) {
+		FrameRate = 7;
+	} else if (v == 7) {
+		FrameRate = 8;
+	} else {
+		FrameRate = v;
+	}
+}
+
+static void menu_vkey_size(int v)
+{
+}
+
+static void menu_vkey_loc(int v)
+{
+}
+
+static void menu_nowait(int v)
+{
+	NoWaitMode = v;
+}
+
+static void (*menu_func[])(int v) = {
+	menu_system,
+	menu_create_flist,
+	menu_create_flist,
+	menu_frame_skip,
+	menu_vkey_size,
+	menu_vkey_loc,
+	menu_nowait
+};
+
+// ディレクトリを降りて登ってきたら元にもどす
+// ex. ./hoge/.. -> ./
+static void shortcut_dir(int drv)
+{
+	int i, len, found = 0;
+	char *p;
+
+	// len is larger than 2
+	len = strlen(mfl.dir[drv]);
+	p = mfl.dir[drv] + len - 2;
+	for (i = len - 2; i >= 0; i--) {
+		if (*p == '/') {
+			found = 1;
+			break;
+		}
+		p--;
+	}
+
+	if (found && strcmp(p, "/../")) {
+		*(p + 1) = '\0';
+	} else {
+		strcat(mfl.dir[drv], "../");
+	}
+}
+
+int WinUI_Menu(void)
+{
+	int i;
+	static int first = 1;
+	int cursor0;
+	BYTE joy;
+	int menu_redraw = 0;
+	int mfile_redraw = 0;
+
+	if (first == 1) {
+		menu_state = ms_key;
+		mkey_y = 0;
+		menu_redraw = 1;
+		first = 0;
+	}
+
+	cursor0 = mkey_y;
+	joy = get_joystate();
+	reset_joystate();
+
+	if (!(joy & JOY_UP)) {
+		switch (menu_state) {
+		case ms_key:
+			mkey_y = (mkey_y == 0)? 6 : mkey_y - 1;
+			break;
+		case ms_value:
+			if (mval_y[mkey_y] > 0) {
+				mval_y[mkey_y]--;
+				menu_redraw = 1;
+			}
+			break;
+		case ms_file:
+			if (mfl.y == 0) {
+				if (mfl.ptr > 0) {
+					mfl.ptr--;
+				}
+			} else {
+				mfl.y--;
+			}
+			mfile_redraw = 1;
+			break;
+		}
+		//printf("joy up!!! %d\n", mkey_y);
+	}
+
+	if (!(joy & JOY_DOWN)) {
+		switch (menu_state) {
+		case ms_key:
+			mkey_y = (mkey_y == 6)? 0 : mkey_y + 1;
+			break;
+		case ms_value:
+			if (menu_items[mkey_y][mval_y[mkey_y] + 1][0] != '\0') {
+				mval_y[mkey_y]++;
+				menu_redraw = 1;
+			}
+			break;
+		case ms_file:
+			if (mfl.y == 13) {
+				if (mfl.ptr + 14 < mfl.num && mfl.ptr < MFL_MAX - 13) {
+					mfl.ptr++;
+				}
+			} else if (mfl.y + 1 < mfl.num) {
+				mfl.y++;
+				printf("mfl.y %d\n", mfl.y);
+			}
+			mfile_redraw = 1;
+			break;
+		}
+		//printf("joy up!!! %d\n", mkey_y);
+	}
+
+	if (!(joy & JOY_TRG1)) {
+		if (menu_state == ms_key) {
+			menu_state = ms_value;
+			menu_redraw = 1;
+		} else if (menu_state == ms_value) {
+
+			menu_func[mkey_y](mval_y[mkey_y]);
+
+			//値をセットしたらキーモードに戻る
+			//ただしファイル名を選択したときはファイラモード
+			menu_state = ms_key;
+			menu_redraw = 1;
+
+			if (mkey_y == 1 || mkey_y == 2) {
+				if (mval_y[mkey_y] == 0) {
+					// ファイラモードへ移行
+					printf("hoge:%d", mval_y[mkey_y]);
+					menu_state = ms_file;
+					menu_redraw = 0; //リセット
+					mfile_redraw = 1;
+				} else { // mval_y[mkey_y] == 1
+					// FDイジェクト後処理
+					mval_y[mkey_y] = 0;
+				}
+			} else if (mkey_y == 0) {
+				if (mval_y[mkey_y] == 2) {
+					return WUM_EMU_QUIT;
+				}
+				first = 1;
+				return WUM_MENU_END;
+			}
+		} else if (menu_state == ms_file) {
+			int drv, y;
+			drv = mkey_y - 1;
+			y = mfl.ptr + mfl.y;
+			printf("file slect %s\n", mfl.name[y]);
+			if (mfl.type[y]) {
+				// ディレクトリ
+				if (!strcmp(mfl.name[y], "..")) {
+					shortcut_dir(drv);
+				} else {
+					strcat(mfl.dir[drv], mfl.name[y]);
+					strcat(mfl.dir[drv], "/");
+				}
+				menu_func[mkey_y](0);
+				mfl.y = 0;
+				mfile_redraw = 1;
+			} else {
+				// ファイル
+				char tmpstr[MAX_PATH];
+				strcpy(tmpstr, mfl.dir[drv]);
+				strcat(tmpstr, mfl.name[y]);
+				FDD_SetFD(drv, tmpstr, 0);
+				strcpy(Config.FDDImage[drv], tmpstr);
+				menu_state = ms_key;
+				menu_redraw = 1;
+			}
+		}
+	}
+
+	if (!(joy & JOY_TRG2)) {
+		if (menu_state == ms_file) {
+			menu_state = ms_value;
+			// reset position of file cursor
+			mfl.y = 0;
+			mfl.ptr = 0;
+			menu_redraw = 1;
+		} else if (menu_state == ms_value) {
+			menu_state = ms_key;
+			menu_redraw = 1;
+		} else if (menu_state == ms_key) {
+			first = 1;
+			return WUM_MENU_END;
+		}
+
+	}
+
+	if (cursor0 != mkey_y) {
+		menu_redraw = 1;
+	}
+
+	if (mfile_redraw) {
+		WinDraw_DrawMenufile(&mfl);
+		mfile_redraw = 0;
+	}
+
+	if (menu_redraw) {
+		// xxx Androidでvkeyの設定をいじるときはvkeyは
+		// 表示しておくようにする
+
+		//WinDraw_Draw();
+		WinDraw_ClearScreen();
+		WinDraw_DrawMenu(menu_state, mkey_y, mval_y);
+	}
+
+	return 0;
+}

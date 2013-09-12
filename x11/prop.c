@@ -268,6 +268,11 @@ void LoadConfig(void)
 		}
 	}
 
+	for (i = 0; i < 2; i++) {
+		sprintf(buf, "FDD%d", i);
+		GetPrivateProfileString(ini_title, buf, "", Config.FDDImage[i], MAX_PATH, winx68k_ini);
+	}
+
 	for (i=0; i<16; i++)
 	{
 		sprintf(buf, "HDD%d", i);
@@ -368,6 +373,13 @@ void SaveConfig(void)
 			wsprintf(buf2, "%d", Config.JOY_BTN[i][j]);
 			WritePrivateProfileString(ini_title, buf, buf2, winx68k_ini);
 		}
+	}
+
+	for (i = 0; i < 2; i++)
+	{
+		printf("i: %d", i);
+		sprintf(buf, "FDD%d", i);
+		WritePrivateProfileString(ini_title, buf, Config.FDDImage[i], winx68k_ini);
 	}
 
 	for (i=0; i<16; i++)

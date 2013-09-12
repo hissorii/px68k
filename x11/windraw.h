@@ -29,4 +29,12 @@ void WinDraw_ChangeSize(void);
 void WinDraw_StartupScreen(void);
 void WinDraw_CleanupScreen(void);
 
+int WinDraw_MenuInit(void);
+void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y);
+
+extern struct menu_flist mfl;
+
+void WinDraw_DrawMenufile(struct menu_flist *mfl);
+void WinDraw_ClearScreen(void);
+
 #endif //winx68k_windraw_h

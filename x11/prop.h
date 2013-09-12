@@ -44,6 +44,7 @@ typedef struct
 	int SoundROMEO;
 	int MIDIDelay;
 	int MIDIAutoDelay;
+	char FDDImage[2][MAX_PATH];
 } Win68Conf;
 
 extern Win68Conf Config;

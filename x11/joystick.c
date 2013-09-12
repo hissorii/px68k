@@ -4,12 +4,13 @@
 #include "common.h"
 #include "prop.h"
 #include "joystick.h"
-#ifdef PSP
+#if defined(PSP)
 #include <pspctrl.h>
-#endif
-#ifdef ANDROID
+#elif defined(ANDROID)
 #include <SDL.h>
 #include <android/log.h>
+#else
+#include <SDL.h> // for SDLK_...
 #endif
 
 #if 0
@@ -271,3 +272,41 @@ void FASTCALL Joystick_Update(void)
 #endif
 }
 
+#if !defined(PSP) && !defined(ANDROID)
+void menukey_update(signed int key)
+{
+	BYTE ret0 = 0xff;
+	switch (key) {
+	case SDLK_UP :
+		ret0 ^= JOY_UP;
+		break;
+	case SDLK_DOWN:
+		ret0 ^= JOY_DOWN;
+		break;
+	case SDLK_LEFT:
+		ret0 ^= JOY_LEFT;
+		break;
+	case SDLK_RIGHT:
+		ret0 ^= JOY_RIGHT;
+		break;
+	case SDLK_RETURN:
+		ret0 ^= JOY_TRG1;
+		break;
+	case SDLK_ESCAPE:
+		ret0 ^= JOY_TRG2;
+		break;
+
+	}
+	JoyState0[0] = ret0;
+
+}
+#endif
+
+BYTE get_joystate(void)
+{
+	return JoyState0[0];
+}
+void reset_joystate(void)
+{
+	JoyState0[0] = 0xff;
+}

@@ -1302,3 +1302,404 @@ gcd(unsigned int v0, unsigned int v1)
 	return v1 << c;
 #endif
 }
+
+/********** menu 関連ルーチン **********/
+
+struct _px68k_menu {
+	WORD *sbp;  // surface buffer ptr
+	WORD *mlp; // menu locate ptr
+	WORD mcolor; // color of chars to write
+	WORD mbcolor; // back ground color of chars to write
+	int ml_x;
+	int ml_y;
+	int mfs; // menu font size;
+} p6m;
+
+SDL_Surface *menu_surface;
+
+// 画面タイプを変更する
+enum ScrType {x68k, pc98};
+int scr_type = x68k;
+
+/* sjis→jisコード変換 */
+static WORD sjis2jis(WORD w)
+{
+	BYTE wh, wl;
+
+	wh = w / 256, wl = w % 256;
+
+	wh <<= 1;
+	if (wl < 0x9f) {
+		wh += (wh < 0x3f)? 0x1f : -0x61;
+		wl -= (wl > 0x7e)? 0x20 : 0x1f;
+	} else {
+		wh += (wh < 0x3f)? 0x20 : -0x60;
+		wl -= 0x7e;
+	}
+
+	return (wh * 256 + wl);
+}
+
+/* JISコードから0 originのindexに変換する */
+/* ただし0x2921-0x2f7eはX68KのROM上にないので飛ばす */
+static WORD jis2idx(WORD jc)
+{
+	if (jc >= 0x3000) {
+		jc -= 0x3021;
+	} else {
+		jc -= 0x2121;
+	}
+	jc = jc % 256 + (jc / 256) * 0x5e;
+
+	return jc;
+}
+
+#define isHankaku(s) ((s) >= 0x20 && (s) <= 0x7e || (s) >= 0xa0 && (s) <= 0xdf)
+
+// fs : font size : 16 or 24
+// 半角文字の場合は16bitの上位8bitにデータを入れておくこと
+// (半角or全角の判断ができるように)
+static DWORD get_font_addr(WORD sjis, int fs)
+{
+	WORD jis, j_idx;
+	BYTE jhi;
+	int fsb; // file size in bytes
+
+	// 半角文字
+	if (isHankaku(sjis >> 8)) {
+		if (fs == 16) {
+			return (0x3a800 + (sjis >> 8) * (1 * 16));
+		} else if (fs == 24) {
+			return (0x3d000 + (sjis >> 8) * (2 * 24));
+		} else {
+			return -1;
+		}
+	}
+
+	// 全角文字
+	if (fs == 16) {
+		fsb = 2 * 16;
+	} else if (fs == 24) {
+		fsb = 3 * 24;
+	} else {
+		return -1;
+	}
+
+	jis = sjis2jis(sjis);
+	j_idx = (DWORD)jis2idx(jis);
+	jhi = (BYTE)(jis >> 8);
+
+#if 0
+	printf("sjis code = 0x%x\n", sjis);
+	printf("jis code = 0x%x\n", jis);
+	printf("jhi 0x%x j_idx 0x%x\n", jhi, j_idx);
+#endif
+
+	if (jhi >= 0x21 && jhi <= 0x28) {
+		// 非漢字
+		return  ((fs == 16)? 0x0 : 0x40000) + j_idx * fsb;
+	} else if (jhi >= 0x30 && jhi <= 0x74) {
+		// 第一水準/第二水準
+		return  ((fs == 16)? 0x5e00 : 0x4d380) + j_idx * fsb;
+	} else {
+		// ここにくることはないはず
+		return -1;
+	}
+}
+
+// RGB565
+static void set_mcolor(WORD c)
+{
+	p6m.mcolor = c;
+}
+
+// mbcolor = 0 なら透明色とする
+static void set_mbcolor(WORD c)
+{
+	p6m.mbcolor = c;
+}
+
+// グラフィック座標
+static void set_mlocate(int x, int y)
+{
+	p6m.ml_x = x, p6m.ml_y = y;
+}
+
+// キャラクタ文字の座標 (横軸は1座標が半角文字幅になる)
+static void set_mlocateC(int x, int y)
+{
+	p6m.ml_x = x * p6m.mfs / 2, p6m.ml_y = y * p6m.mfs;
+}
+
+static void set_sbp(WORD *p)
+{
+	p6m.sbp = p;
+}
+
+// menu font size (16 or 24)
+static void set_mfs(int fs)
+{
+	p6m.mfs = fs;
+}
+
+static WORD *get_ml_ptr()
+{
+	p6m.mlp = p6m.sbp + 800 * p6m.ml_y + p6m.ml_x;
+	return p6m.mlp;
+}
+
+// ・半角文字の場合は16bitの上位8bitにデータを入れておくこと
+//   (半角or全角の判断ができるように)
+// ・表示した分cursorは先に移動する
+static void draw_char(WORD sjis)
+{
+	DWORD f;
+	WORD *p;
+	int i, j, k, wc, w;
+	BYTE c;
+	WORD bc;
+
+	int h = p6m.mfs;
+
+	p = get_ml_ptr();
+
+	f = get_font_addr(sjis, h);
+
+	if (f < 0)
+		return;
+
+	w = isHankaku(sjis >> 8)? h / 2 : h;
+
+	for (i = 0; i < h; i++) {
+		wc = w;
+		for (j = 0; j < ((w % 8 == 0)? w / 8 : w / 8 + 1); j++) {
+			c = FONT[f++];
+			for (k = 0; k < 8 ; k++) {
+				bc = p6m.mbcolor? p6m.mbcolor : *p;
+				*p = (c & 0x80)? p6m.mcolor : bc;
+				p++;
+				c = c << 1;
+				wc--;
+				if (wc == 0)
+					break;
+			}
+		}
+		p = p + 800 - w;
+	}
+
+	p6m.ml_x += w;
+}
+
+static void draw_str(char *cp)
+{
+	int i, len;
+	BYTE *s;
+	WORD wc;
+
+	len = strlen(cp);
+	s = (BYTE *)cp;
+
+	for (i = 0; i < len; i++) {
+		if (isHankaku(*s)) {
+			// 最初の8bitで半全角を判断するので半角の場合は
+			// あらかじめ8bit左シフトしておく
+			draw_char((WORD)*s << 8);
+			s++;
+		} else {
+			wc = (WORD)(*s << 8) + *(s + 1);
+			draw_char(wc);
+			s += 2;
+			i++;
+		}
+	}
+}
+
+int WinDraw_MenuInit(void)
+{
+#ifndef ANDROID
+	menu_surface = SDL_GetVideoSurface();
+	if (!menu_surface)
+		return FALSE;
+	set_sbp((WORD *)(menu_surface->pixels));
+	set_mcolor(0xffff);
+	set_mbcolor(0);
+	// 使用フォントの変更 24 or 16
+	set_mfs(24);
+#endif
+	return TRUE;
+}
+
+#include "menu_str_sjis.txt"
+
+void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
+{
+	int i;
+
+	// タイトル
+	if (scr_type == x68k) {
+		set_mcolor(0x07ff); // cyan
+		set_mlocateC(0, 0);
+		draw_str(twaku_str);
+		set_mlocateC(0, 1);
+		draw_str(twaku2_str);
+		set_mlocateC(0, 2);
+		draw_str(twaku3_str);
+
+		set_mcolor(0xffff);
+		set_mlocateC(1, 1);
+		draw_str(title_str);
+	} else {
+		set_mcolor(0xffff);
+		set_mlocateC(0, 0);
+		draw_str(pc98_title1_str);
+		set_mlocateC(0, 2);
+		draw_str(pc98_title3_str);
+		set_mcolor(0x07ff);
+		set_mlocateC(0, 1);
+		draw_str(pc98_title2_str);
+	}
+
+	// 真ん中
+	if (scr_type == x68k) {
+		set_mcolor(0xffff);
+		set_mlocate(3 * p6m.mfs / 2, 3.5 * p6m.mfs);
+		draw_str(waku_val_str[0]);
+		set_mlocate(17 * p6m.mfs / 2, 3.5 * p6m.mfs);
+		draw_str(waku_val_str[1]);
+
+		// 真ん中枠
+		set_mcolor(0xffe0); // yellow
+		set_mlocateC(1, 4);
+		draw_str(waku_str);
+		for (i = 5; i < 12; i++) {
+			set_mlocateC(1, i);
+			draw_str(waku2_str);
+		}
+		set_mlocateC(1, 12);
+		draw_str(waku3_str);
+	}
+
+	// アイテム/キーワード
+	set_mcolor(0xffff);
+	for (i = 0; i < 7; i++) {
+		set_mlocateC(3, 5 + i);
+		if (menu_state == ms_key && i == mkey_y) {
+			set_mcolor(0x0);
+			set_mbcolor(0xffe0); // yellow);
+		} else {
+			set_mcolor(0xffff);
+			set_mbcolor(0x0);
+		}
+		draw_str(menu_item_key[i]);
+	}
+
+	// アイテム/現在値
+	set_mcolor(0xffff);
+	set_mbcolor(0x0);
+	for (i = 0; i < 7; i++) {
+		if (menu_state == ms_value && i == mkey_y) {
+			set_mcolor(0x0);
+			set_mbcolor(0xffe0); // yellow);
+		} else {
+			set_mcolor(0xffff);
+			set_mbcolor(0x0);
+		}
+		if (scr_type == x68k) {
+			set_mlocateC(17, 5 + i);
+		} else {
+			set_mlocateC(25, 5 + i);
+		}
+		if ((i == 1 || i == 2) && mval_y[i] == 0) {
+			if (Config.FDDImage[i - 1][0] == '\0') {
+				draw_str(" -- no disk --");
+			} else {
+				char *p;
+				p = Config.FDDImage[i - 1];
+				// 先頭が「./」ならカットして表示
+				if (*p == '.' && *(p + 1) == '/') {
+					draw_str(p + 2);
+				} else {
+					draw_str(p);
+				}
+			}
+		} else {
+			draw_str(menu_items[i][mval_y[i]]);
+		}
+	}
+
+	if (scr_type == x68k) {
+		// 下枠
+		set_mcolor(0x07ff); // cyan
+		set_mbcolor(0x0);
+		set_mlocateC(0, 13);
+		draw_str(swaku_str);
+		set_mlocateC(0, 14);
+		draw_str(swaku2_str);
+		set_mlocateC(0, 15);
+		draw_str(swaku2_str);
+		set_mlocateC(0, 16);
+		draw_str(swaku3_str);
+	}
+
+	// キャプション
+	set_mcolor(0xffff);
+	set_mbcolor(0x0);
+	set_mlocateC(2, 14);
+	draw_str(item_cap[mkey_y]);
+	set_mlocateC(2, 15);
+	draw_str(item_cap2[mkey_y]);
+
+#ifndef ANDROID
+	SDL_UpdateRect(menu_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
+#endif
+}
+
+void WinDraw_DrawMenufile(struct menu_flist *mfl)
+{
+	int i;
+
+	// 下枠
+	//set_mcolor(0xf800); // red
+	//set_mcolor(0xf81f); // magenta
+	set_mcolor(0xffff);
+	set_mbcolor(0x1); // 0x0だと透過モード
+	set_mlocateC(1, 1);
+	draw_str(swaku_str);
+	for (i = 2; i < 16; i++) {
+		set_mlocateC(1, i);
+		draw_str(swaku2_str);
+	}
+	set_mlocateC(1, 16);
+	draw_str(swaku3_str);
+
+	for (i = 0; i < 14; i++) {
+		if (i + 1 > mfl->num) {
+			break;
+		}
+		if (i == mfl->y) {
+			set_mcolor(0x0);
+			set_mbcolor(0xffff);
+		} else {
+			set_mcolor(0xffff);
+			set_mbcolor(0x1);
+		}
+		set_mlocateC(3, i + 2);
+		if (mfl->type[i + mfl->ptr]) draw_str("[");
+		draw_str(mfl->name[i + mfl->ptr]);
+		if (mfl->type[i + mfl->ptr]) draw_str("]");
+	}
+
+	set_mbcolor(0x0); // 透過モードに戻しておく
+
+#ifndef ANDROID
+	SDL_UpdateRect(menu_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
+#endif
+}
+
+void WinDraw_ClearScreen(void)
+{
+#ifndef ANDROID
+	SDL_FillRect(menu_surface, NULL, 0);
+#endif
+
+}

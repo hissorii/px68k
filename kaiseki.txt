@@ -384,3 +384,29 @@ SDL_SCANCODE_AC_BACK = 270,
 
  SDLK_MENU = SDL_SCANCODE_TO_KEYCODE(SDL_SCANCODE_MENU),
  SDLK_AC_BACK = SDL_SCANCODE_TO_KEYCODE(SDL_SCANCODE_AC_BACK),
+
+** 2013/09/05
+
+* menuについて
+
+PSP: 480x272
+sk17: 480x320
+so-02c: 854x480
+
+PSP 480x272で16dotフォント 30x17
+Android 仮想800x600で24dotフォント 33x25
+VGA 640x480で16dotフォント 40x30 24dotフォント 26x20
+QVGA 320x240で16dotフォント 20x15
+
+SYSTEM RESET
+FDD1 FDD1.XDF
+FDD2 FDD2.XDF
+Frame Skip Auto Full 1/2 1/3 1/4 1/5 1/6 
+Screen 4:3 Full x1 x2 x3 x4 1.3x1 2.6x2 3.9x3
+Help About
+
+** 2013/09/15
+
+* FDイメージの拡張子
+d88 88d hdm dup 2hd dim xdf img
+

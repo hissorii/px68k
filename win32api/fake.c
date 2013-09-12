@@ -146,7 +146,7 @@ midiOutReset(HMIDIOUT hmo)
 }
 
 static int _WritePrivateProfileString_subr(
-			FILE *, long, long, LPCSTR, LPCSTR);
+			FILE **, long, long, LPCSTR, LPCSTR);
 
 BOOL WINAPI
 WritePrivateProfileString(LPCSTR sect, LPCSTR key, LPCSTR str, LPCSTR inifile)
@@ -215,11 +215,11 @@ WritePrivateProfileString(LPCSTR sect, LPCSTR key, LPCSTR str, LPCSTR inifile)
 				if (fwrite(newbuf, strlen(newbuf), 1, fp) < 1)
 					goto writefail;
 			} else if (delta > 0) {
-				if (!_WritePrivateProfileString_subr(fp, pos,
+				if (!_WritePrivateProfileString_subr(&fp, pos,
 				    ftell(fp), newbuf, inifile))
 					goto writefail;
 			} else {
-				if (!_WritePrivateProfileString_subr(fp, pos,
+				if (!_WritePrivateProfileString_subr(&fp, pos,
 				    ftell(fp), newbuf, inifile))
 					goto writefail;
 			}
@@ -237,7 +237,7 @@ WritePrivateProfileString(LPCSTR sect, LPCSTR key, LPCSTR str, LPCSTR inifile)
 	}
 	else if (notfound) {
 		snprintf(newbuf, sizeof(newbuf), "%s=%s\n", key, str);
-		if (!_WritePrivateProfileString_subr(fp, pos,
+		if (!_WritePrivateProfileString_subr(&fp, pos,
 		    ftell(fp), newbuf, inifile))
 			goto writefail;
 	}
@@ -254,7 +254,7 @@ writefail:
  * XXX: REWRITE ME!!!
  */
 static int
-_WritePrivateProfileString_subr(FILE *fp, long pos, long nowpos,
+_WritePrivateProfileString_subr(FILE **fp, long pos, long nowpos,
 		LPCSTR buf, LPCSTR file)
 {
 	struct stat sb;
@@ -266,20 +266,20 @@ _WritePrivateProfileString_subr(FILE *fp, long pos, long nowpos,
 	p = (char *)malloc(sb.st_size);
 	if (!p)
 		return 1;
-	rewind(fp);
-	if (fread(p, sb.st_size, 1, fp) < 1)
+	rewind(*fp);
+	if (fread(p, sb.st_size, 1, *fp) < 1)
 		goto out;
-	fclose(fp);
+	fclose(*fp);
 
-	fp = fopen(file, "w+");
-	if (fp == NULL)
+	*fp = fopen(file, "w+");
+	if (*fp == NULL)
 		goto out;
-	if (fwrite(p, pos, 1, fp) < 1)
+	if (fwrite(p, pos, 1, *fp) < 1)
 		goto out;
-	if (fwrite(buf, strlen(buf), 1, fp) < 1)
+	if (fwrite(buf, strlen(buf), 1, *fp) < 1)
 		goto out;
 	if (sb.st_size - nowpos > 0)
-		if (fwrite(p + nowpos, sb.st_size - nowpos, 1, fp) < 1)
+		if (fwrite(p + nowpos, sb.st_size - nowpos, 1, *fp) < 1)
 			goto out;
 	free(p);
 	return 0;

@@ -78,6 +78,9 @@ const	BYTE	PrgTitle[] = APPNAME;
 char	winx68k_dir[MAX_PATH];
 char	winx68k_ini[MAX_PATH];
 
+char fdd0_img[MAX_PATH];
+char fdd1_img[MAX_PATH];
+
 WORD	VLINE_TOTAL = 567;
 DWORD	VLINE = 0;
 DWORD	vline = 0;
@@ -528,6 +531,7 @@ int main(int argc, char *argv[])
 {
 	SDL_Event ev;
 	int sdlaudio = -1;
+	int menu_mode = 0;
 
 #ifdef PSP
 	scePowerSetClockFrequency(333, 333, 166);
@@ -619,6 +623,12 @@ int main(int argc, char *argv[])
 	/* メニューバー	*/
 	menubar = create_menu(window);
 #endif
+	if (!WinDraw_MenuInit()) {
+		WinX68k_Cleanup();
+		WinDraw_Cleanup();
+		return 1;
+	}
+
 	SplashFlag = 20;
 	SoundSampleRate = Config.SampleRate;
 
@@ -684,6 +694,10 @@ int main(int argc, char *argv[])
 #endif
 	DSound_Play();
 
+#if 1
+	FDD_SetFD(0, Config.FDDImage[0], 0);
+	FDD_SetFD(1, Config.FDDImage[1], 0);
+#else
 #if defined(PSP)
 	FDD_SetFD(0, "FDD1.XDF", 0);
 	FDD_SetFD(1, "FDD2.XDF", 0);
@@ -692,18 +706,24 @@ int main(int argc, char *argv[])
 	FDD_SetFD(1, "/sdcard/px68k/FDD2.XDF", 0);
 #else
 	//SetCmdLineFD();	// コマンドラインでFD挿入を指示している場合
+
+	strcpy(fdd0_img, "");
+	strcpy(fdd1_img, "");
 	switch (argc) {
 	case 3:
 		FDD_SetFD(1, argv[2], 0);
+		strcpy(fdd1_img, argv[2]);
 	case 2:
 		FDD_SetFD(0, argv[1], 0);
+		strcpy(fdd0_img, argv[1]);
 		break;
 	}
+#endif
 #endif
 
 	while (1) {
 		// OPM_RomeoOut(Config.BufferSize * 5);
-		if (NoWaitMode || Timer_GetCount()) {
+		if (menu_mode != 1 && (NoWaitMode || Timer_GetCount())) {
 			WinX68k_Exec();
 			if (SplashFlag) {
 				SplashFlag--;
@@ -743,12 +763,36 @@ int main(int argc, char *argv[])
 				}
 #endif
 				printf("keydown: 0x%x\n", ev.key.keysym.sym);
-				Keyboard_KeyDown(ev.key.keysym.sym);
+				printf("font %d %d\n", FONT[100], FONT[101]);
+				if (ev.key.keysym.sym == SDLK_F12) {
+					menu_mode = 1;
+					DSound_Stop();
+				}
+				if (menu_mode == 1) {
+#if !defined(PSP) && !defined(ANDROID)
+					menukey_update(ev.key.keysym.sym);
+#endif
+				} else {
+					Keyboard_KeyDown(ev.key.keysym.sym);
+				}
 				break;
 			case SDL_KEYUP:
 				printf("keyup: 0x%x\n", ev.key.keysym.sym);
 				Keyboard_KeyUp(ev.key.keysym.sym);
 				break;
+			}
+		}
+		if (menu_mode == 1) {
+			int ret; 
+
+			// xxx check joystick
+
+			ret = WinUI_Menu();
+			if (ret == WUM_MENU_END) {
+				DSound_Play();
+				menu_mode = 0;
+			} else if (ret == WUM_EMU_QUIT) {
+				goto end_loop;
 			}
 		}
 #endif
@@ -781,3 +825,4 @@ end_loop:
 #endif
 	return 0;
 }
+
