@@ -4,6 +4,7 @@
 #include "common.h"
 #include "prop.h"
 #include "joystick.h"
+#include "winui.h"
 #if defined(PSP)
 #include <pspctrl.h>
 #elif defined(ANDROID)
@@ -33,7 +34,7 @@ BYTE JoyKeyState1;
 BYTE JoyState0[2];
 BYTE JoyState1[2];
 
-// ボタンが押されたかを記憶。押しっぱなしでリピートしたくない場合に使用
+// ボタンが「押された」かを記憶。押しっぱなしでリピートしたくない場合に使用
 BYTE JoyDownState0;
 
 #ifdef PSP
@@ -61,16 +62,72 @@ VBTN_RECT vbtn_rect[VBTN_MAX];
 BYTE vbtn_state[VBTN_MAX];
 SDL_TouchID touchId = -1;
 
-#endif
-
-#define SET_VBTN(id, bx, by)					\
+#define SET_VBTN(id, bx, by, s)					\
 {								\
 	vbtn_state[id] = VBTN_OFF;				\
 	vbtn_rect[id].x = (float)(bx) / 800.0;			\
 	vbtn_rect[id].y = (float)(by) / 600.0;			\
-	vbtn_rect[id].x2 = ((float)(bx) + 32.0) / 800.0;	\
-	vbtn_rect[id].y2 = ((float)(by) + 32.0) / 600.0;	\
+	vbtn_rect[id].x2 = ((float)(bx) + 32.0*(s)) / 800.0;	\
+	vbtn_rect[id].y2 = ((float)(by) + 32.0*(s)) / 600.0;	\
 }
+
+// 基準となる仮想キーの位置
+VBTN_POINTS vbtn_points[] = {{20, 450}, {100, 450}, {60, 400}, {60, 500},
+			     {680, 450}, {750, 450}};
+
+// これらの座標を常に固定して、スケーリングする
+#define VKEY_L_X 20 //一番左の仮想キーのX座標
+#define VKEY_D_Y 532 //一番下の仮想キーの底辺のY座標
+#define VKEY_R_X 782 // 一番右の仮想キーの右辺のX座標
+
+// キー固定用補正値
+#define VKEY_DLX(scale) (VKEY_L_X * (scale) - VKEY_L_X)
+#define VKEY_DY(scale) (VKEY_D_Y * (scale) - VKEY_D_Y)
+#define VKEY_DRX(scale) (VKEY_R_X * (scale) - VKEY_R_X)
+
+VBTN_POINTS scaled_vbtn_points[sizeof(vbtn_points)/sizeof(VBTN_POINTS)];
+
+VBTN_POINTS *Joystick_get_btn_points(float scale)
+{
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		scaled_vbtn_points[i].x
+			= -VKEY_DLX(scale) + scale * vbtn_points[i].x;
+		scaled_vbtn_points[i].y
+			= -VKEY_DY(scale) + scale * vbtn_points[i].y;
+	}
+	for (i = 4; i < 6; i++) {
+		scaled_vbtn_points[i].x
+			= -VKEY_DRX(scale) + scale * vbtn_points[i].x;
+		scaled_vbtn_points[i].y
+			= -VKEY_DY(scale) + scale * vbtn_points[i].y;
+	}
+	return scaled_vbtn_points;
+}
+
+void Joystick_Vbtn_Update(float scale)
+{
+	int i;
+	VBTN_POINTS *p;
+
+	for (i = 0; i < VBTN_MAX; i++) {
+		vbtn_state[i] = VBTN_NOUSE;
+	}
+
+	//テクスチャの設定といっしょにしたいがとりあえず別々に設定
+	//ボタンのTexture idは1 origin、ボタンidは0 originなので注意
+	// 左右上下 (上上下下左右左右BAではない)
+
+	p = Joystick_get_btn_points(scale);
+
+	for (i = 0; i < 6; i++) {
+		__android_log_print(ANDROID_LOG_DEBUG,"Tag","id: %d x: %f y: %f", i, p->x, p->y);
+		SET_VBTN(i, p->x, p->y, scale);
+		p++;
+	}
+}
+#endif
 
 void Joystick_Init(void)
 {
@@ -86,23 +143,7 @@ void Joystick_Init(void)
 	JoyPortData[0] = 0;
 	JoyPortData[1] = 0;
 #ifdef ANDROID
-	int i;
-
-	for (i = 0; i < VBTN_MAX; i++) {
-		vbtn_state[i] = VBTN_NOUSE;
-	}
-
-	//テクスチャの設定といっしょにしたいがとりあえず別々に設定
-	//ボタンのTexture idは1 origin、ボタンidは0 originなので注意
-	// 左右上下 (上上下下左右左右BAではない)
-	SET_VBTN(0, 20, 450);
-	SET_VBTN(1, 100, 450);
-	SET_VBTN(2, 60, 400);
-	SET_VBTN(3, 60, 500);
-
-	// ボタン
-	SET_VBTN(4, 680, 450);
-	SET_VBTN(5, 750, 450);
+	Joystick_Vbtn_Update(WinUI_get_vkscale());
 #endif
 }
 
@@ -212,6 +253,10 @@ void FASTCALL Joystick_Update(void)
 	JoyState0[num] = ret0;
 	JoyState1[num] = ret1;
 #elif defined(ANDROID)
+	BYTE ret0 = 0xff, ret1 = 0xff;
+	int num = 0; //xxx とりあえずJOY1のみ。
+	static BYTE pre_ret0 = 0xff;
+
 	SDL_Finger *finger;
 	SDL_FingerID fid;
 	float fx, fy;
@@ -258,9 +303,6 @@ void FASTCALL Joystick_Update(void)
 		}
 	}
 
-	BYTE ret0 = 0xff, ret1 = 0xff;
-	int num = 0; //xxx とりあえずJOY1のみ。
-
 	if (vbtn_state[0] == VBTN_ON) {
 		ret0 ^= JOY_LEFT;
 	}
@@ -274,11 +316,14 @@ void FASTCALL Joystick_Update(void)
 		ret0 ^= JOY_DOWN;
 	}
 	if (vbtn_state[4] == VBTN_ON) {
-		ret0 ^= JOY_TRG1;
+		ret0 ^= (Config.VbtnSwap == 0)? JOY_TRG1 : JOY_TRG2;
 	}
 	if (vbtn_state[5] == VBTN_ON) {
-		ret0 ^= JOY_TRG2;
+		ret0 ^= (Config.VbtnSwap == 0)? JOY_TRG2 : JOY_TRG1;
 	}
+
+	JoyDownState0 = ~(ret0 ^ pre_ret0) | ret0;
+	pre_ret0 = ret0;
 
 	JoyState0[num] = ret0;
 	JoyState1[num] = ret1;

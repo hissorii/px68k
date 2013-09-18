@@ -259,6 +259,10 @@ void LoadConfig(void)
 	Config.MIDIDelay = GetPrivateProfileInt(ini_title, "MIDIDelay", Config.BufferSize*5, winx68k_ini);
 	Config.MIDIAutoDelay = GetPrivateProfileInt(ini_title, "MIDIAutoDelay", 1, winx68k_ini);
 
+	Config.VkeyScale = GetPrivateProfileInt(ini_title, "VkeyScale", 4, winx68k_ini);
+
+	Config.VbtnSwap = GetPrivateProfileInt(ini_title, "VbtnSwap", 0, winx68k_ini);
+
 	for (i=0; i<2; i++)
 	{
 		for (j=0; j<8; j++)
@@ -364,6 +368,12 @@ void SaveConfig(void)
 	wsprintf(buf, "%d", Config.MIDIDelay);
 	WritePrivateProfileString(ini_title, "MIDIDelay", buf, winx68k_ini);
 	WritePrivateProfileString(ini_title, "MIDIAutoDelay", makeBOOL((BYTE)Config.MIDIAutoDelay), winx68k_ini);
+
+	wsprintf(buf, "%d", Config.VkeyScale);
+	WritePrivateProfileString(ini_title, "VkeyScale", buf, winx68k_ini);
+
+	wsprintf(buf, "%d", Config.VbtnSwap);
+	WritePrivateProfileString(ini_title, "VbtnSwap", buf, winx68k_ini);
 
 	for (i=0; i<2; i++)
 	{

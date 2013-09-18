@@ -43,12 +43,15 @@
 #include "prop.h"
 #include "status.h"
 #include "tvram.h"
+#include "joystick.h"
 
 #ifdef ANDROID
 #include <android/log.h>
 #endif
 
+#if 0
 #include "../icons/keropi.xpm"
+#endif
 
 extern BYTE Debug_Text, Debug_Grp, Debug_Sp;
 
@@ -56,6 +59,10 @@ extern BYTE Debug_Text, Debug_Grp, Debug_Sp;
 WORD *ScrBufL = 0, *ScrBufR = 0;
 #else
 WORD *ScrBuf = 0;
+#endif
+
+#if defined(PSP) || defined(ANDROID)
+WORD *menu_buffer;
 #endif
 
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
@@ -83,7 +90,7 @@ DWORD WindowX = 0;
 DWORD WindowY = 0;
 
 #ifdef ANDROID
-GLuint texid[7] = {0, 0, 0, 0, 0, 0, 0};
+GLuint texid[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 #endif
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -292,7 +299,7 @@ int WinDraw_Init(void)
 #ifdef ANDROID
 	ScrBuf = malloc(1024*1024*2); // OpenGL ES 1.1 needs 2^x pixels
 
-	glGenTextures(7, &texid[0]);
+	glGenTextures(8, &texid[0]);
 	glBindTexture(GL_TEXTURE_2D, texid[0]);
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -314,6 +321,12 @@ int WinDraw_Init(void)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 32, 32, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, BtnTex);
 	}
+
+	// メニュー描画用テクスチャ。
+	glBindTexture(GL_TEXTURE_2D, texid[7]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, menu_buffer);
 #elif defined(PSP)
 
 	fbp0 = 0; // offset 0
@@ -386,13 +399,28 @@ static void draw_texture(GLfloat *coor, GLfloat *vert)
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
-#define draw_button(texid, x, y)					\
-{									\
-	glBindTexture(GL_TEXTURE_2D, texid);				\
-	/* Texture から必要な部分を抜き出す(32x32を全部使う) */		\
-	SET_GLFLOATS(texture_coordinates, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f); \
-	SET_GLFLOATS(vertices, (GLfloat)(x), (y)+32.0f, (GLfloat)(x), (GLfloat)(y), (x)+32.0f, (y)+32.0f, (x)+32.0f, (y)+0.0f); \
-	draw_texture(texture_coordinates, vertices);			\
+void draw_button(GLuint texid, GLfloat x, GLfloat y, GLfloat s, GLfloat *tex, GLfloat *ver)
+{
+	glBindTexture(GL_TEXTURE_2D, texid);
+	// Texture から必要な部分を抜き出す(32x32を全部使う)
+	SET_GLFLOATS(tex, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f);
+	// s倍にして貼り付ける
+	SET_GLFLOATS(ver, x, y + 32.0f * s, x, y, x + 32.0f * s, y + 32.0f * s, x + 32.0f * s, y + 0.0f);
+	draw_texture(tex, ver);
+}
+
+void draw_all_buttons(GLfloat *tex, GLfloat *ver, GLfloat scale)
+{
+	int i;
+	VBTN_POINTS *p;
+
+	p = Joystick_get_btn_points(scale);
+
+	// 仮想キーはtexid: 1から6まで
+	for (i = 1; i < 7; i++) {
+		draw_button(texid[i], p->x, p->y, scale, tex, ver);
+		p++;
+	}
 }
 #endif
 
@@ -443,10 +471,10 @@ WinDraw_Draw(void)
 	// Texture から必要な部分を抜き出す
 	// Texutre座標は0.0fから1.0fの間
 	SET_GLFLOATS(texture_coordinates,
-		    0.0f, (GLfloat)TextDotY/1024,
-		    0.0f, 0.0f,
-		    (GLfloat)TextDotX/1024, (GLfloat)TextDotY/1024,
-		    (GLfloat)TextDotX/1024, 0.0f);
+		     0.0f, (GLfloat)TextDotY/1024,
+		     0.0f, 0.0f,
+		     (GLfloat)TextDotX/1024, (GLfloat)TextDotY/1024,
+		     (GLfloat)TextDotX/1024, 0.0f);
 
 	// 実機の解像度(realdisp_w x realdisp_h)に関係なく、
 	// 座標は800x600
@@ -459,15 +487,7 @@ WinDraw_Draw(void)
 
 	draw_texture(texture_coordinates, vertices);
 
-	// 左右上下 (上上下下左右左右BAではない)
-	draw_button(texid[1], 20, 450);
-	draw_button(texid[2], 100, 450);
-	draw_button(texid[3], 60, 400);
-	draw_button(texid[4], 60, 500);
-
-	// ボタン
-	draw_button(texid[5], 680, 450);
-	draw_button(texid[6], 750, 450);
+	draw_all_buttons(texture_coordinates, vertices, (GLfloat)WinUI_get_vkscale());
 
 	//	glDeleteTextures(1, &texid);
 
@@ -524,10 +544,10 @@ WinDraw_Draw(void)
 		sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT|GU_COLOR_5650|GU_VERTEX_16BIT|GU_TRANSFORM_2D, 2, 0, vtxr);
 	}
 
-        sceGuFinish();
-        sceGuSync(0, 0);
+	sceGuFinish();
+	sceGuSync(0, 0);
 
-        sceGuSwapBuffers();
+	sceGuSwapBuffers();
 
 #else // Unix系 (要SDL_gfx)
 	sdl_surface = SDL_GetVideoSurface();
@@ -1356,8 +1376,12 @@ static WORD jis2idx(WORD jc)
 }
 
 #define isHankaku(s) ((s) >= 0x20 && (s) <= 0x7e || (s) >= 0xa0 && (s) <= 0xdf)
-#ifdef PSP
+#if defined(PSP)
+// display width 480, buffer width 512
 #define MENU_WIDTH 512
+#elif defined(ANDROID)
+// display width 800, buffer width 1024 だけれど 800 にしないとだめ
+#define MENU_WIDTH 800
 #else
 #define MENU_WIDTH 800
 #endif
@@ -1520,8 +1544,6 @@ static void draw_str(char *cp)
 	}
 }
 
-WORD *menu_buffer;
-
 int WinDraw_MenuInit(void)
 {
 #if defined(PSP)
@@ -1535,13 +1557,17 @@ int WinDraw_MenuInit(void)
 	set_mfs(16);
 #elif defined(ANDROID)
 	//
+	menu_buffer = malloc(1024 * 1024 * 2);
+	if (menu_buffer == NULL) {
+		return FALSE;
+	}
+	set_sbp(menu_buffer);
 	set_mfs(24);
 #else
 	menu_surface = SDL_GetVideoSurface();
 	if (!menu_surface)
 		return FALSE;
 	set_sbp((WORD *)(menu_surface->pixels));
-	// 使用フォントの変更 24 or 16
 	set_mfs(24);
 #endif
 	set_mcolor(0xffff);
@@ -1588,6 +1614,46 @@ static void psp_draw_menu(void)
 	sceGuSwapBuffers();
 }
 #endif
+
+#ifdef ANDROID
+static void android_draw_menu(void)
+{
+	GLfloat texture_coordinates[8];
+	GLfloat vertices[8];
+
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+	glBindTexture(GL_TEXTURE_2D, texid[7]);
+	//ScrBufから800x600の領域を切り出してテクスチャに転送
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, menu_buffer);
+
+	// Texture から必要な部分を抜き出す
+	// Texutre座標は0.0fから1.0fの間
+	SET_GLFLOATS(texture_coordinates,
+		     0.0f, (GLfloat)600/1024,
+		     0.0f, 0.0f,
+		     (GLfloat)800/1024, (GLfloat)600/1024,
+		     (GLfloat)800/1024, 0.0f);
+
+	// 実機の解像度(realdisp_w x realdisp_h)に関係なく、
+	// 座標は800x600
+	SET_GLFLOATS(vertices,
+		     40.0f, (GLfloat)600,
+		     40.0f, 0.0f,
+		     (GLfloat)800, (GLfloat)600,
+		     (GLfloat)800, 0.0f);
+
+	draw_texture(texture_coordinates, vertices);
+
+	draw_all_buttons(texture_coordinates, vertices, (GLfloat)WinUI_get_vkscale());
+
+	SDL_GL_SwapWindow(sdl_window);
+}
+#endif
+
 
 void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 {
@@ -1673,9 +1739,9 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 			} else {
 				char *p;
 				p = Config.FDDImage[i - 1];
-				// 先頭が「./」ならカットして表示
-				if (*p == '.' && *(p + 1) == '/') {
-					draw_str(p + 2);
+				// 先頭のカレントディレクトリ名を表示しない
+				if (!strncmp(CUR_DIR_STR, p, CUR_DIR_SLEN)) {
+					draw_str(p + CUR_DIR_SLEN);
 				} else {
 					draw_str(p);
 				}
@@ -1704,13 +1770,14 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 	set_mbcolor(0x0);
 	set_mlocateC(2, 14);
 	draw_str(item_cap[mkey_y]);
-	set_mlocateC(2, 15);
-	draw_str(item_cap2[mkey_y]);
-
+	if (menu_state == ms_value) {
+		set_mlocateC(2, 15);
+		draw_str(item_cap2[mkey_y]);
+	}
 #if defined(PSP)
 	psp_draw_menu();
 #elif defined(ANDROID)
-	//xxx something to do
+	android_draw_menu();
 #else
 	SDL_UpdateRect(menu_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
 #endif
@@ -1745,6 +1812,7 @@ void WinDraw_DrawMenufile(struct menu_flist *mfl)
 			set_mcolor(0xffff);
 			set_mbcolor(0x1);
 		}
+		// ディレクトリだったらファイル名を[]で囲う
 		set_mlocateC(3, i + 2);
 		if (mfl->type[i + mfl->ptr]) draw_str("[");
 		draw_str(mfl->name[i + mfl->ptr]);
@@ -1756,6 +1824,7 @@ void WinDraw_DrawMenufile(struct menu_flist *mfl)
 #if defined(PSP)
 	psp_draw_menu();
 #elif defined(ANDROID)
+	android_draw_menu();
 #else
 	SDL_UpdateRect(menu_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
 #endif
@@ -1777,6 +1846,16 @@ void WinDraw_ClearScreen(int only_buffer)
 		psp_draw_menu();
 	}
 #elif defined(ANDROID)
+	int i;
+	WORD *p = menu_buffer;
+
+	for (i = 0; i < 800 * 600; i++) {
+		*p++ = 0x0000;
+	}
+
+	if (!only_buffer) {
+		android_draw_menu();
+	}
 #else
 	SDL_FillRect(menu_surface, NULL, 0);
 #endif

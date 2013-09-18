@@ -4,8 +4,16 @@
 extern	BYTE	Debug_Text, Debug_Grp, Debug_Sp;
 extern	DWORD	LastClock[4];
 
+#ifdef ANDROID
+#define CUR_DIR_STR "/sdcard/px68k/"
+#else
+#define CUR_DIR_STR "./"
+#endif
+#define CUR_DIR_SLEN strlen(CUR_DIR_STR)
+
 void WinUI_Init(void);
-int WinUI_Menu(void);
+int WinUI_Menu(int first);
+float WinUI_get_vkscale(void);
 
 #define WUM_MENU_END 1
 #define WUM_EMU_QUIT 2

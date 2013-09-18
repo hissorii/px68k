@@ -78,9 +78,6 @@ const	BYTE	PrgTitle[] = APPNAME;
 char	winx68k_dir[MAX_PATH];
 char	winx68k_ini[MAX_PATH];
 
-char fdd0_img[MAX_PATH];
-char fdd1_img[MAX_PATH];
-
 WORD	VLINE_TOTAL = 567;
 DWORD	VLINE = 0;
 DWORD	vline = 0;
@@ -535,7 +532,8 @@ int main(int argc, char *argv[])
 	SDL_Event ev;
 #endif
 	int sdlaudio = -1;
-	int menu_mode = 0;
+	enum {menu_out, menu_enter, menu_in};
+	int menu_mode = menu_out;
 
 #ifdef PSP
 	scePowerSetClockFrequency(333, 333, 166);
@@ -623,10 +621,6 @@ int main(int argc, char *argv[])
 	glMatrixMode(GL_MODELVIEW);
 #endif
 
-#if 0
-	/* メニューバー	*/
-	menubar = create_menu(window);
-#endif
 	if (!WinDraw_MenuInit()) {
 		WinX68k_Cleanup();
 		WinDraw_Cleanup();
@@ -698,36 +692,22 @@ int main(int argc, char *argv[])
 #endif
 	DSound_Play();
 
-#if 1
-	FDD_SetFD(0, Config.FDDImage[0], 0);
-	FDD_SetFD(1, Config.FDDImage[1], 0);
-#else
-#if defined(PSP)
-	FDD_SetFD(0, "FDD1.XDF", 0);
-	FDD_SetFD(1, "FDD2.XDF", 0);
-#elif defined(ANDROID) // xxx 決め打ちはないやろー
-	FDD_SetFD(0, "/sdcard/px68k/FDD1.XDF", 0);
-	FDD_SetFD(1, "/sdcard/px68k/FDD2.XDF", 0);
-#else
-	//SetCmdLineFD();	// コマンドラインでFD挿入を指示している場合
-
-	strcpy(fdd0_img, "");
-	strcpy(fdd1_img, "");
+	// command line から指定した場合
 	switch (argc) {
 	case 3:
-		FDD_SetFD(1, argv[2], 0);
-		strcpy(fdd1_img, argv[2]);
+		strcpy(Config.FDDImage[1], argv[2]);
 	case 2:
-		FDD_SetFD(0, argv[1], 0);
-		strcpy(fdd0_img, argv[1]);
+		strcpy(Config.FDDImage[0], argv[1]);
 		break;
 	}
-#endif
-#endif
+
+	FDD_SetFD(0, Config.FDDImage[0], 0);
+	FDD_SetFD(1, Config.FDDImage[1], 0);
 
 	while (1) {
 		// OPM_RomeoOut(Config.BufferSize * 5);
-		if (menu_mode != 1 && (NoWaitMode || Timer_GetCount())) {
+		if (menu_mode == menu_out
+		    && (NoWaitMode || Timer_GetCount())) {
 			WinX68k_Exec();
 			if (SplashFlag) {
 				SplashFlag--;
@@ -758,21 +738,37 @@ int main(int argc, char *argv[])
 #ifdef ANDROID
 				static DWORD bef = 0;
 				DWORD now;
-				if (ev.key.keysym.sym == SDLK_AC_BACK) {
+				switch (ev.key.keysym.sym) {
+				case SDLK_AC_BACK:
 					now = timeGetTime();
 					if (now - bef < 1000) {
 						goto end_loop;
 					}
 					bef = now;
+					break;
+				case SDLK_MENU:
+					if (menu_mode == menu_out) {
+						menu_mode = menu_enter;
+						DSound_Stop();
+					} else {
+						DSound_Play();
+						menu_mode = menu_out;
+					}
+					break;
 				}
 #endif
 				printf("keydown: 0x%x\n", ev.key.keysym.sym);
 				printf("font %d %d\n", FONT[100], FONT[101]);
 				if (ev.key.keysym.sym == SDLK_F12) {
-					menu_mode = 1;
-					DSound_Stop();
+					if (menu_mode == menu_out) {
+						menu_mode = menu_enter;
+						DSound_Stop();
+					} else {
+						DSound_Play();
+						menu_mode = menu_out;
+					}
 				}
-				if (menu_mode == 1) {
+				if (menu_mode != menu_out) {
 #if !defined(PSP) && !defined(ANDROID)
 					menukey_update(ev.key.keysym.sym);
 #endif
@@ -787,26 +783,28 @@ int main(int argc, char *argv[])
 			}
 		}
 #endif //PSP
+
 #ifdef PSP
-		if (menu_mode == 0 && PspPad_Start()) {
+		if (menu_mode == menu_out && PspPad_Start()) {
 			puts("menu mode");
-			menu_mode = 1;
+			menu_mode = menu_enter;
 			DSound_Stop();
 		}
 #endif
 
-		if (menu_mode == 1) {
+		if (menu_mode != menu_out) {
 			int ret; 
 
 			Joystick_Update();
 
-			ret = WinUI_Menu();
+			ret = WinUI_Menu(menu_mode == menu_enter);
+			menu_mode = menu_in;
 			if (ret == WUM_MENU_END) {
 				// ダブルバッファを両方消すので2回呼び出す
 				WinDraw_ClearScreen(0);
 				WinDraw_ClearScreen(0);
 				DSound_Play();
-				menu_mode = 0;
+				menu_mode = menu_out;
 			} else if (ret == WUM_EMU_QUIT) {
 				goto end_loop;
 			}

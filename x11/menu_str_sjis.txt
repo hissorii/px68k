@@ -19,8 +19,14 @@ char swaku_str[]  = "„¬„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„
 char swaku2_str[] = "„«                                                        „«";
 char swaku3_str[] = "„¯„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„®";
 
-char item_cap[][60] = {"ƒVƒXƒeƒ€‚ð[ƒŠƒZƒbƒg/NMIƒŠƒZƒbƒg/I—¹]‚µ‚Ü‚·", "ƒtƒƒbƒs[‚P‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒtƒƒbƒs[‚Q‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒtƒŒ[ƒ€ƒXƒLƒbƒv‚ðÝ’è‚µ‚Ü‚·", "ƒo[ƒ`ƒƒƒ‹ƒ{ƒ^ƒ“‚Ì‘å‚«‚³‚ð’²®‚µ‚Ü‚·", "ƒo[ƒ`ƒƒƒ‹ƒ{ƒ^ƒ“‚ÌˆÊ’u‚ð’²®‚µ‚Ü‚·", "No Wait Mode‚ðÝ’è‚µ‚Ü‚·"};
+char item_cap[][60] = {"ƒVƒXƒeƒ€‚ð[ƒŠƒZƒbƒg/NMIƒŠƒZƒbƒg/I—¹]‚µ‚Ü‚·", "ƒtƒƒbƒs[‚P‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒtƒƒbƒs[‚Q‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒtƒŒ[ƒ€ƒXƒLƒbƒv‚ðÝ’è‚µ‚Ü‚·", "‰¼‘zƒpƒbƒhA‰¼‘zƒ{ƒ^ƒ“‚Ì‘å‚«‚³‚ð’²®‚µ‚Ü‚·", "‰¼‘zƒ{ƒ^ƒ“‚ÌˆÊ’u‚ðŒðŠ·‚µ‚Ü‚·", "No Wait Mode‚ðÝ’è‚µ‚Ü‚·"};
 
-char item_cap2[][40] = {"ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢"};
+#if defined (PSP)
+#define CAP_BTN_STR "[›]ƒ{ƒ^ƒ“"
+#elif defined (ANDROID)
+#define CAP_BTN_STR "[TRG1]ƒ{ƒ^ƒ“"
+#else
+#define CAP_BTN_STR "[ƒŠƒ^[ƒ“]ƒL["
+#endif
 
-
+char item_cap2[][50] = {"ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢"};

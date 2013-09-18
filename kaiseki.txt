@@ -398,6 +398,17 @@ Android 仮想800x600で24dotフォント 33x25
 VGA 640x480で16dotフォント 40x30 24dotフォント 26x20
 QVGA 320x240で16dotフォント 20x15
 
+30x17をメニュー描画領域とすると
+16dotフォント 480x272
+24dotフォント 720x408
+
+->
+PSPは16dotフォントでそのまま
+Unix系は24dotフォントで800x600画面でそのまま
+Androidは24dotフォントで画面いっぱいに描画
+
+
+
 SYSTEM RESET
 FDD1 FDD1.XDF
 FDD2 FDD2.XDF
@@ -426,3 +437,6 @@ now pre  ^  ~^  down
  0   1   1   0   0
 
 down = ~(now ^ pre) | now;
+
+xxx PSPの終了処理
+xxx PSボタンが押されたときに正しく終わらない時がある

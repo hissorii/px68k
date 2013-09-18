@@ -70,6 +70,10 @@
 
 #include "fmg_wrap.h"
 
+#ifdef ANDROID
+#include <android/log.h>
+#endif
+
 extern	BYTE		fdctrace;
 extern	BYTE		traceflag;
 extern	WORD		FrameCount;
@@ -99,7 +103,6 @@ extern  int		dmatrace;
  * init
  ******************************************************************************/
 
-// xxx configの値にセットしなければならない
 int mval_y[] = {0, 0, 0, 0, 2, 1, 1};
 
 struct menu_flist mfl;
@@ -114,14 +117,13 @@ WinUI_Init(void)
 	} else {
 		mval_y[3] = FrameRate;
 	}
-
+	mval_y[4] = Config.VkeyScale;
+	mval_y[5] = Config.VbtnSwap;
 	mval_y[6] = NoWaitMode;
 
-	// xxx configのFDイメージファイル名のディレクトリを取得する
-	strcpy(mfl.dir[0], "./");
-	strcpy(mfl.dir[1], "./");
+	strcpy(mfl.dir[0], CUR_DIR_STR);
+	strcpy(mfl.dir[1], CUR_DIR_STR);
 }
-
 
 #if 0
 /*
@@ -258,7 +260,7 @@ FDType(const char *fname)
 /********** menu 関連ルーチン **********/
 
 // xxx 上下スクロール未実装なのでキー数固定
-char menu_item_key[][15] = {"SYSTEM", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VKey Pos", "No Wait Mode", ""};
+char menu_item_key[][15] = {"SYSTEM", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VBtn Swap", "No Wait Mode", ""};
 
 // 文字列は30文字まで。各アイテム要素は終端含め10個まで。
 // 追加/拡張する場合は配列要素を適宜増加すること。
@@ -269,17 +271,29 @@ char menu_items[][10][30] = {
 	{"dummy", "EJECT", ""},
 	{"dummy", "EJECT", ""},
 	{"Auto Frame Skip", "Full Frame", "1/2 Frame", "1/3 Frame", "1/4 Frame", "1/5 Frame", "1/6 Frame", "1/8 Frame", ""},
-	{"Huge", "Large", "Medium", "Small", ""},
-	{"High", "Middle", "Low", ""},
+	{"Ultra Huge", "Super Huge", "Huge", "Large", "Medium", "Small", ""},
+	{"TRIG1 TRIG2", "TRIG2 TRIG1", ""},
 	{"Off", "On", ""}
 };
+
+float VKey_scale[] = {3.0, 2.5, 2.0, 1.5, 1.25, 1.0};
+
+float WinUI_get_vkscale(void)
+{
+	int n = Config.VkeyScale;
+
+	// 範囲外がなら1.0倍をとりあえず返す
+	if (n < 0 || n >= sizeof(VKey_scale)/sizeof(float)) {
+		return 1.0;
+	}
+	return VKey_scale[n];
+}
 
 int menu_state = ms_key;
 int mkey_y = 0;
 
 static void menu_system(int v)
 {
-	printf("menu_system func called %d\n", v);
 	switch (v) {
 	case 0 :
 		WinX68k_Reset();
@@ -302,10 +316,12 @@ static void upper(char *s)
 
 static void menu_create_flist(int v)
 {
+
+	// EJECT時はディレクトリを元に戻す
 	if (v == 1) {
 		FDD_EjectFD(mkey_y - 1);
 		Config.FDDImage[mkey_y - 1][0] = '\0';
-		strcpy(mfl.dir[mkey_y - 1], "./");
+		strcpy(mfl.dir[mkey_y - 1], CUR_DIR_STR);
 		return;
 	}
 
@@ -319,6 +335,7 @@ static void menu_create_flist(int v)
 	char ent_name[MAX_PATH];
 
 	dp = opendir(mfl.dir[mkey_y - 1]);
+
 	// xxx とりあえずファイルをMFL_MAX個取得
 	for (i = 0 ; i < MFL_MAX; i++) {
 		dent = readdir(dp);
@@ -330,8 +347,8 @@ static void menu_create_flist(int v)
 		strcat(ent_name, n);
 		stat(ent_name, &buf);
 
-		// ファイルなら拡張子チェック
 		if (!S_ISDIR(buf.st_mode)) {
+			// ファイルなら拡張子チェック
 			len = strlen(n);
 			if (len < 4 || *(n + len - 4) != '.') {
 				i--;
@@ -349,6 +366,12 @@ static void menu_create_flist(int v)
 				i--;
 				continue;
 			}
+			// カレントディレクトリ以上には上がらせない
+			if (!strcmp(n, "..") &&
+			    !strcmp(mfl.dir[mkey_y - 1], CUR_DIR_STR)) {
+				i--;
+				continue;
+			}
 		}
 
 		strcpy(mfl.name[i], n);
@@ -356,13 +379,11 @@ static void menu_create_flist(int v)
 		mfl.type[i] = S_ISDIR(buf.st_mode)? 1 : 0;
 		printf("%s 0x%x\n", n, buf.st_mode);
 	}
+
 	closedir(dp);
 
 	strcpy(mfl.name[i], "");
 	mfl.num = i;
-
-	printf("mfl.num %d\n", mfl.num);
-
 	mfl.ptr = 0;
 }
 
@@ -379,14 +400,20 @@ static void menu_frame_skip(int v)
 
 static void menu_vkey_size(int v)
 {
+	Config.VkeyScale = v;
+#ifdef ANDROID
+	Joystick_Vbtn_Update(WinUI_get_vkscale());
+#endif
 }
 
-static void menu_vkey_loc(int v)
+static void menu_vbtn_swap(int v)
 {
+	Config.VbtnSwap = v;
 }
 
 static void menu_nowait(int v)
 {
+	// xxx config fileに保存していない
 	NoWaitMode = v;
 }
 
@@ -396,7 +423,7 @@ static void (*menu_func[])(int v) = {
 	menu_create_flist,
 	menu_frame_skip,
 	menu_vkey_size,
-	menu_vkey_loc,
+	menu_vbtn_swap,
 	menu_nowait
 };
 
@@ -425,29 +452,27 @@ static void shortcut_dir(int drv)
 	}
 }
 
-int WinUI_Menu(void)
+int WinUI_Menu(int first)
 {
 	int i;
-	static int first = 1;
 	int cursor0;
 	BYTE joy;
 	int menu_redraw = 0;
 	int mfile_redraw = 0;
 
-	if (first == 1) {
+	if (first) {
 		menu_state = ms_key;
 		mkey_y = 0;
 		menu_redraw = 1;
 		first = 0;
 		// ダブルバッファだとキー触らないと画面変わらないので
-		// 最初だけ二つのバッファにそれぞれ描画する
+		// 最初だけ二度描きする
 		WinDraw_ClearScreen(1);
 		WinDraw_DrawMenu(menu_state, mkey_y, mval_y);
 	}
 
 	cursor0 = mkey_y;
 	joy = get_joy_downstate();
-	//printf("joy state 0x%x", joy);
 	reset_joy_downstate();
 
 	if (!(joy & JOY_UP)) {
@@ -458,6 +483,13 @@ int WinUI_Menu(void)
 		case ms_value:
 			if (mval_y[mkey_y] > 0) {
 				mval_y[mkey_y]--;
+
+				// 即時変更系
+				if (mkey_y == 3 || mkey_y == 4
+				    || mkey_y == 5 || mkey_y == 6) {
+					menu_func[mkey_y](mval_y[mkey_y]);
+				}
+
 				menu_redraw = 1;
 			}
 			break;
@@ -472,7 +504,6 @@ int WinUI_Menu(void)
 			mfile_redraw = 1;
 			break;
 		}
-		//printf("joy up!!! %d\n", mkey_y);
 	}
 
 	if (!(joy & JOY_DOWN)) {
@@ -483,12 +514,19 @@ int WinUI_Menu(void)
 		case ms_value:
 			if (menu_items[mkey_y][mval_y[mkey_y] + 1][0] != '\0') {
 				mval_y[mkey_y]++;
+
+				if (mkey_y == 3 || mkey_y == 4
+				    || mkey_y == 5 || mkey_y == 6) {
+					menu_func[mkey_y](mval_y[mkey_y]);
+				}
+
 				menu_redraw = 1;
 			}
 			break;
 		case ms_file:
 			if (mfl.y == 13) {
-				if (mfl.ptr + 14 < mfl.num && mfl.ptr < MFL_MAX - 13) {
+				if (mfl.ptr + 14 < mfl.num
+				    && mfl.ptr < MFL_MAX - 13) {
 					mfl.ptr++;
 				}
 			} else if (mfl.y + 1 < mfl.num) {
@@ -498,15 +536,16 @@ int WinUI_Menu(void)
 			mfile_redraw = 1;
 			break;
 		}
-		//printf("joy up!!! %d\n", mkey_y);
 	}
 
 	if (!(joy & JOY_TRG1)) {
-		if (menu_state == ms_key) {
+		int drv, y;
+		switch (menu_state) {
+		case ms_key:
 			menu_state = ms_value;
 			menu_redraw = 1;
-		} else if (menu_state == ms_value) {
-
+			break;
+		case ms_value:
 			menu_func[mkey_y](mval_y[mkey_y]);
 
 			//値をセットしたらキーモードに戻る
@@ -529,11 +568,10 @@ int WinUI_Menu(void)
 				if (mval_y[mkey_y] == 2) {
 					return WUM_EMU_QUIT;
 				}
-				first = 1;
 				return WUM_MENU_END;
 			}
-		} else if (menu_state == ms_file) {
-			int drv, y;
+			break;
+		case ms_file:
 			drv = mkey_y - 1;
 			y = mfl.ptr + mfl.y;
 			printf("file slect %s\n", mfl.name[y]);
@@ -558,22 +596,27 @@ int WinUI_Menu(void)
 				menu_state = ms_key;
 				menu_redraw = 1;
 			}
+			break;
 		}
 	}
 
 	if (!(joy & JOY_TRG2)) {
-		if (menu_state == ms_file) {
+		switch (menu_state) {
+		case ms_file:
 			menu_state = ms_value;
 			// reset position of file cursor
 			mfl.y = 0;
 			mfl.ptr = 0;
 			menu_redraw = 1;
-		} else if (menu_state == ms_value) {
+			break;
+		case ms_value:
 			menu_state = ms_key;
 			menu_redraw = 1;
-		} else if (menu_state == ms_key) {
-			first = 1;
-			return WUM_MENU_END;
+			break;
+		case ms_key:
+			// TRG2でメニュー抜けるのはやめる
+			//return WUM_MENU_END;
+			break;
 		}
 
 	}
@@ -588,10 +631,6 @@ int WinUI_Menu(void)
 	}
 
 	if (menu_redraw) {
-		// xxx Androidでvkeyの設定をいじるときはvkeyは
-		// 表示しておくようにする
-
-		//WinDraw_Draw();
 		WinDraw_ClearScreen(1);
 		WinDraw_DrawMenu(menu_state, mkey_y, mval_y);
 	}

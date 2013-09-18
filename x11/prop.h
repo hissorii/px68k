@@ -45,6 +45,8 @@ typedef struct
 	int MIDIDelay;
 	int MIDIAutoDelay;
 	char FDDImage[2][MAX_PATH];
+	int VkeyScale;
+	int VbtnSwap;
 } Win68Conf;
 
 extern Win68Conf Config;
