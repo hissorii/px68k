@@ -136,7 +136,9 @@ WinX68k_SCSICheck(void)
 		0x4e, 0x75,				// $fc002c "rts"
 	};
 
+#if 0
 	DWORD *p;
+#endif
 	WORD *p1, *p2;
 	int scsi;
 	int i;
@@ -529,7 +531,9 @@ SDL_main(int argc, char *argv[])
 int main(int argc, char *argv[])
 #endif
 {
+#ifndef PSP
 	SDL_Event ev;
+#endif
 	int sdlaudio = -1;
 	int menu_mode = 0;
 
@@ -782,20 +786,31 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
+#endif //PSP
+#ifdef PSP
+		if (menu_mode == 0 && PspPad_Start()) {
+			puts("menu mode");
+			menu_mode = 1;
+			DSound_Stop();
+		}
+#endif
+
 		if (menu_mode == 1) {
 			int ret; 
 
-			// xxx check joystick
+			Joystick_Update();
 
 			ret = WinUI_Menu();
 			if (ret == WUM_MENU_END) {
+				// ダブルバッファを両方消すので2回呼び出す
+				WinDraw_ClearScreen(0);
+				WinDraw_ClearScreen(0);
 				DSound_Play();
 				menu_mode = 0;
 			} else if (ret == WUM_EMU_QUIT) {
 				goto end_loop;
 			}
 		}
-#endif
 	}
 end_loop:
 

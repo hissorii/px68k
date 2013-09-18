@@ -439,11 +439,16 @@ int WinUI_Menu(void)
 		mkey_y = 0;
 		menu_redraw = 1;
 		first = 0;
+		// ダブルバッファだとキー触らないと画面変わらないので
+		// 最初だけ二つのバッファにそれぞれ描画する
+		WinDraw_ClearScreen(1);
+		WinDraw_DrawMenu(menu_state, mkey_y, mval_y);
 	}
 
 	cursor0 = mkey_y;
-	joy = get_joystate();
-	reset_joystate();
+	joy = get_joy_downstate();
+	//printf("joy state 0x%x", joy);
+	reset_joy_downstate();
 
 	if (!(joy & JOY_UP)) {
 		switch (menu_state) {
@@ -587,7 +592,7 @@ int WinUI_Menu(void)
 		// 表示しておくようにする
 
 		//WinDraw_Draw();
-		WinDraw_ClearScreen();
+		WinDraw_ClearScreen(1);
 		WinDraw_DrawMenu(menu_state, mkey_y, mval_y);
 	}
 

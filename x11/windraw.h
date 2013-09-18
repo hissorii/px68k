@@ -35,6 +35,6 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y);
 extern struct menu_flist mfl;
 
 void WinDraw_DrawMenufile(struct menu_flist *mfl);
-void WinDraw_ClearScreen(void);
+void WinDraw_ClearScreen(int only_buffer);
 
 #endif //winx68k_windraw_h

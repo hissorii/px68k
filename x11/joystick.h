@@ -25,8 +25,9 @@ void FASTCALL Joystick_Write(BYTE num, BYTE data);
 void FASTCALL Joystick_Update(void);
 
 void menukey_update(signed int key);
-BYTE get_joystate(void);
-void reset_joystate(void);
+BYTE get_joy_downstate(void);
+void reset_joy_downstate(void);
+int PspPad_Start(void);
 
 extern BYTE JoyKeyState;
 

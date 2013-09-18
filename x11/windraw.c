@@ -254,6 +254,7 @@ struct Vertexes {
 
 struct Vertexes *vtxl = (struct Vertexes *)0x41cc000;
 struct Vertexes *vtxr = (struct Vertexes *)(0x41cc000 + sizeof(struct Vertexes));
+struct Vertexes *vtxm = (struct Vertexes *)(0x41cc000 + sizeof(struct Vertexes) * 2);
 
 #define PSP_BUF_WIDTH (512)
 #define PSP_SCR_WIDTH (480)
@@ -1355,6 +1356,11 @@ static WORD jis2idx(WORD jc)
 }
 
 #define isHankaku(s) ((s) >= 0x20 && (s) <= 0x7e || (s) >= 0xa0 && (s) <= 0xdf)
+#ifdef PSP
+#define MENU_WIDTH 512
+#else
+#define MENU_WIDTH 800
+#endif
 
 // fs : font size : 16 or 24
 // 半角文字の場合は16bitの上位8bitにデータを入れておくこと
@@ -1444,7 +1450,7 @@ static void set_mfs(int fs)
 
 static WORD *get_ml_ptr()
 {
-	p6m.mlp = p6m.sbp + 800 * p6m.ml_y + p6m.ml_x;
+	p6m.mlp = p6m.sbp + MENU_WIDTH * p6m.ml_y + p6m.ml_x;
 	return p6m.mlp;
 }
 
@@ -1484,7 +1490,7 @@ static void draw_char(WORD sjis)
 					break;
 			}
 		}
-		p = p + 800 - w;
+		p = p + MENU_WIDTH - w;
 	}
 
 	p6m.ml_x += w;
@@ -1514,22 +1520,74 @@ static void draw_str(char *cp)
 	}
 }
 
+WORD *menu_buffer;
+
 int WinDraw_MenuInit(void)
 {
-#ifndef ANDROID
+#if defined(PSP)
+	// menuは速度遅くて良いのでメインメモリからmalloc()
+	menu_buffer = malloc(512 * 512 * 2);
+	if (menu_buffer == NULL) {
+		return FALSE;
+	}
+	set_sbp(menu_buffer);
+	// 使用フォントの変更 24 or 16
+	set_mfs(16);
+#elif defined(ANDROID)
+	//
+	set_mfs(24);
+#else
 	menu_surface = SDL_GetVideoSurface();
 	if (!menu_surface)
 		return FALSE;
 	set_sbp((WORD *)(menu_surface->pixels));
-	set_mcolor(0xffff);
-	set_mbcolor(0);
 	// 使用フォントの変更 24 or 16
 	set_mfs(24);
 #endif
+	set_mcolor(0xffff);
+	set_mbcolor(0);
+
 	return TRUE;
 }
 
 #include "menu_str_sjis.txt"
+
+#ifdef PSP
+static void psp_draw_menu(void)
+{
+	sceGuStart(GU_DIRECT, list);
+
+	sceGuClearColor(0);
+	sceGuClearDepth(0);
+	sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
+
+	// 左半分
+	vtxm->u = 0;
+	vtxm->v = 0;
+	vtxm->color = 0;
+	vtxm->x = 0;
+	vtxm->y = 0;
+	vtxm->z = 0;
+	vtxm->u2 = 480;
+	vtxm->v2 = 272;
+	vtxm->color2 = 0;
+	vtxm->x2 = 480;
+	vtxm->y2 = 272;
+	vtxm->z2 = 0;
+
+	sceGuTexMode(GU_PSM_5650, 0, 0, 0);
+	sceGuTexImage(0, 512, 512, 512, menu_buffer);
+	sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
+	//sceGuTexFilter(GU_LINEAR, GU_LINEAR);
+
+	sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT|GU_COLOR_5650|GU_VERTEX_16BIT|GU_TRANSFORM_2D, 2, 0, vtxm);
+
+	sceGuFinish();
+	sceGuSync(0, 0);
+
+	sceGuSwapBuffers();
+}
+#endif
 
 void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 {
@@ -1649,7 +1707,11 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 	set_mlocateC(2, 15);
 	draw_str(item_cap2[mkey_y]);
 
-#ifndef ANDROID
+#if defined(PSP)
+	psp_draw_menu();
+#elif defined(ANDROID)
+	//xxx something to do
+#else
 	SDL_UpdateRect(menu_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
 #endif
 }
@@ -1691,14 +1753,31 @@ void WinDraw_DrawMenufile(struct menu_flist *mfl)
 
 	set_mbcolor(0x0); // 透過モードに戻しておく
 
-#ifndef ANDROID
+#if defined(PSP)
+	psp_draw_menu();
+#elif defined(ANDROID)
+#else
 	SDL_UpdateRect(menu_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
 #endif
 }
 
-void WinDraw_ClearScreen(void)
+void WinDraw_ClearScreen(int only_buffer)
 {
-#ifndef ANDROID
+#if defined(PSP)
+	int x, y;
+	WORD *p = menu_buffer;
+
+	for (y = 0; y < 272; y++) {
+		for (x = 0; x < 480; x++) {
+			*p++ = 0x0000;
+		}
+		p += 32; // 32 = texw - bufw = 512 - 480
+	}
+	if (!only_buffer) {
+		psp_draw_menu();
+	}
+#elif defined(ANDROID)
+#else
 	SDL_FillRect(menu_surface, NULL, 0);
 #endif
 

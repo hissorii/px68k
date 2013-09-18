@@ -32,6 +32,13 @@ BYTE JoyKeyState0;
 BYTE JoyKeyState1;
 BYTE JoyState0[2];
 BYTE JoyState1[2];
+
+// ボタンが押されたかを記憶。押しっぱなしでリピートしたくない場合に使用
+BYTE JoyDownState0;
+
+#ifdef PSP
+DWORD JoyStatePSP;
+#endif
 BYTE JoyPortData[2];
 
 #ifdef ANDROID
@@ -173,6 +180,7 @@ void FASTCALL Joystick_Update(void)
 #if defined(PSP)
 	BYTE ret0 = 0xff, ret1 = 0xff;
 	int num = 0; //xxx とりあえずJOY1のみ。
+	static BYTE pre_ret0 = 0xff;
 
 	SceCtrlData psppad;
 	sceCtrlPeekBufferPositive(&psppad, 1);
@@ -195,6 +203,11 @@ void FASTCALL Joystick_Update(void)
 	if (psppad.Buttons & PSP_CTRL_CROSS) {
 		ret0 ^= JOY_TRG2;
 	}
+
+	JoyDownState0 = ~(ret0 ^ pre_ret0) | ret0;
+	pre_ret0 = ret0;
+
+	JoyStatePSP = psppad.Buttons;
 
 	JoyState0[num] = ret0;
 	JoyState1[num] = ret1;
@@ -297,16 +310,24 @@ void menukey_update(signed int key)
 		break;
 
 	}
-	JoyState0[0] = ret0;
+	JoyDownState0 = ret0;
 
 }
 #endif
 
-BYTE get_joystate(void)
+BYTE get_joy_downstate(void)
 {
-	return JoyState0[0];
+	return JoyDownState0;
 }
-void reset_joystate(void)
+void reset_joy_downstate(void)
 {
-	JoyState0[0] = 0xff;
+	JoyDownState0 = 0xff;
 }
+
+#ifdef PSP
+
+int PspPad_Start(void)
+{
+	return (JoyStatePSP & PSP_CTRL_START)? 1 : 0;
+}	  
+#endif
