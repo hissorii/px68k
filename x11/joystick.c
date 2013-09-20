@@ -38,7 +38,7 @@ BYTE JoyState1[2];
 BYTE JoyDownState0;
 
 #ifdef PSP
-DWORD JoyStatePSP;
+DWORD JoyDownStatePSP;
 #endif
 BYTE JoyPortData[2];
 
@@ -115,14 +115,10 @@ void Joystick_Vbtn_Update(float scale)
 		vbtn_state[i] = VBTN_NOUSE;
 	}
 
-	//テクスチャの設定といっしょにしたいがとりあえず別々に設定
-	//ボタンのTexture idは1 origin、ボタンidは0 originなので注意
-	// 左右上下 (上上下下左右左右BAではない)
-
 	p = Joystick_get_btn_points(scale);
 
 	for (i = 0; i < 6; i++) {
-		__android_log_print(ANDROID_LOG_DEBUG,"Tag","id: %d x: %f y: %f", i, p->x, p->y);
+		//__android_log_print(ANDROID_LOG_DEBUG,"Tag","id: %d x: %f y: %f", i, p->x, p->y);
 		SET_VBTN(i, p->x, p->y, scale);
 		p++;
 	}
@@ -222,6 +218,8 @@ void FASTCALL Joystick_Update(void)
 	BYTE ret0 = 0xff, ret1 = 0xff;
 	int num = 0; //xxx とりあえずJOY1のみ。
 	static BYTE pre_ret0 = 0xff;
+	static DWORD button_down = 0;
+	DWORD button_changing;
 
 	SceCtrlData psppad;
 	sceCtrlPeekBufferPositive(&psppad, 1);
@@ -248,7 +246,12 @@ void FASTCALL Joystick_Update(void)
 	JoyDownState0 = ~(ret0 ^ pre_ret0) | ret0;
 	pre_ret0 = ret0;
 
-	JoyStatePSP = psppad.Buttons;
+	// 前回と変化のあったbitを立てる
+	button_changing = psppad.Buttons ^ button_down;
+	// 今回初めて押された = 前回と変化がある & 今ボタンが押されている
+	JoyDownStatePSP = button_changing & psppad.Buttons;
+	// 変化のあったbitを反転させる
+	button_down ^= button_changing;
 
 	JoyState0[num] = ret0;
 	JoyState1[num] = ret1;
@@ -370,9 +373,8 @@ void reset_joy_downstate(void)
 }
 
 #ifdef PSP
-
-int PspPad_Start(void)
+DWORD Joystick_get_downstate_psp(DWORD ctrl_bit)
 {
-	return (JoyStatePSP & PSP_CTRL_START)? 1 : 0;
+	return (JoyDownStatePSP & ctrl_bit);
 }	  
 #endif

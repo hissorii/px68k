@@ -34,7 +34,9 @@ void FASTCALL Joystick_Update(void);
 void menukey_update(signed int key);
 BYTE get_joy_downstate(void);
 void reset_joy_downstate(void);
-int PspPad_Start(void);
+#ifdef PSP
+DWORD Joystick_get_downstate_psp(DWORD ctrl_bit);
+#endif
 #ifdef ANDROID
 VBTN_POINTS *Joystick_get_btn_points(float scale);
 void Joystick_Vbtn_Update(float scale);

@@ -440,3 +440,5 @@ down = ~(now ^ pre) | now;
 
 xxx PSPの終了処理
 xxx PSボタンが押されたときに正しく終わらない時がある
+
+sceKernelRegisterExitCallback()

@@ -26,6 +26,7 @@
 #if defined(ANDROID)
 #include <GLES/gl.h>
 #elif defined(PSP)
+#include <pspkernel.h>
 #include <pspdisplay.h>
 #include <pspgu.h>
 #endif
@@ -1581,6 +1582,8 @@ int WinDraw_MenuInit(void)
 #ifdef PSP
 static void psp_draw_menu(void)
 {
+	sceKernelDcacheWritebackAll();
+
 	sceGuStart(GU_DIRECT, list);
 
 	sceGuClearColor(0);
@@ -1842,6 +1845,7 @@ void WinDraw_ClearScreen(int only_buffer)
 		}
 		p += 32; // 32 = texw - bufw = 512 - 480
 	}
+	
 	if (!only_buffer) {
 		psp_draw_menu();
 	}

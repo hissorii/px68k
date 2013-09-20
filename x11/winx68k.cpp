@@ -519,6 +519,43 @@ void WinX68k_Exec(void)
 
 #include <pspmoduleinfo.h>
 #include <psppower.h>
+#include <pspctrl.h>
+#include <pspkernel.h>
+#include <pspgu.h>
+
+int exit_flag = 0;
+
+int exit_callback(int arg1, int arg2, void *common)
+{
+	exit_flag = 1;
+
+	return 0;
+}
+
+int CallbackThread(SceSize args, void *argp)
+{
+	int cbid;
+
+	cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
+	sceKernelRegisterExitCallback(cbid); //SetExitCallback(cbid);
+
+	sceKernelSleepThreadCB(); //KernelPollCallbacks();
+
+	return 0;
+}
+
+int SetupCallbacks(void)
+{
+	int thid;
+
+	thid = sceKernelCreateThread("update_thread", CallbackThread,
+				     0x11, 0xFA0, 0, 0);
+	if (thid >= 0) {
+		sceKernelStartThread(thid, 0, 0);
+	}
+
+	return thid;
+}
 
 PSP_HEAP_SIZE_KB(-1024);
 
@@ -536,6 +573,7 @@ int main(int argc, char *argv[])
 	int menu_mode = menu_out;
 
 #ifdef PSP
+	SetupCallbacks();
 	scePowerSetClockFrequency(333, 333, 166);
 #endif
 
@@ -785,10 +823,17 @@ int main(int argc, char *argv[])
 #endif //PSP
 
 #ifdef PSP
-		if (menu_mode == menu_out && PspPad_Start()) {
-			puts("menu mode");
-			menu_mode = menu_enter;
-			DSound_Stop();
+		if (Joystick_get_downstate_psp(PSP_CTRL_START)) {
+			if (menu_mode == menu_out) { 
+				menu_mode = menu_enter;
+				DSound_Stop();
+			} else {
+				// ダブルバッファを両方消すので2回呼び出す
+				WinDraw_ClearScreen(0);
+				WinDraw_ClearScreen(0);
+				DSound_Play();
+				menu_mode = menu_out;
+			}
 		}
 #endif
 
@@ -809,6 +854,11 @@ int main(int argc, char *argv[])
 				goto end_loop;
 			}
 		}
+#ifdef PSP
+		if (exit_flag) {
+			goto end_loop;
+		}
+#endif
 	}
 end_loop:
 
@@ -833,7 +883,10 @@ end_loop:
 
 	SaveConfig();
 
-#ifdef ANDROID
+#if defined(PSP)
+	puts("before end");
+	sceKernelExitGame();
+#elif defined(ANDROID)
 	exit(0);
 #endif
 	return 0;
