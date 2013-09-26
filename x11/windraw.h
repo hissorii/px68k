@@ -14,6 +14,7 @@ extern	BYTE	Draw_TextBitMask[800];
 
 extern	int	WindowX;
 extern	int	WindowY;
+extern	int	kbd_x, kbd_y, kbd_w, kbd_h;
 
 void WinDraw_InitWindowSize(WORD width, WORD height);
 void WinDraw_ChangeMode(int flag);
@@ -36,5 +37,8 @@ extern struct menu_flist mfl;
 
 void WinDraw_DrawMenufile(struct menu_flist *mfl);
 void WinDraw_ClearScreen(int only_buffer);
+void WinDraw_reverse_key(int x, int y);
 
 #endif //winx68k_windraw_h
+
+

@@ -568,6 +568,9 @@ int main(int argc, char *argv[])
 #ifndef PSP
 	SDL_Event ev;
 #endif
+#ifdef ANDROID
+	int vk_cnt = -1;
+#endif
 	int sdlaudio = -1;
 	enum {menu_out, menu_enter, menu_in};
 	int menu_mode = menu_out;
@@ -675,12 +678,6 @@ int main(int argc, char *argv[])
 	WinUI_Init();
 	WinDraw_StartupScreen();
 
-	if (!WinDraw_Init()) {
-		WinDraw_Cleanup();
-		Error("Error: Can't init screen.\n");
-		return 1;
-	}
-
 	if (!WinX68k_Init()) {
 		WinX68k_Cleanup();
 		WinDraw_Cleanup();
@@ -691,6 +688,12 @@ int main(int argc, char *argv[])
 		WinX68k_Cleanup();
 		WinDraw_Cleanup();
 		exit (1);
+	}
+
+	if (!WinDraw_Init()) {
+		WinDraw_Cleanup();
+		Error("Error: Can't init screen.\n");
+		return 1;
 	}
 
 	if ( SoundSampleRate ) {
@@ -742,11 +745,22 @@ int main(int argc, char *argv[])
 	FDD_SetFD(0, Config.FDDImage[0], 0);
 	FDD_SetFD(1, Config.FDDImage[1], 0);
 
+	//SDL_StartTextInput();
+
 	while (1) {
 		// OPM_RomeoOut(Config.BufferSize * 5);
 		if (menu_mode == menu_out
 		    && (NoWaitMode || Timer_GetCount())) {
 			WinX68k_Exec();
+#ifdef ANDROID
+			if (vk_cnt > 0) {
+				vk_cnt--;
+				//__android_log_print(ANDROID_LOG_DEBUG,"Tag","vk_cnt %d", vk_cnt);
+				if (vk_cnt == 0) {
+					__android_log_write(ANDROID_LOG_DEBUG,"Tag","vk_cnt 0");
+				}
+			}
+#endif
 			if (SplashFlag) {
 				SplashFlag--;
 				if (SplashFlag == 0)
@@ -769,6 +783,27 @@ int main(int argc, char *argv[])
 				//__android_log_print(ANDROID_LOG_DEBUG,"Tag","FINGERDOWN: tid: %lld,,, x:%f y:%f", ev.tfinger.touchId, ev.tfinger.x, ev.tfinger.y);
 				if (touchId == -1) {
 					touchId = ev.tfinger.touchId;
+				}
+				break;
+			case SDL_FINGERMOTION:
+				float kx, ky, dx, dy;
+				//__android_log_print(ANDROID_LOG_DEBUG,"Tag","FM: x:%f y:%f dx:%f dy:%f", ev.tfinger.x, ev.tfinger.y, ev.tfinger.dx, ev.tfinger.dy);
+				if (vk_cnt == 0) {
+					kx = ev.tfinger.x * 800;
+					ky = ev.tfinger.y * 600;
+					dx = ev.tfinger.dx * 800;
+					dy = ev.tfinger.dy * 600;
+					if (kbd_x < kx && kbd_x + kbd_w > kx &&
+					    kbd_y < ky && kbd_y + kbd_h > ky) {
+						kbd_x += dx;
+						kbd_y += dy;
+						if (kbd_x < 0) kbd_x = 0;
+						if (kbd_y < 0) kbd_y = 0;
+						if (kbd_x > 700) {
+							vk_cnt = -1;
+						}
+						if (kbd_y > 550) kbd_y = 550;
+					}
 				}
 				break;
 #endif
@@ -859,6 +894,27 @@ int main(int argc, char *argv[])
 			goto end_loop;
 		}
 #endif
+
+#ifdef ANDROID
+		BYTE state;
+		if (menu_mode == menu_out) {
+			state = Joystick_get_vbtn_state(6);
+			if (vk_cnt == -1 && state == VBTN_ON) {
+				__android_log_write(ANDROID_LOG_DEBUG,"Tag","vk_cnt start");
+				vk_cnt = 20;
+			} else if (vk_cnt > 0 && state == VBTN_OFF) {
+				vk_cnt = -1;
+			}
+			if (kbd_x > 700 && vk_cnt == 0) {
+				kbd_x = 0, kbd_y = 0;
+				__android_log_write(ANDROID_LOG_DEBUG,"Tag","do_kbd");
+			}
+			if (kbd_x < 700) {
+				Keyboard_skbd();
+			}
+		}
+#endif
+
 	}
 end_loop:
 

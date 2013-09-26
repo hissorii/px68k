@@ -44,9 +44,7 @@ BYTE JoyPortData[2];
 
 #ifdef ANDROID
 
-#define VBTN_MAX 32
-#define VBTN_ON 2
-#define VBTN_OFF 1
+#define VBTN_MAX 7
 #define VBTN_NOUSE 0
 #define FINGER_MAX 10
 
@@ -72,18 +70,23 @@ SDL_TouchID touchId = -1;
 }
 
 // 基準となる仮想キーの位置
-VBTN_POINTS vbtn_points[] = {{20, 450}, {100, 450}, {60, 400}, {60, 500},
-			     {680, 450}, {750, 450}};
+VBTN_POINTS vbtn_points[] = {
+	{20, 450}, {100, 450}, {60, 400}, {60, 500}, // 仮想d-pad
+	{680, 450}, {750, 450}, // 仮想ボタン
+	{768, 0} // ソフトウェアキーボードonボタン (右上隅/invisible)
+};
 
 // これらの座標を常に固定して、スケーリングする
 #define VKEY_L_X 20 //一番左の仮想キーのX座標
 #define VKEY_D_Y 532 //一番下の仮想キーの底辺のY座標
 #define VKEY_R_X 782 // 一番右の仮想キーの右辺のX座標
+#define VKEY_K_X 800 // キーボードonボタンの右辺のX座標
 
 // キー固定用補正値
 #define VKEY_DLX(scale) (VKEY_L_X * (scale) - VKEY_L_X)
-#define VKEY_DY(scale) (VKEY_D_Y * (scale) - VKEY_D_Y)
+#define VKEY_DDY(scale) (VKEY_D_Y * (scale) - VKEY_D_Y)
 #define VKEY_DRX(scale) (VKEY_R_X * (scale) - VKEY_R_X)
+#define VKEY_DKX(scale) (VKEY_K_X * (scale) - VKEY_K_X)
 
 VBTN_POINTS scaled_vbtn_points[sizeof(vbtn_points)/sizeof(VBTN_POINTS)];
 
@@ -95,14 +98,21 @@ VBTN_POINTS *Joystick_get_btn_points(float scale)
 		scaled_vbtn_points[i].x
 			= -VKEY_DLX(scale) + scale * vbtn_points[i].x;
 		scaled_vbtn_points[i].y
-			= -VKEY_DY(scale) + scale * vbtn_points[i].y;
+			= -VKEY_DDY(scale) + scale * vbtn_points[i].y;
 	}
 	for (i = 4; i < 6; i++) {
 		scaled_vbtn_points[i].x
 			= -VKEY_DRX(scale) + scale * vbtn_points[i].x;
 		scaled_vbtn_points[i].y
-			= -VKEY_DY(scale) + scale * vbtn_points[i].y;
+			= -VKEY_DDY(scale) + scale * vbtn_points[i].y;
 	}
+
+	// キーボードonスイッチ
+	scaled_vbtn_points[i].x
+		= -VKEY_DKX(scale) + scale * vbtn_points[i].x;
+	scaled_vbtn_points[i].y
+		= 0;
+
 	return scaled_vbtn_points;
 }
 
@@ -111,18 +121,21 @@ void Joystick_Vbtn_Update(float scale)
 	int i;
 	VBTN_POINTS *p;
 
-	for (i = 0; i < VBTN_MAX; i++) {
-		vbtn_state[i] = VBTN_NOUSE;
-	}
-
 	p = Joystick_get_btn_points(scale);
 
-	for (i = 0; i < 6; i++) {
+	for (i = 0; i < VBTN_MAX; i++) {
+		vbtn_state[i] = VBTN_NOUSE;
 		//__android_log_print(ANDROID_LOG_DEBUG,"Tag","id: %d x: %f y: %f", i, p->x, p->y);
 		SET_VBTN(i, p->x, p->y, scale);
 		p++;
 	}
 }
+
+BYTE Joystick_get_vbtn_state(WORD n)
+{
+	return vbtn_state[n];
+}
+
 #endif
 
 void Joystick_Init(void)
@@ -253,8 +266,11 @@ void FASTCALL Joystick_Update(void)
 	// 変化のあったbitを反転させる
 	button_down ^= button_changing;
 
-	JoyState0[num] = ret0;
-	JoyState1[num] = ret1;
+	// ソフトウェアキーボードを出しているときにはJoystick無効
+	if (!Keyboard_IsSwKeyboard()) {
+		JoyState0[num] = ret0;
+		JoyState1[num] = ret1;
+	}
 #elif defined(ANDROID)
 	BYTE ret0 = 0xff, ret1 = 0xff;
 	int num = 0; //xxx とりあえずJOY1のみ。
@@ -328,8 +344,11 @@ void FASTCALL Joystick_Update(void)
 	JoyDownState0 = ~(ret0 ^ pre_ret0) | ret0;
 	pre_ret0 = ret0;
 
-	JoyState0[num] = ret0;
-	JoyState1[num] = ret1;
+	// ソフトウェアキーボードを出しているときにはJoystick無効
+	if (!Keyboard_IsSwKeyboard()) {
+		JoyState0[num] = ret0;
+		JoyState1[num] = ret1;
+	}
 #endif
 }
 
@@ -378,3 +397,4 @@ DWORD Joystick_get_downstate_psp(DWORD ctrl_bit)
 	return (JoyDownStatePSP & ctrl_bit);
 }	  
 #endif
+

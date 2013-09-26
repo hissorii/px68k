@@ -45,6 +45,7 @@
 #include "status.h"
 #include "tvram.h"
 #include "joystick.h"
+#include "keyboard.h"
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -64,6 +65,7 @@ WORD *ScrBuf = 0;
 
 #if defined(PSP) || defined(ANDROID)
 WORD *menu_buffer;
+WORD *kbd_buffer;
 #endif
 
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
@@ -91,7 +93,7 @@ DWORD WindowX = 0;
 DWORD WindowY = 0;
 
 #ifdef ANDROID
-GLuint texid[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+GLuint texid[10];
 #endif
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -270,8 +272,12 @@ struct Vertexes *vtxm = (struct Vertexes *)(0x41cc000 + sizeof(struct Vertexes) 
 
 #endif // PSP
 
+static void draw_kbd_to_tex(void);
+
 int WinDraw_Init(void)
 {
+	int i, j;
+
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_Surface *sdl_surface;
 #endif
@@ -299,8 +305,19 @@ int WinDraw_Init(void)
 
 #ifdef ANDROID
 	ScrBuf = malloc(1024*1024*2); // OpenGL ES 1.1 needs 2^x pixels
+	if (ScrBuf == NULL) {
+		return FALSE;
+	}
 
-	glGenTextures(8, &texid[0]);
+	kbd_buffer = malloc(1024*1024*2); // OpenGL ES 1.1 needs 2^x pixels
+	if (kbd_buffer == NULL) {
+		return FALSE;
+	}
+
+	__android_log_print(ANDROID_LOG_DEBUG,"Tag","kbd_buffer 0x%x", kbd_buffer);
+
+	memset(texid, 0, sizeof(texid));
+	glGenTextures(10, &texid[0]);
 	glBindTexture(GL_TEXTURE_2D, texid[0]);
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -309,25 +326,40 @@ int WinDraw_Init(void)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, ScrBuf);
 
 	WORD BtnTex[32*32];
-	int i;
 	//とりあえず薄めの緑で。
 	for (i = 0; i < 32*32; i++) {
 		BtnTex[i] = 0x03e0;
 	}
 
+
 	// ボタン用テクスチャ。とりあえず全部同じ色。
-	for (i = 1; i < 7; i++) {
+	for (i = 1; i < 8; i++) {
 		glBindTexture(GL_TEXTURE_2D, texid[i]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		if (i == 7) {
+			// とりあえずキーボードonボタンは薄めの黄色で。
+			for (j = 0; j < 32*32; j++) {
+				BtnTex[j] = (0x7800 | 0x03e0);
+			}
+		}
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 32, 32, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, BtnTex);
 	}
 
 	// メニュー描画用テクスチャ。
-	glBindTexture(GL_TEXTURE_2D, texid[7]);
+	glBindTexture(GL_TEXTURE_2D, texid[8]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, menu_buffer);
+
+	draw_kbd_to_tex();
+
+	// ソフトウェアキーボード描画用テクスチャ。
+	glBindTexture(GL_TEXTURE_2D, texid[9]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, kbd_buffer);
+
 #elif defined(PSP)
 
 	fbp0 = 0; // offset 0
@@ -417,8 +449,8 @@ void draw_all_buttons(GLfloat *tex, GLfloat *ver, GLfloat scale)
 
 	p = Joystick_get_btn_points(scale);
 
-	// 仮想キーはtexid: 1から6まで
-	for (i = 1; i < 7; i++) {
+	// 仮想キーはtexid: 1から6まで、キーボードonボタンが7
+	for (i = 1; i < 8; i++) {
 		draw_button(texid[i], p->x, p->y, scale, tex, ver);
 		p++;
 	}
@@ -460,7 +492,9 @@ WinDraw_Draw(void)
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+	// アルファブレンドしない(上のテクスチャが下のテクスチャを隠す)
+	glBlendFunc(GL_ONE, GL_ZERO);
 
 	glBindTexture(GL_TEXTURE_2D, texid[0]);
 	//ScrBufから800x600の領域を切り出してテクスチャに転送
@@ -468,6 +502,8 @@ WinDraw_Draw(void)
 
 	// magic numberがやたら多いが、テクスチャのサイズが1024x1024
 	// OpenGLでの描画領域がglOrthof()で定義した800x600
+
+	// X68K 画面描画
 
 	// Texture から必要な部分を抜き出す
 	// Texutre座標は0.0fから1.0fの間
@@ -487,6 +523,39 @@ WinDraw_Draw(void)
 		     (800.0f - w)/2 + w, 0.0f);
 
 	draw_texture(texture_coordinates, vertices);
+
+	// ソフトウェアキーボード描画
+
+	if (kbd_x < 700) {
+		glBindTexture(GL_TEXTURE_2D, texid[9]);
+		//kbd_bufferから800x600の領域を切り出してテクスチャに転送
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, kbd_buffer);
+
+		// Texture から必要な部分を抜き出す
+		// Texutre座標は0.0fから1.0fの間
+		SET_GLFLOATS(texture_coordinates,
+			     0.0f, (GLfloat)kbd_h/1024,
+			     0.0f, 0.0f,
+			     (GLfloat)kbd_w/1024, (GLfloat)kbd_h/1024,
+			     (GLfloat)kbd_w/1024, 0.0f);
+
+		// 実機の解像度(realdisp_w x realdisp_h)に関係なく、
+		// 座標は800x600
+
+		float kbd_scale = 0.8;
+		SET_GLFLOATS(vertices,
+			     (GLfloat)kbd_x, (GLfloat)(kbd_h * kbd_scale + kbd_y),
+			     (GLfloat)kbd_x, (GLfloat)kbd_y,
+			     (GLfloat)(kbd_w * kbd_scale + kbd_x), (GLfloat)(kbd_h * kbd_scale + kbd_y),
+			     (GLfloat)(kbd_w * kbd_scale + kbd_x), (GLfloat)kbd_y);
+
+		draw_texture(texture_coordinates, vertices);
+	}
+
+	// 仮想パッド/ボタン描画
+
+	// アルファブレンドする(スケスケいやん)
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
 	draw_all_buttons(texture_coordinates, vertices, (GLfloat)WinUI_get_vkscale());
 
@@ -1629,7 +1698,7 @@ static void android_draw_menu(void)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-	glBindTexture(GL_TEXTURE_2D, texid[7]);
+	glBindTexture(GL_TEXTURE_2D, texid[8]);
 	//ScrBufから800x600の領域を切り出してテクスチャに転送
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, menu_buffer);
 
@@ -1661,6 +1730,15 @@ static void android_draw_menu(void)
 void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 {
 	int i;
+
+// ソフトウェアキーボード描画時にset_sbp(kbd_buffer)されているので戻す
+#if defined(PSP) || defined(ANDROID)
+	set_sbp(menu_buffer);
+#endif
+// ソフトウェアキーボード描画時にset_mfs(16)されているので戻す
+#ifdef ANDROID
+	set_mfs(24);
+#endif
 
 	// タイトル
 	if (scr_type == x68k) {
@@ -1865,3 +1943,100 @@ void WinDraw_ClearScreen(int only_buffer)
 #endif
 
 }
+
+/********** ソフトウェアキーボード描画 **********/
+
+#if defined(PSP) || defined(ANDROID)
+
+#define KBD_FS 16 // keyboard font size : 16
+
+// キーを反転する
+void WinDraw_reverse_key(int x, int y)
+{
+	WORD *p;
+	int kp;
+	int i, j;
+	
+	kp = Keyboard_get_key_ptr(kbd_kx, kbd_ky);
+
+	p = kbd_buffer + 800 * kbd_key[kp].y + kbd_key[kp].x;
+
+	for (i = 0; i < kbd_key[kp].h; i++) {
+		for (j = 0; j < kbd_key[kp].w; j++) {
+			*p = ~(*p);
+			p++;
+		}
+		p = p + 800 - kbd_key[kp].w;
+	}
+}
+
+static void draw_kbd_to_tex()
+{
+	int i, x, y;
+	WORD *p;
+
+	// SJIS 漢字コード
+	char zen[] = {0x91, 0x53, 0x00};
+	char larw[] = {0x81, 0xa9, 0x00};
+	char rarw[] = {0x81, 0xa8, 0x00};
+	char uarw[] = {0x81, 0xaa, 0x00};
+	char darw[] = {0x81, 0xab, 0x00};
+	char ka[] = {0x82, 0xa9, 0x00};
+	char ro[] = {0x83, 0x8d, 0x00};
+	char ko[] = {0x83, 0x52, 0x00};
+	char ki[] = {0x8b, 0x4c, 0x00};
+	char to[] = {0x93, 0x6f, 0x00};
+	char hi[] = {0x82, 0xd0, 0x00};
+
+	set_sbp(kbd_buffer);
+	set_mfs(KBD_FS);
+	set_mbcolor(0);
+	set_mcolor(0);
+
+	kbd_key[12].s = ka;
+	kbd_key[13].s = ro;
+	kbd_key[14].s = ko;
+	kbd_key[16].s = ki;
+	kbd_key[17].s = to;
+	kbd_key[76].s = uarw;
+	kbd_key[94].s = larw;
+	kbd_key[95].s = darw;
+	kbd_key[96].s = rarw;
+	kbd_key[101].s = hi;
+	kbd_key[108].s = zen;
+
+	// キーボードの背景
+	p = kbd_buffer;
+	for (y = 0; y < kbd_h; y++) {
+		for (x = 0; x < kbd_w; x++) {
+			*p++ = (0x7800 | 0x03e0 | 0x000f);
+		}
+		p = p + 800 - kbd_w;
+	}
+
+	// キーの描画
+	for (i = 0; kbd_key[i].x != -1; i++) {
+		p = kbd_buffer + kbd_key[i].y * 800 + kbd_key[i].x;
+		for (y = 0; y < kbd_key[i].h; y++) {
+			for (x = 0; x < kbd_key[i].w; x++) {
+				if (x == (kbd_key[i].w - 1)
+				    || y == (kbd_key[i].h - 1)) {
+					// キーに影をつけ立体的に見せる
+					*p++ = 0x0000;
+				} else {
+					*p++ = 0xffff;
+				}
+			}
+			p = p + 800 - kbd_key[i].w;
+		}
+		// 刻印は上下左右ともセンタリングする
+		set_mlocate(kbd_key[i].x + kbd_key[i].w / 2
+			    - strlen(kbd_key[i].s) * (KBD_FS / 2 / 2),
+			    kbd_key[i].y + kbd_key[i].h / 2 - KBD_FS / 2);
+		draw_str(kbd_key[i].s);
+	}
+
+	WinDraw_reverse_key(kbd_kx, kbd_ky);
+}
+
+#endif

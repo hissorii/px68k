@@ -29,6 +29,9 @@
 #include "prop.h"
 #include "keyboard.h"
 #include "mfp.h"
+#ifdef ANDROID
+#include <android/log.h>
+#endif
 
 BYTE	KeyBufWP;
 BYTE	KeyBufRP;
@@ -36,8 +39,11 @@ BYTE	KeyBuf[KeyBufSize];
 BYTE	KeyEnable = 1;
 BYTE	KeyIntFlag = 0;
 
-extern BYTE traceflag;
+struct keyboard_key kbd_key[] = {
+#include "keytbl.inc"
+};
 
+extern BYTE traceflag;
 
 void
 Keyboard_Init(void)
@@ -49,8 +55,6 @@ Keyboard_Init(void)
 	KeyEnable = 1;
 	KeyIntFlag = 0;
 }
-
-
 
 // ----------------------------------
 //	てーぶる類
@@ -328,6 +332,24 @@ BYTE KeyTableMaster[KEYTABLE_MAX] = {
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,0x37
 };
 
+// P6K: PX68K_KEYBOARD
+//      ~ ~   ~
+#define P6K_UP 1
+#define P6K_DOWN 2
+
+void send_keycode(BYTE code, int flag)
+{
+	BYTE newwp;
+
+	if (code != NC) {
+		newwp = ((KeyBufWP + 1) & (KeyBufSize - 1));
+		if (newwp != KeyBufRP) {
+			KeyBuf[KeyBufWP] = code | ((flag == P6K_UP)? 0 : 0x80);
+			KeyBufWP = newwp;
+			printf("KeyBufWP: %d\n", KeyBufWP);
+		}
+	}
+}
 
 // ----------------------------------
 //	WM_KEYDOWN〜
@@ -360,6 +382,7 @@ Keyboard_KeyDown(DWORD wp)
 	printf("wp=0x%x, code=0x%x\n", wp, code);
 	printf("SDLK_UP: 0x%x", SDLK_UP);
 
+#if 0
 	if (code != NC) {
 		newwp = ((KeyBufWP + 1) & (KeyBufSize - 1));
 		if (newwp != KeyBufRP) {
@@ -368,6 +391,9 @@ Keyboard_KeyDown(DWORD wp)
 			printf("KeyBufWP: %d\n", KeyBufWP);
 		}
 	}
+#else
+	send_keycode(code, P6K_UP);
+#endif
 
 	printf("JoyKeyState: 0x%x\n", JoyKeyState);
 
@@ -438,6 +464,7 @@ Keyboard_KeyUp(DWORD wp)
 
 	code = KeyTable[wp];
 
+#if 0
 	if (code != NC) {
 		newwp = ((KeyBufWP + 1) & (KeyBufSize - 1));
 		if (newwp != KeyBufRP) {
@@ -445,6 +472,9 @@ Keyboard_KeyUp(DWORD wp)
 			KeyBufWP = newwp;
 		}
 	}
+#else
+	send_keycode(code, P6K_DOWN);
+#endif
 
 	printf("JoyKeyState: 0x%x\n", JoyKeyState);
 
@@ -503,3 +533,229 @@ Keyboard_Int(void)
 		LastKey = 0;
 	}
 }
+
+/********** ソフトウェアキーボード **********/
+
+#if defined(PSP) || defined(ANDROID)
+
+// キーボードの座標
+int kbd_x = 800, kbd_y = 0, kbd_w = 766, kbd_h = 218;
+
+// 選択しているキーの座標 (初期値'Q')
+int  kbd_kx = 1, kbd_ky = 2;
+
+#define KEYXMAX 32767
+int Keyboard_get_key_ptr(int x, int y)
+{
+	int i, j;
+	int p = 0;
+	int tx, ty; // tmp x, tmp y
+
+	tx = KEYXMAX;
+	ty = 0;
+	i = 0;
+	while (kbd_key[i].x != -1) {
+		// skip dummy
+		if (kbd_key[i].c == 0) {
+			i++;
+			continue;
+		}
+		if (tx > kbd_key[i].x) {
+			if (ty == y)
+				break;
+			ty++;
+		}
+		tx = kbd_key[i++].x;
+	}
+
+	return i + x;
+}
+
+static set_ptr_to_kxy(int p)
+{
+	int kx = 0, ky = 0;
+	int i;
+
+	for (i = 0; i < p; i++) {
+		if (kbd_key[i].x > kbd_key[i + 1].x) {
+			ky++;
+			kx = 0;
+		} else {
+			kx++;
+		}
+	}
+
+	kbd_kx = kx, kbd_ky = ky;
+}
+
+static void set_near_key(int p, int tx)
+{
+	while (kbd_key[p].x < kbd_key[p + 1].x) {
+		if (kbd_key[p].x >= tx) {
+			// x座標の一番近いキーに移動する
+			if (abs(kbd_key[p].x - tx)
+			    > abs(tx - kbd_key[p - 1].x)) {
+				p--;
+			}
+			break;
+		}
+		p++;
+	}
+	set_ptr_to_kxy(p);
+}
+
+static void key_up(void)
+{
+	int p;
+	int c = 2;
+	int tx; // tmp x
+
+	p = Keyboard_get_key_ptr(kbd_kx, kbd_ky);
+	tx = kbd_key[p].x;
+
+	// 上の行の先頭を探す
+	while (p > 0) {
+		if (kbd_key[p - 1].x > kbd_key[p].x) {
+			c--;
+			if (c == 0) {
+				break;
+			}
+		}
+		p--;
+	}
+
+	if (kbd_key[p].x == tx) {
+		set_ptr_to_kxy(p);
+		return;
+	}
+
+	set_near_key(p, tx);
+}
+
+static void key_down(void)
+{
+	int p;
+	int tx; // tmp x
+
+	p = Keyboard_get_key_ptr(kbd_kx, kbd_ky);
+	tx = kbd_key[p].x;
+
+	// 下の行の先頭を探す
+	while (kbd_key[p].x != -1) {
+		if (kbd_key[p + 1].x < kbd_key[p].x) {
+			p++;
+			break;
+		}
+		p++;
+	}
+
+	set_near_key(p, tx);
+}
+
+
+// dx と dy はどちらか一方は 0 とする。 dx: -1/0/+1 dy: -1/0/+1
+static void mv_key(int dx, int dy)
+{
+	int p;
+
+	if ((kbd_ky == 0 && dy == -1) || (kbd_ky == 5 && dy == +1)) {
+		return;
+	}
+
+	if (kbd_kx == 0 && dx == -1) {
+		return;
+	}
+	p = Keyboard_get_key_ptr(kbd_kx, kbd_ky);
+	if (dx == +1 &&
+	    kbd_key[p + 1].x != -1 && kbd_key[p].x > kbd_key[p + 1].x) {
+		return;
+	}
+
+	WinDraw_reverse_key(kbd_kx, kbd_ky);
+
+	// 飛ばし先の微調整が必要なものたち
+	// カーソルキー周りは面倒なので微調整なし
+	if (kbd_kx == 12 && kbd_ky == 3 && dx == +1) {
+		// ] の右となりは RET に飛ばす
+		kbd_kx = 14, kbd_ky = 2;
+	} else if (kbd_kx == 12 && kbd_ky == 5 && dx == +1) {
+		// テンキーの . の右となりは ENT に飛ばす
+		kbd_kx = 19, kbd_ky = 4;
+	} else {
+		// 微調整の必要なし
+		kbd_kx += dx;
+	}
+
+	if (dy < 0) {
+		key_up();
+	}
+	if (dy > 0) {
+		key_down();
+	}
+
+	// RETの左側のダミーキーはRETに移動する
+	if (kbd_kx == 13 && kbd_ky == 2) {
+		if (dx == 0) {
+			// 上下からダミーキーに行った場合
+			kbd_kx = 14;
+		} else {
+			// 左右からダミーキーに行った場合
+			kbd_kx += dx;
+		}
+	}
+
+	WinDraw_reverse_key(kbd_kx, kbd_ky);
+}
+
+static void send_key(void)
+{
+
+	BYTE code;
+
+	code = kbd_key[Keyboard_get_key_ptr(kbd_kx, kbd_ky)].c;
+	//__android_log_print(ANDROID_LOG_DEBUG,"Tag","sendkey: %d", code);
+
+	send_keycode(code, 1);
+	send_keycode(code, 2);
+}
+
+void Keyboard_skbd(void)
+{
+	static kx = 1, ky = 2;
+	BYTE joy;
+
+	joy = get_joy_downstate();
+	reset_joy_downstate();
+
+	if (!(joy & JOY_UP)) {
+		mv_key(0, -1);
+	}
+	if (!(joy & JOY_DOWN)) {
+		mv_key(0, +1);
+	}
+	if (!(joy & JOY_LEFT)) {
+		mv_key(-1, 0);
+	}
+	if (!(joy & JOY_RIGHT)) {
+		mv_key(+1, 0);
+	}
+	if (!(joy & JOY_TRG1)) {
+		send_key();
+	}
+	if (!(joy & JOY_TRG2)) {
+		// BSキーを入力
+		send_keycode(0xf, 1);
+		send_keycode(0xf, 2);
+	}
+}
+
+int Keyboard_IsSwKeyboard(void)
+{
+	if (kbd_x < 700) {
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+#endif

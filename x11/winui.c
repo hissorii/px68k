@@ -584,7 +584,6 @@ int WinUI_Menu(int first)
 					strcat(mfl.dir[drv], "/");
 				}
 				menu_func[mkey_y](0);
-				mfl.y = 0;
 				mfile_redraw = 1;
 			} else {
 				// ファイル
@@ -596,6 +595,8 @@ int WinUI_Menu(int first)
 				menu_state = ms_key;
 				menu_redraw = 1;
 			}
+			mfl.y = 0;
+			mfl.ptr = 0;
 			break;
 		}
 	}
@@ -637,3 +638,4 @@ int WinUI_Menu(int first)
 
 	return 0;
 }
+

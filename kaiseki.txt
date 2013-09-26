@@ -442,3 +442,13 @@ xxx PSPの終了処理
 xxx PSボタンが押されたときに正しく終わらない時がある
 
 sceKernelRegisterExitCallback()
+
+** 2013/10/01
+
+TODO: menuでキーリピートを有効にする
+TODO: software keyboardでキーリピートを有効にする
+TODO:[done] software keyboardを出しているときは、joystick入力を無効にする
+TODO: software keyboard用のkeytblに従来のkeytblをマージする
+TODO: 仮想ボタンの遊びをもたせる
+
+
