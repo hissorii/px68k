@@ -280,6 +280,7 @@ void FASTCALL Joystick_Update(void)
 	SDL_FingerID fid;
 	float fx, fy;
 	int i, j;
+	float scale, asb_x, asb_y; // あそびx, あそびy
 
 	if (touchId == -1)
 		return;
@@ -290,6 +291,11 @@ void FASTCALL Joystick_Update(void)
 			vbtn_state[i] = VBTN_OFF;
 		}
 	}
+
+	// 仮想キーの大きさに従ってあそびも大きくする
+	scale = WinUI_get_vkscale();
+	asb_x = (float)20 * scale / 800.0;
+	asb_y = (float)20 * scale / 600.0;
 
 	// この瞬間押されているボタンだけをオンにする
 	for (i = 0; i < FINGER_MAX; i++) {
@@ -305,14 +311,14 @@ void FASTCALL Joystick_Update(void)
 		for (j = 0; j < VBTN_MAX; j++) {
 			if (vbtn_state[j] == VBTN_NOUSE)
 				continue;
-			// 性能を考え一個ずつ判定
-			if (vbtn_rect[j].x > fx)
+			// 性能を考え一個ずつ判定。少し遊びをもたせる。
+			if (vbtn_rect[j].x - asb_x > fx)
 				continue;
-			if (vbtn_rect[j].x2 < fx)
+			if (vbtn_rect[j].x2 + asb_x < fx)
 				continue;
-			if (vbtn_rect[j].y > fy)
+			if (vbtn_rect[j].y - asb_y > fy)
 				continue;
-			if (vbtn_rect[j].y2 < fy)
+			if (vbtn_rect[j].y2 + asb_y < fy)
 				continue;
 
 			//マッチしたらオンにする

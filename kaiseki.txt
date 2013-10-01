@@ -449,6 +449,6 @@ TODO: menuでキーリピートを有効にする
 TODO: software keyboardでキーリピートを有効にする
 TODO:[done] software keyboardを出しているときは、joystick入力を無効にする
 TODO: software keyboard用のkeytblに従来のkeytblをマージする
-TODO: 仮想ボタンの遊びをもたせる
+TODO:[done] 仮想ボタンの遊びをもたせる
 
 
