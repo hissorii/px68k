@@ -7,6 +7,7 @@
 #include "winui.h"
 #if defined(PSP)
 #include <pspctrl.h>
+#include <keyboard.h>
 #elif defined(ANDROID)
 #include <SDL.h>
 #include <android/log.h>
@@ -39,6 +40,8 @@ BYTE JoyDownState0;
 
 #ifdef PSP
 DWORD JoyDownStatePSP;
+BYTE JoyAnaPadX;
+BYTE JoyAnaPadY;
 #endif
 BYTE JoyPortData[2];
 
@@ -266,6 +269,10 @@ void FASTCALL Joystick_Update(void)
 	// 変化のあったbitを反転させる
 	button_down ^= button_changing;
 
+	// Analog padの情報を保存
+	JoyAnaPadX = psppad.Lx;
+	JoyAnaPadY = psppad.Ly;
+
 	// ソフトウェアキーボードを出しているときにはJoystick無効
 	if (!Keyboard_IsSwKeyboard()) {
 		JoyState0[num] = ret0;
@@ -402,5 +409,49 @@ DWORD Joystick_get_downstate_psp(DWORD ctrl_bit)
 {
 	return (JoyDownStatePSP & ctrl_bit);
 }	  
+void Joystick_reset_downstate_psp(DWORD ctrl_bit)
+{
+	JoyDownStatePSP ^= ctrl_bit;
+}	  
+
+void Joystatic_reset_anapad_psp(void)
+{
+	JoyAnaPadX = JoyAnaPadY = 128;
+}
+
+void _get_anapad_sub(BYTE av, int *v, int max)
+{
+	// アナログスティックの倒し加減で加速させる
+	if (av > 255 / 2 + 32) {
+		(*v)++; // ちょい動かし
+		if (av > 255 - 5) {
+			(*v)++; // 加速
+			if (av == 255) {
+				*v += 2; // 最加速
+			}
+		}
+		if (*v > max) {
+			*v = max;
+		}
+	}
+	if (av < 255 / 2 - 32) {
+		(*v)--;
+		if (av < 5) {
+			(*v)--;
+			if (av == 0) {
+				*v -= 2;
+			}
+		}
+		if (*v < 0) {
+			*v = 0;
+		}
+	}
+}
+
+void Joystick_mv_anapad_psp(void)
+{
+	_get_anapad_sub(JoyAnaPadX, &kbd_x, 450);
+	_get_anapad_sub(JoyAnaPadY, &kbd_y, 250);
+}
 #endif
 

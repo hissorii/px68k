@@ -45,6 +45,11 @@ struct keyboard_key kbd_key[] = {
 
 extern BYTE traceflag;
 
+#if defined(PSP) || defined(ANDROID)
+// キーボードの座標
+int kbd_x = 800, kbd_y = 0, kbd_w = 766, kbd_h = 218;
+#endif
+
 void
 Keyboard_Init(void)
 {
@@ -54,6 +59,21 @@ Keyboard_Init(void)
 	ZeroMemory(KeyBuf, KeyBufSize);
 	KeyEnable = 1;
 	KeyIntFlag = 0;
+#ifdef PSP
+	// 全てのサイズを半分にする
+	int i = 0;
+
+	kbd_x = kbd_y = 0; // PSPは初期位置0
+	kbd_w /= 2, kbd_h /= 2;
+
+	while (kbd_key[i].x != -1) {
+		kbd_key[i].x /= 2;
+		kbd_key[i].y /= 2;
+		kbd_key[i].w /= 2;
+		kbd_key[i].h /= 2;
+		i++;
+	}
+#endif
 }
 
 // ----------------------------------
@@ -538,9 +558,6 @@ Keyboard_Int(void)
 
 #if defined(PSP) || defined(ANDROID)
 
-// キーボードの座標
-int kbd_x = 800, kbd_y = 0, kbd_w = 766, kbd_h = 218;
-
 // 選択しているキーの座標 (初期値'Q')
 int  kbd_kx = 1, kbd_ky = 2;
 
@@ -749,13 +766,24 @@ void Keyboard_skbd(void)
 	}
 }
 
+int skbd_mode = FALSE;
+
 int Keyboard_IsSwKeyboard(void)
 {
+#ifdef PSP
+	return skbd_mode;
+#else
 	if (kbd_x < 700) {
 		return TRUE;
 	} else {
 		return FALSE;
 	}
+#endif
+}
+
+void Keyboard_ToggleSkbd(void)
+{
+	skbd_mode = (skbd_mode == TRUE)? FALSE : TRUE;
 }
 
 #endif

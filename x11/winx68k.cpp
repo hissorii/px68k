@@ -578,6 +578,9 @@ int main(int argc, char *argv[])
 #ifdef PSP
 	SetupCallbacks();
 	scePowerSetClockFrequency(333, 333, 166);
+
+	sceCtrlSetSamplingCycle(0);
+	sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
 #endif
 
 #ifdef ANDROID
@@ -661,7 +664,6 @@ int main(int argc, char *argv[])
 	//  glOrthof(0, 1024, 0, 1024, -1, 1);
 	glMatrixMode(GL_MODELVIEW);
 #endif
-
 	if (!WinDraw_MenuInit()) {
 		WinX68k_Cleanup();
 		WinDraw_Cleanup();
@@ -690,6 +692,8 @@ int main(int argc, char *argv[])
 		exit (1);
 	}
 
+	Keyboard_Init(); //WinDraw_Init()前に移動
+
 	if (!WinDraw_Init()) {
 		WinDraw_Cleanup();
 		Error("Error: Can't init screen.\n");
@@ -710,7 +714,6 @@ int main(int argc, char *argv[])
 #endif
 	}
 
-	Keyboard_Init();
 	Mouse_Init();
 	Joystick_Init();
 	SRAM_Init();
@@ -863,12 +866,22 @@ int main(int argc, char *argv[])
 				menu_mode = menu_enter;
 				DSound_Stop();
 			} else {
-				// ダブルバッファを両方消すので2回呼び出す
-				WinDraw_ClearScreen(0);
-				WinDraw_ClearScreen(0);
 				DSound_Play();
 				menu_mode = menu_out;
 			}
+		}
+
+		if (menu_mode == menu_out
+		    && Joystick_get_downstate_psp(PSP_CTRL_SELECT)) {
+			Keyboard_ToggleSkbd();
+			// 2度読み除け
+			Joystick_reset_downstate_psp(PSP_CTRL_SELECT);
+		}
+
+		if (menu_mode == menu_out && Keyboard_IsSwKeyboard()) {
+			Joystick_mv_anapad_psp();
+			Joystatic_reset_anapad_psp();
+			Keyboard_skbd();
 		}
 #endif
 
@@ -880,9 +893,6 @@ int main(int argc, char *argv[])
 			ret = WinUI_Menu(menu_mode == menu_enter);
 			menu_mode = menu_in;
 			if (ret == WUM_MENU_END) {
-				// ダブルバッファを両方消すので2回呼び出す
-				WinDraw_ClearScreen(0);
-				WinDraw_ClearScreen(0);
 				DSound_Play();
 				menu_mode = menu_out;
 			} else if (ret == WUM_EMU_QUIT) {

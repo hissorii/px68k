@@ -34,5 +34,6 @@ void send_keycode(BYTE code, int flag);
 int Keyboard_get_key_ptr(int x, int y);
 void Keyboard_skbd(void);
 int Keyboard_IsSwKeyboard(void);
+void Keyboard_ToggleSkbd(void);
 
 #endif //_winx68k_keyboard

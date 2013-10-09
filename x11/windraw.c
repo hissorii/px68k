@@ -240,9 +240,9 @@ void WinDraw_HideSplash(void)
           |<- 256B ->|A
           |  ScrBufR ||512*2byte (x68k screen size: 756x512)
           |  (right) |V
-0x0418c000+----------+---------+
-          |仮想キーボード用    |
-          |    に使うかも領域  |
+0x0418c000+----------+---------+A
+          |仮想キーボード用    || 512*256*2byte
+          |    に使うかも領域  |V
 0x041cc000+--------------------+
           |                    |
           | Virtexes           |
@@ -265,6 +265,7 @@ struct Vertexes {
 struct Vertexes *vtxl = (struct Vertexes *)0x41cc000;
 struct Vertexes *vtxr = (struct Vertexes *)(0x41cc000 + sizeof(struct Vertexes));
 struct Vertexes *vtxm = (struct Vertexes *)(0x41cc000 + sizeof(struct Vertexes) * 2);
+struct Vertexes *vtxk = (struct Vertexes *)(0x41cc000 + sizeof(struct Vertexes) * 3);
 
 #define PSP_BUF_WIDTH (512)
 #define PSP_SCR_WIDTH (480)
@@ -388,6 +389,9 @@ int WinDraw_Init(void)
 
 	ScrBufL = (WORD *)0x040cc000;
 	ScrBufR = (WORD *)0x0414c000;
+	kbd_buffer = (WORD *)0x418c000;
+
+	draw_kbd_to_tex();
 #else
 	sdl_rgbsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, 800, 600, 16, WinDraw_Pal16R, WinDraw_Pal16G, WinDraw_Pal16B, 0);
 
@@ -526,7 +530,7 @@ WinDraw_Draw(void)
 
 	// ソフトウェアキーボード描画
 
-	if (kbd_x < 700) {
+	if (Keyboard_IsSwKeyboard()) {
 		glBindTexture(GL_TEXTURE_2D, texid[9]);
 		//kbd_bufferから800x600の領域を切り出してテクスチャに転送
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, kbd_buffer);
@@ -566,7 +570,9 @@ WinDraw_Draw(void)
 #elif defined(PSP)
 	sceGuStart(GU_DIRECT, list);
 
-	sceGuClear(0);
+	sceGuClearColor(0);
+	sceGuClearDepth(0);
+	sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
 
 	// 左半分
 	vtxl->u = 0;
@@ -612,6 +618,28 @@ WinDraw_Draw(void)
 		sceGuTexFilter(GU_LINEAR, GU_LINEAR);
 
 		sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT|GU_COLOR_5650|GU_VERTEX_16BIT|GU_TRANSFORM_2D, 2, 0, vtxr);
+	}
+
+
+	if (Keyboard_IsSwKeyboard()) {
+		vtxk->u = 0;
+		vtxk->v = 0;
+		vtxk->color = 0;
+		vtxk->x = kbd_x;
+		vtxk->y = kbd_y;
+		vtxk->z = 0;
+		vtxk->u2 = kbd_w;
+		vtxk->v2 = kbd_h;
+		vtxk->color2 = 0;
+		vtxk->x2 = kbd_x + kbd_w;
+		vtxk->y2 = kbd_y + kbd_h;
+		vtxk->z2 = 0;
+
+		sceGuTexImage(0, 512, 256, 512, kbd_buffer);
+		sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
+		sceGuTexFilter(GU_LINEAR, GU_LINEAR);
+
+		sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT|GU_COLOR_5650|GU_VERTEX_16BIT|GU_TRANSFORM_2D, 2, 0, vtxk);
 	}
 
 	sceGuFinish();
@@ -1467,11 +1495,14 @@ static DWORD get_font_addr(WORD sjis, int fs)
 
 	// 半角文字
 	if (isHankaku(sjis >> 8)) {
-		if (fs == 16) {
+		switch (fs) {
+		case 8:
+			return (0x3a000 + (sjis >> 8) * (1 * 8));
+		case 16:
 			return (0x3a800 + (sjis >> 8) * (1 * 16));
-		} else if (fs == 24) {
+		case 24:
 			return (0x3d000 + (sjis >> 8) * (2 * 24));
-		} else {
+		default:
 			return -1;
 		}
 	}
@@ -1568,7 +1599,8 @@ static void draw_char(WORD sjis)
 	if (f < 0)
 		return;
 
-	w = isHankaku(sjis >> 8)? h / 2 : h;
+	// h=8は半角のみ
+	w = (h == 8)? 8 : (isHankaku(sjis >> 8)? h / 2 : h);
 
 	for (i = 0; i < h; i++) {
 		wc = w;
@@ -1610,6 +1642,10 @@ static void draw_str(char *cp)
 			draw_char(wc);
 			s += 2;
 			i++;
+		}
+		// 8x8描画(ソフトキーボードのFUNCキーは文字幅を縮める)
+		if (p6m.mfs == 8) {
+			p6m.ml_x -= 3;
 		}
 	}
 }
@@ -1911,33 +1947,12 @@ void WinDraw_DrawMenufile(struct menu_flist *mfl)
 #endif
 }
 
-void WinDraw_ClearScreen(int only_buffer)
+void WinDraw_ClearMenuBuffer(void)
 {
 #if defined(PSP)
-	int x, y;
-	WORD *p = menu_buffer;
-
-	for (y = 0; y < 272; y++) {
-		for (x = 0; x < 480; x++) {
-			*p++ = 0x0000;
-		}
-		p += 32; // 32 = texw - bufw = 512 - 480
-	}
-	
-	if (!only_buffer) {
-		psp_draw_menu();
-	}
+	memset(menu_buffer, 0, 512*272*2);
 #elif defined(ANDROID)
-	int i;
-	WORD *p = menu_buffer;
-
-	for (i = 0; i < 800 * 600; i++) {
-		*p++ = 0x0000;
-	}
-
-	if (!only_buffer) {
-		android_draw_menu();
-	}
+	memset(menu_buffer, 0, 800*600*2);
 #else
 	SDL_FillRect(menu_surface, NULL, 0);
 #endif
@@ -1947,6 +1962,14 @@ void WinDraw_ClearScreen(int only_buffer)
 /********** ソフトウェアキーボード描画 **********/
 
 #if defined(PSP) || defined(ANDROID)
+
+#if defined(PSP)
+// display width 480, buffer width 512
+#define KBDBUF_WIDTH 512
+#elif defined(ANDROID)
+// display width 800, buffer width 1024 だけれど 800 にしないとだめ
+#define KBDBUF_WIDTH 800
+#endif
 
 #define KBD_FS 16 // keyboard font size : 16
 
@@ -1959,14 +1982,14 @@ void WinDraw_reverse_key(int x, int y)
 	
 	kp = Keyboard_get_key_ptr(kbd_kx, kbd_ky);
 
-	p = kbd_buffer + 800 * kbd_key[kp].y + kbd_key[kp].x;
+	p = kbd_buffer + KBDBUF_WIDTH * kbd_key[kp].y + kbd_key[kp].x;
 
 	for (i = 0; i < kbd_key[kp].h; i++) {
 		for (j = 0; j < kbd_key[kp].w; j++) {
 			*p = ~(*p);
 			p++;
 		}
-		p = p + 800 - kbd_key[kp].w;
+		p = p + KBDBUF_WIDTH - kbd_key[kp].w;
 	}
 }
 
@@ -1988,11 +2011,6 @@ static void draw_kbd_to_tex()
 	char to[] = {0x93, 0x6f, 0x00};
 	char hi[] = {0x82, 0xd0, 0x00};
 
-	set_sbp(kbd_buffer);
-	set_mfs(KBD_FS);
-	set_mbcolor(0);
-	set_mcolor(0);
-
 	kbd_key[12].s = ka;
 	kbd_key[13].s = ro;
 	kbd_key[14].s = ko;
@@ -2004,6 +2022,37 @@ static void draw_kbd_to_tex()
 	kbd_key[96].s = rarw;
 	kbd_key[101].s = hi;
 	kbd_key[108].s = zen;
+#ifdef PSP
+	kbd_key[0].s = "BK";
+	kbd_key[1].s = "CP";
+	kbd_key[15].s = "CA";
+	kbd_key[18].s = "HP";
+	kbd_key[19].s = "EC";
+	kbd_key[34].s = "HM";
+	kbd_key[35].s = "IN";
+	kbd_key[36].s = "DL";
+	kbd_key[37].s = "CL";
+	kbd_key[55].s = "";
+	kbd_key[56].s = "RU";
+	kbd_key[57].s = "RD";
+	kbd_key[58].s = "UD";
+	kbd_key[63].s = "CTR";
+	kbd_key[81].s = "";
+	kbd_key[93].s = "";
+	kbd_key[100].s = "";
+	kbd_key[102].s = "X1";
+	kbd_key[103].s = "X2";
+	kbd_key[105].s = "X3";
+	kbd_key[106].s = "X4";
+	kbd_key[107].s = "X5";
+	kbd_key[109].s = "OP1";
+	kbd_key[110].s = "OP2";
+#endif
+
+	set_sbp(kbd_buffer);
+	set_mfs(KBD_FS);
+	set_mbcolor(0);
+	set_mcolor(0);
 
 	// キーボードの背景
 	p = kbd_buffer;
@@ -2011,12 +2060,12 @@ static void draw_kbd_to_tex()
 		for (x = 0; x < kbd_w; x++) {
 			*p++ = (0x7800 | 0x03e0 | 0x000f);
 		}
-		p = p + 800 - kbd_w;
+		p = p + KBDBUF_WIDTH - kbd_w;
 	}
 
 	// キーの描画
 	for (i = 0; kbd_key[i].x != -1; i++) {
-		p = kbd_buffer + kbd_key[i].y * 800 + kbd_key[i].x;
+		p = kbd_buffer + kbd_key[i].y * KBDBUF_WIDTH + kbd_key[i].x;
 		for (y = 0; y < kbd_key[i].h; y++) {
 			for (x = 0; x < kbd_key[i].w; x++) {
 				if (x == (kbd_key[i].w - 1)
@@ -2027,13 +2076,25 @@ static void draw_kbd_to_tex()
 					*p++ = 0xffff;
 				}
 			}
-			p = p + 800 - kbd_key[i].w;
+			p = p + KBDBUF_WIDTH - kbd_key[i].w;
 		}
-		// 刻印は上下左右ともセンタリングする
-		set_mlocate(kbd_key[i].x + kbd_key[i].w / 2
-			    - strlen(kbd_key[i].s) * (KBD_FS / 2 / 2),
-			    kbd_key[i].y + kbd_key[i].h / 2 - KBD_FS / 2);
-		draw_str(kbd_key[i].s);
+		if (strlen(kbd_key[i].s) == 3 && *(kbd_key[i].s) == 'F') {
+			// FUNCキー刻印描画
+			set_mlocate(kbd_key[i].x + kbd_key[i].w / 2
+				    - strlen(kbd_key[i].s) * (8 / 2)
+				    + (strlen(kbd_key[i].s) - 1) * 3 / 2,
+				    kbd_key[i].y + kbd_key[i].h / 2 - 8 / 2);
+			set_mfs(8);
+			draw_str(kbd_key[i].s);
+			set_mfs(KBD_FS);
+		} else {
+			// 刻印は上下左右ともセンタリングする
+			set_mlocate(kbd_key[i].x + kbd_key[i].w / 2
+				    - strlen(kbd_key[i].s) * (KBD_FS / 2 / 2),
+				    kbd_key[i].y
+				    + kbd_key[i].h / 2 - KBD_FS / 2);
+			draw_str(kbd_key[i].s);
+		}
 	}
 
 	WinDraw_reverse_key(kbd_kx, kbd_ky);

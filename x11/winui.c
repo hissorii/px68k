@@ -467,7 +467,7 @@ int WinUI_Menu(int first)
 		first = 0;
 		// ダブルバッファだとキー触らないと画面変わらないので
 		// 最初だけ二度描きする
-		WinDraw_ClearScreen(1);
+		WinDraw_ClearMenuBuffer();
 		WinDraw_DrawMenu(menu_state, mkey_y, mval_y);
 	}
 
@@ -632,7 +632,7 @@ int WinUI_Menu(int first)
 	}
 
 	if (menu_redraw) {
-		WinDraw_ClearScreen(1);
+		WinDraw_ClearMenuBuffer();
 		WinDraw_DrawMenu(menu_state, mkey_y, mval_y);
 	}
 

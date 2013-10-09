@@ -39,6 +39,9 @@ BYTE get_joy_downstate(void);
 void reset_joy_downstate(void);
 #ifdef PSP
 DWORD Joystick_get_downstate_psp(DWORD ctrl_bit);
+void Joystick_reset_downstate_psp(DWORD ctrl_bit);
+void Joystatic_reset_anapad_psp(void);
+void Joystick_mv_anapad_psp(void);
 #endif
 #ifdef ANDROID
 VBTN_POINTS *Joystick_get_btn_points(float scale);
