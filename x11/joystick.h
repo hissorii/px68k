@@ -37,6 +37,8 @@ void FASTCALL Joystick_Update(void);
 void menukey_update(signed int key);
 BYTE get_joy_downstate(void);
 void reset_joy_downstate(void);
+BYTE get_joy_upstate(void);
+void reset_joy_upstate(void);
 #ifdef PSP
 DWORD Joystick_get_downstate_psp(DWORD ctrl_bit);
 void Joystick_reset_downstate_psp(DWORD ctrl_bit);

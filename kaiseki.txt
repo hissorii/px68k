@@ -451,4 +451,15 @@ TODO:[done] software keyboardを出しているときは、joystick入力を無�
 TODO: software keyboard用のkeytblに従来のkeytblをマージする
 TODO:[done] 仮想ボタンの遊びをもたせる
 
+** 2013/10/15
 
+ボタンが押されたらbit off
+
+now pre  ^  ~^  up
+-------+---+---+----
+ 1   1   0   1   0
+ 1   0   1   0   1
+ 0   0   0   1   0
+ 0   1   1   0   0
+
+up = (now ^ pre) & now;

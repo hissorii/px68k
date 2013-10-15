@@ -660,7 +660,14 @@ BG_DrawLine(int opaq, int gd)
 	if (gd) {
 		Sprite_DrawLineMcr(1);
 		Sprite_DrawLineMcr(2);
-		if (BG_Regs[9] & 1) {
+		if (BG_Regs[9] & 8) { // BG1 表示on
+			if (BG_CHRSIZE == 8) {
+				BG_DrawLineMcr8(BG_BG1TOP, BG1ScrollX, BG1ScrollY);
+			} else {
+				BG_DrawLineMcr16(BG_BG1TOP, BG1ScrollX, BG1ScrollY);
+			}
+		}
+		if (BG_Regs[9] & 1) { // BG0 表示on
 			if (BG_CHRSIZE == 8) {
 				BG_DrawLineMcr8(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
 			} else {

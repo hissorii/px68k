@@ -159,7 +159,7 @@ BYTE KeyTable[KEYTABLE_MAX] = {
 	//	    ,  ↑,  ↓,  →,  ←,SYSQ,    ,  		; 0x10
 		  NC,0x3c,0x3e,0x3d,0x3b,  NC,  NC,  NC,
 	//	    ,    ,    , ESC,    ,    ,    ,   		; 0x18
-		  NC,  NC,  NC,0x01,  NC,  NC,  NC,  NC,
+		  NC,  NC,0x63,0x01,  NC,  NC,  NC,  NC,
 	//	    ,KANJ,MUHE,HENM,HENK,RONM,HIRA,KATA		; 0x20
 		  NC,  NC,0x56,  NC,  NC,  NC,  NC,  NC,
 	//	HIKA,ZENK,HANK,ZNHN,    ,KANA,    ,   		; 0x28
@@ -293,7 +293,7 @@ BYTE KeyTableMaster[KEYTABLE_MAX] = {
 	//	    ,    ,    ,PAUS,SCRL,SYSQ,    ,  		; 0x10
 		  NC,  NC,  NC,0x61,  NC,  NC,  NC,  NC,
 	//	    ,    ,    , ESC,    ,    ,    ,   		; 0x18
-		  NC,  NC,  NC,0x01,  NC,  NC,  NC,  NC,
+		  NC,  NC,0x63,0x01,  NC,  NC,  NC,  NC,
 	//	    ,KANJ,MUHE,HENM,HENK,RONM,HIRA,KATA		; 0x20
 		  NC,  NC,0x56,  NC,  NC,  NC,  NC,  NC,
 	//	HIKA,ZENK,HANK,ZNHN,    ,KANA,    ,   		; 0x28
@@ -364,7 +364,11 @@ void send_keycode(BYTE code, int flag)
 	if (code != NC) {
 		newwp = ((KeyBufWP + 1) & (KeyBufSize - 1));
 		if (newwp != KeyBufRP) {
-			KeyBuf[KeyBufWP] = code | ((flag == P6K_UP)? 0 : 0x80);
+			KeyBuf[KeyBufWP] = code | ((flag == P6K_UP)? 0x80 : 0);
+#ifdef ANDROID
+			__android_log_print(ANDROID_LOG_DEBUG,"Tag","KeyBuf: %x", KeyBuf[KeyBufWP]);
+#endif
+			printf("*** KeyBuf: %x\n", KeyBuf[KeyBufWP]);
 			KeyBufWP = newwp;
 			printf("KeyBufWP: %d\n", KeyBufWP);
 		}
@@ -399,6 +403,7 @@ Keyboard_KeyDown(DWORD wp)
 
 	code = KeyTable[wp];
 
+	printf("Keyboard_KeyDown: ");
 	printf("wp=0x%x, code=0x%x\n", wp, code);
 	printf("SDLK_UP: 0x%x", SDLK_UP);
 
@@ -412,7 +417,7 @@ Keyboard_KeyDown(DWORD wp)
 		}
 	}
 #else
-	send_keycode(code, P6K_UP);
+	send_keycode(code, P6K_DOWN);
 #endif
 
 	printf("JoyKeyState: 0x%x\n", JoyKeyState);
@@ -493,7 +498,7 @@ Keyboard_KeyUp(DWORD wp)
 		}
 	}
 #else
-	send_keycode(code, P6K_DOWN);
+	send_keycode(code, P6K_UP);
 #endif
 
 	printf("JoyKeyState: 0x%x\n", JoyKeyState);
@@ -724,7 +729,7 @@ static void mv_key(int dx, int dy)
 	WinDraw_reverse_key(kbd_kx, kbd_ky);
 }
 
-static void send_key(void)
+static void send_key(int flag)
 {
 
 	BYTE code;
@@ -732,8 +737,7 @@ static void send_key(void)
 	code = kbd_key[Keyboard_get_key_ptr(kbd_kx, kbd_ky)].c;
 	//__android_log_print(ANDROID_LOG_DEBUG,"Tag","sendkey: %d", code);
 
-	send_keycode(code, 1);
-	send_keycode(code, 2);
+	send_keycode(code, flag);
 }
 
 void Keyboard_skbd(void)
@@ -757,13 +761,23 @@ void Keyboard_skbd(void)
 		mv_key(+1, 0);
 	}
 	if (!(joy & JOY_TRG1)) {
-		send_key();
+		send_key(P6K_DOWN);
 	}
 	if (!(joy & JOY_TRG2)) {
-		// BSキーを入力
-		send_keycode(0xf, 1);
-		send_keycode(0xf, 2);
+		// BSキーをkey down
+		send_keycode(0xf, P6K_DOWN);
 	}
+
+	joy = get_joy_upstate();
+	reset_joy_upstate();
+	if (joy & JOY_TRG1) {
+		send_key(P6K_UP);
+	}
+	if (joy & JOY_TRG2) {
+		// BSキーをkey up
+		send_keycode(0xf, P6K_UP);
+	}
+
 }
 
 int skbd_mode = FALSE;

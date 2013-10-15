@@ -38,6 +38,9 @@ BYTE JoyState1[2];
 // ボタンが「押された」かを記憶。押しっぱなしでリピートしたくない場合に使用
 BYTE JoyDownState0;
 
+// ボタンが「放された」かを記憶。押しっぱなしでリピートしたくない場合に使用
+BYTE JoyUpState0;
+
 #ifdef PSP
 DWORD JoyDownStatePSP;
 BYTE JoyAnaPadX;
@@ -260,6 +263,7 @@ void FASTCALL Joystick_Update(void)
 	}
 
 	JoyDownState0 = ~(ret0 ^ pre_ret0) | ret0;
+	JoyUpState0 = (ret0 ^ pre_ret0) & ret0;
 	pre_ret0 = ret0;
 
 	// 前回と変化のあったbitを立てる
@@ -355,6 +359,7 @@ void FASTCALL Joystick_Update(void)
 	}
 
 	JoyDownState0 = ~(ret0 ^ pre_ret0) | ret0;
+	JoyUpState0 = (ret0 ^ pre_ret0) & ret0;
 	pre_ret0 = ret0;
 
 	// ソフトウェアキーボードを出しているときにはJoystick無効
@@ -403,6 +408,15 @@ void reset_joy_downstate(void)
 {
 	JoyDownState0 = 0xff;
 }
+BYTE get_joy_upstate(void)
+{
+	return JoyUpState0;
+}
+void reset_joy_upstate(void)
+{
+	JoyUpState0 = 0x00;
+}
+
 
 #ifdef PSP
 DWORD Joystick_get_downstate_psp(DWORD ctrl_bit)
