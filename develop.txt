@@ -2,7 +2,7 @@
 PX68K ( Portable (x)keropi PRO-68K )
 
 ソースを自分でコンパイルする際に役に立つかもしれないドキュメント
-                                                          2013/09/03 ひっそりぃ
+                                                          2013/10/21 ひっそりぃ
 
 ■開発環境について
 
@@ -31,6 +31,9 @@ PX68K ( Portable (x)keropi PRO-68K )
 ・UNIX系
 
   $ make
+
+  (ばりばりソース修正とコンパイルをする方は、make depend で
+   あらかじめ Makefile に依存関係情報を付与してください)
 
 ・PSP
 
