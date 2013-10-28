@@ -315,7 +315,7 @@ int WinDraw_Init(void)
 		return FALSE;
 	}
 
-	__android_log_print(ANDROID_LOG_DEBUG,"Tag","kbd_buffer 0x%x", kbd_buffer);
+	p6logd("kbd_buffer 0x%x", kbd_buffer);
 
 	memset(texid, 0, sizeof(texid));
 	glGenTextures(10, &texid[0]);
@@ -473,19 +473,11 @@ WinDraw_Draw(void)
 
 	if (oldtextx != TextDotX) {
 		oldtextx = TextDotX;
-#ifdef ANDROID
-		__android_log_print(ANDROID_LOG_DEBUG,"Tag","TextDotX: %d", TextDotX);
-#else
-		printf("TextDotX: %d\n", TextDotX);
-#endif
+		p6logd("TextDotX: %d\n", TextDotX);
 	}
 	if (oldtexty != TextDotY) {
 		oldtexty = TextDotY;
-#ifdef ANDROID
-		__android_log_print(ANDROID_LOG_DEBUG,"Tag","TextDotY: %d", TextDotY);
-#else
-		printf("TextDotY: %d\n", TextDotY);
-#endif
+		p6logd("TextDotY: %d\n", TextDotY);
 	}
 
 #if defined(ANDROID)

@@ -131,7 +131,7 @@ void Joystick_Vbtn_Update(float scale)
 
 	for (i = 0; i < VBTN_MAX; i++) {
 		vbtn_state[i] = VBTN_NOUSE;
-		//__android_log_print(ANDROID_LOG_DEBUG,"Tag","id: %d x: %f y: %f", i, p->x, p->y);
+		//p6logd("id: %d x: %f y: %f", i, p->x, p->y);
 		SET_VBTN(i, p->x, p->y, scale);
 		p++;
 	}
@@ -317,7 +317,7 @@ void FASTCALL Joystick_Update(void)
 		fx = finger->x;
 		fy = finger->y;
 
-		//__android_log_print(ANDROID_LOG_DEBUG,"Tag","id: %d x: %f y: %f", i, fx, fy);
+		//p6logd("id: %d x: %f y: %f", i, fx, fy);
 
 		for (j = 0; j < VBTN_MAX; j++) {
 			if (vbtn_state[j] == VBTN_NOUSE)

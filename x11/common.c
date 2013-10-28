@@ -27,6 +27,7 @@ void Error(const char* s)
 //	MessageBox(hWndMain, s, title, MB_ICONERROR | MB_OK);
 }
 
+// log for debug
 void p6logd(const char *fmt, ...)
 {
 	va_list args;

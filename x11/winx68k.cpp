@@ -583,9 +583,6 @@ int main(int argc, char *argv[])
 	sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
 #endif
 
-#ifdef ANDROID
-	__android_log_write(ANDROID_LOG_DEBUG,"Tag","555");
-#endif
 	p6logd("555 %d %s\n", 123, "hoge");
 
 	if (set_modulepath(winx68k_dir, sizeof(winx68k_dir)))
@@ -629,7 +626,7 @@ int main(int argc, char *argv[])
 #else
 	SDL_DisplayMode sdl_dispmode;
 	SDL_GetCurrentDisplayMode(0, &sdl_dispmode);
-	__android_log_print(ANDROID_LOG_DEBUG,"Tag","width: %d height: %d", sdl_dispmode.w, sdl_dispmode.h);
+	p6logd("width: %d height: %d", sdl_dispmode.w, sdl_dispmode.h);
 	// ナビゲーションバーを除くアプリが触れる画面
 	realdisp_w = sdl_dispmode.w, realdisp_h = sdl_dispmode.h;
 
@@ -645,7 +642,7 @@ int main(int argc, char *argv[])
 	// for Android: window sizeの指定は関係なくフルスクリーンになるみたい
 	sdl_window = SDL_CreateWindow(APPNAME" SDL", 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_SHOWN);
 	if (sdl_window == NULL) {
-		__android_log_print(ANDROID_LOG_DEBUG,"Tag","sdl_window: %ld", sdl_window);
+		p6logd("sdl_window: %ld", sdl_window);
 	}
 
 	SDL_GLContext glcontext = SDL_GL_CreateContext(sdl_window);
@@ -759,9 +756,8 @@ int main(int argc, char *argv[])
 #ifdef ANDROID
 			if (vk_cnt > 0) {
 				vk_cnt--;
-				//__android_log_print(ANDROID_LOG_DEBUG,"Tag","vk_cnt %d", vk_cnt);
 				if (vk_cnt == 0) {
-					__android_log_write(ANDROID_LOG_DEBUG,"Tag","vk_cnt 0");
+					p6logd("vk_cnt 0");
 				}
 			}
 #endif
@@ -784,14 +780,14 @@ int main(int argc, char *argv[])
 				DSound_Play();
 				break;
 			case SDL_FINGERDOWN:
-				//__android_log_print(ANDROID_LOG_DEBUG,"Tag","FINGERDOWN: tid: %lld,,, x:%f y:%f", ev.tfinger.touchId, ev.tfinger.x, ev.tfinger.y);
+				//p6logd("FINGERDOWN: tid: %lld,,, x:%f y:%f", ev.tfinger.touchId, ev.tfinger.x, ev.tfinger.y);
 				if (touchId == -1) {
 					touchId = ev.tfinger.touchId;
 				}
 				break;
 			case SDL_FINGERMOTION:
 				float kx, ky, dx, dy;
-				//__android_log_print(ANDROID_LOG_DEBUG,"Tag","FM: x:%f y:%f dx:%f dy:%f", ev.tfinger.x, ev.tfinger.y, ev.tfinger.dx, ev.tfinger.dy);
+				//p6logd("FM: x:%f y:%f dx:%f dy:%f", ev.tfinger.x, ev.tfinger.y, ev.tfinger.dx, ev.tfinger.dy);
 				if (vk_cnt == 0) {
 					kx = ev.tfinger.x * 800;
 					ky = ev.tfinger.y * 600;
@@ -911,14 +907,14 @@ int main(int argc, char *argv[])
 		if (menu_mode == menu_out) {
 			state = Joystick_get_vbtn_state(6);
 			if (vk_cnt == -1 && state == VBTN_ON) {
-				__android_log_write(ANDROID_LOG_DEBUG,"Tag","vk_cnt start");
+				p6logd("vk_cnt start");
 				vk_cnt = 20;
 			} else if (vk_cnt > 0 && state == VBTN_OFF) {
 				vk_cnt = -1;
 			}
 			if (kbd_x > 700 && vk_cnt == 0) {
 				kbd_x = 0, kbd_y = 0;
-				__android_log_write(ANDROID_LOG_DEBUG,"Tag","do_kbd");
+				p6logd("do_kbd");
 			}
 			if (kbd_x < 700) {
 				Keyboard_skbd();

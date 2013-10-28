@@ -171,13 +171,7 @@ sdlaudio_callback(void *userdata, unsigned char *stream, int len)
 #else
 	DSound_Send(len / 4, rate);
 #endif
-	
-#ifdef ANDROID
-	//__android_log_print(ANDROID_LOG_DEBUG,"Tag","tdiff %4d : pbrp = 0x%x, pbwp = 0x%x : len %d", now - bef, pbrp, pbwp, len);
-#else
-	//printf("tdiff %4d : pbrp = 0x%x, pbwp = 0x%x : len %d", now - bef, pbrp, pbwp, len);
-#endif
-
+	//p6logd("tdiff %4d : pbrp = 0x%x, pbwp = 0x%x : len %d", now - bef, pbrp, pbwp, len);
 #if SDL_VERSION_ATLEAST(2, 0, 0)	
 	// SDL2.0ではstream bufferのクリアが必要
 	memset(stream, 0, len);

@@ -365,12 +365,9 @@ void send_keycode(BYTE code, int flag)
 		newwp = ((KeyBufWP + 1) & (KeyBufSize - 1));
 		if (newwp != KeyBufRP) {
 			KeyBuf[KeyBufWP] = code | ((flag == P6K_UP)? 0x80 : 0);
-#ifdef ANDROID
-			__android_log_print(ANDROID_LOG_DEBUG,"Tag","KeyBuf: %x", KeyBuf[KeyBufWP]);
-#endif
-			printf("*** KeyBuf: %x\n", KeyBuf[KeyBufWP]);
+			p6logd("KeyBuf: %x\n", KeyBuf[KeyBufWP]);
 			KeyBufWP = newwp;
-			printf("KeyBufWP: %d\n", KeyBufWP);
+			p6logd("KeyBufWP: %d\n", KeyBufWP);
 		}
 	}
 }
@@ -735,7 +732,7 @@ static void send_key(int flag)
 	BYTE code;
 
 	code = kbd_key[Keyboard_get_key_ptr(kbd_kx, kbd_ky)].c;
-	//__android_log_print(ANDROID_LOG_DEBUG,"Tag","sendkey: %d", code);
+	//p6logd("sendkey: %d", code);
 
 	send_keycode(code, flag);
 }
