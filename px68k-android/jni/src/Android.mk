@@ -40,8 +40,7 @@ X68KSRCS= \
 	$(PX68K_PATH)/x68k/scsi.c \
 	$(PX68K_PATH)/x68k/sram.c \
 	$(PX68K_PATH)/x68k/sysport.c \
-	$(PX68K_PATH)/x68k/tvram.c \
-	$(PX68K_PATH)/x68k/cpu_glue.c
+	$(PX68K_PATH)/x68k/tvram.c
 FMGENSRCS= \
 	$(PX68K_PATH)/fmgen/fmgen.cpp \
 	$(PX68K_PATH)/fmgen/fmg_wrap.cpp \
@@ -62,7 +61,8 @@ X11SRCS= \
 	$(PX68K_PATH)/x11/dswin.c \
 	$(PX68K_PATH)/x11/windraw.c \
 	$(PX68K_PATH)/x11/winui.c \
-	$(PX68K_PATH)/x11/about.c
+	$(PX68K_PATH)/x11/about.c \
+	$(PX68K_PATH)/x11/common.c
 
 X11CXXSRCS= $(PX68K_PATH)/x11/winx68k.cpp
 

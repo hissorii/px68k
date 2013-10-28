@@ -586,6 +586,7 @@ int main(int argc, char *argv[])
 #ifdef ANDROID
 	__android_log_write(ANDROID_LOG_DEBUG,"Tag","555");
 #endif
+	p6logd("555 %d %s\n", 123, "hoge");
 
 	if (set_modulepath(winx68k_dir, sizeof(winx68k_dir)))
 		return 1;

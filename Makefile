@@ -1,5 +1,5 @@
-CC	 = gcc -m32
-CXX	 = c++ -m32
+CC	 = gcc
+CXX	 = c++
 CXXLINK	 = $(CXX)
 RM	 = rm -f
 TAGS	 = etags
@@ -57,11 +57,11 @@ CXXLDOPTIONS= $(CXXDEBUGFLAGS)
 
 CPUOBJS= x68k/d68k.o m68000/c68k.o m68000/m68000.o
 
-X68KOBJS= x68k/adpcm.o x68k/bg.o x68k/crtc.o x68k/dmac.o x68k/fdc.o x68k/fdd.o x68k/disk_d88.o x68k/disk_dim.o x68k/disk_xdf.o x68k/gvram.o x68k/ioc.o x68k/irqh.o x68k/mem_wrap.o x68k/mercury.o x68k/mfp.o x68k/palette.o x68k/midi.o x68k/pia.o x68k/rtc.o x68k/sasi.o x68k/scc.o x68k/scsi.o x68k/sram.o x68k/sysport.o x68k/tvram.o x68k/cpu_glue.o
+X68KOBJS= x68k/adpcm.o x68k/bg.o x68k/crtc.o x68k/dmac.o x68k/fdc.o x68k/fdd.o x68k/disk_d88.o x68k/disk_dim.o x68k/disk_xdf.o x68k/gvram.o x68k/ioc.o x68k/irqh.o x68k/mem_wrap.o x68k/mercury.o x68k/mfp.o x68k/palette.o x68k/midi.o x68k/pia.o x68k/rtc.o x68k/sasi.o x68k/scc.o x68k/scsi.o x68k/sram.o x68k/sysport.o x68k/tvram.o
 
 FMGENOBJS= fmgen/fmgen.o fmgen/fmg_wrap.o fmgen/file.o fmgen/fmtimer.o fmgen/opm.o fmgen/opna.o fmgen/psg.o
 
-X11OBJS= x11/joystick.o x11/juliet.o x11/keyboard.o x11/mouse.o x11/prop.o x11/status.o x11/timer.o x11/dswin.o x11/windraw.o x11/winui.o x11/about.o
+X11OBJS= x11/joystick.o x11/juliet.o x11/keyboard.o x11/mouse.o x11/prop.o x11/status.o x11/timer.o x11/dswin.o x11/windraw.o x11/winui.o x11/about.o x11/common.o
 
 X11CXXOBJS= x11/winx68k.o
 
@@ -78,14 +78,14 @@ SRCS=		$(CSRCS) $(CXXSRCS)
 .SUFFIXES: .c .cpp
 
 .c.o:
-	$(CC) -o $@ $(CFLAGS) $(_NOOP_) -c $*.c
+	$(CC) -o $@ $(CFLAGS) -c $*.c
 
 .cpp.o:
-	$(CXX) -o $@ $(CXXFLAGS) $(_NOOP_) -c $*.cpp
+	$(CXX) -o $@ $(CXXFLAGS) -c $*.cpp
 
 all:: px68k
 
-px68k: $(OBJS) $(DEPLIBS)
+px68k: $(OBJS)
 	$(RM) $@
 	$(CXXLINK) -o $@ $(CXXLDOPTIONS) $(OBJS) $(SDL_LIB) $(LDLIBS)
 
