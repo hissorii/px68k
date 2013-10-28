@@ -70,10 +70,6 @@
 
 #include "fmg_wrap.h"
 
-#ifdef ANDROID
-#include <android/log.h>
-#endif
-
 extern	BYTE		fdctrace;
 extern	BYTE		traceflag;
 extern	WORD		FrameCount;

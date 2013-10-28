@@ -31,10 +31,6 @@
 #include	"mercury.h"
 #include	"fmg_wrap.h"
 
-#ifdef ANDROID
-#include <android/log.h>
-#endif
-
 #define PCMBUF_SIZE 2*2*48000*2
 
 	short	playing = FALSE;

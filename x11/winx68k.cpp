@@ -3,7 +3,7 @@ extern "C" {
 #endif 
 
 #include <SDL.h>
-#ifdef ANDROID
+#ifdef USE_OGLES11
 #include "SDL_opengles.h"
 #endif
 #include "common.h"
@@ -45,10 +45,6 @@ extern "C" {
 #include "gvram.h"
 #include "tvram.h"
 #include "mouse.h"
-
-#ifdef ANDROID
-#include <android/log.h>
-#endif
 
 #include "dswin.h"
 #include "fmg_wrap.h"
@@ -630,21 +626,19 @@ int main(int argc, char *argv[])
 	// ナビゲーションバーを除くアプリが触れる画面
 	realdisp_w = sdl_dispmode.w, realdisp_h = sdl_dispmode.h;
 
-	// 今回はOpenGL ES 1.1を使う
-	//	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
-	//	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
-	//	SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 5 );
-	//	SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 5 );
-	//	SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 5 );
-	//	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
+#ifdef USE_OGLES11
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ); 
 
 	// for Android: window sizeの指定は関係なくフルスクリーンになるみたい
 	sdl_window = SDL_CreateWindow(APPNAME" SDL", 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_SHOWN);
+#else
+	sdl_window = SDL_CreateWindow(APPNAME" SDL", 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+#endif
 	if (sdl_window == NULL) {
 		p6logd("sdl_window: %ld", sdl_window);
 	}
 
+#ifdef USE_OGLES11
 	SDL_GLContext glcontext = SDL_GL_CreateContext(sdl_window);
 
         glClearColor( 0, 0, 0, 0 );
@@ -662,6 +656,8 @@ int main(int argc, char *argv[])
 	//  glOrthof(0, 1024, 0, 1024, -1, 1);
 	glMatrixMode(GL_MODELVIEW);
 #endif
+#endif // !SDL_VERSION_ATLEAST(2, 0, 0)
+
 	if (!WinDraw_MenuInit()) {
 		WinX68k_Cleanup();
 		WinDraw_Cleanup();
@@ -917,7 +913,9 @@ int main(int argc, char *argv[])
 				p6logd("do_kbd");
 			}
 			if (kbd_x < 700) {
+#ifdef USE_OGLES11
 				Keyboard_skbd();
+#endif
 			}
 		}
 #endif

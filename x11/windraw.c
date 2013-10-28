@@ -23,9 +23,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if defined(ANDROID)
+#ifdef USE_OGLES11
 #include <GLES/gl.h>
-#elif defined(PSP)
+#endif
+#ifdef PSP
 #include <pspkernel.h>
 #include <pspdisplay.h>
 #include <pspgu.h>
@@ -47,10 +48,6 @@
 #include "joystick.h"
 #include "keyboard.h"
 
-#ifdef ANDROID
-#include <android/log.h>
-#endif
-
 #if 0
 #include "../icons/keropi.xpm"
 #endif
@@ -63,12 +60,12 @@ WORD *ScrBufL = 0, *ScrBufR = 0;
 WORD *ScrBuf = 0;
 #endif
 
-#if defined(PSP) || defined(ANDROID)
+#if defined(PSP) || defined(USE_OGLES11)
 WORD *menu_buffer;
 WORD *kbd_buffer;
 #endif
 
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
+#ifdef  USE_SDLGFX
 SDL_Surface *sdl_rgbsurface;
 #endif
 
@@ -92,7 +89,7 @@ WORD WinDraw_Pal16B, WinDraw_Pal16R, WinDraw_Pal16G;
 DWORD WindowX = 0;
 DWORD WindowY = 0;
 
-#ifdef ANDROID
+#ifdef USE_OGLES11
 GLuint texid[10];
 #endif
 
@@ -279,19 +276,22 @@ int WinDraw_Init(void)
 {
 	int i, j;
 
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
+#ifndef USE_OGLES11
 	SDL_Surface *sdl_surface;
-#endif
-	WindowX = 768;
-	WindowY = 512;
 
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	sdl_surface = SDL_GetWindowSurface(sdl_window);
+#else
 	sdl_surface = SDL_GetVideoSurface();
+#endif
 	if (sdl_surface == NULL) {
 		fprintf(stderr, "can't create surface.\n");
 		return 1;
 	}
+
 #endif
+	WindowX = 768;
+	WindowY = 512;
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	WinDraw_Pal16R = 0xf800;
@@ -304,7 +304,7 @@ int WinDraw_Init(void)
 	printf("R: %x, G: %x, B: %x\n", WinDraw_Pal16R, WinDraw_Pal16G, WinDraw_Pal16B);
 #endif
 
-#ifdef ANDROID
+#if defined(USE_OGLES11)
 	ScrBuf = malloc(1024*1024*2); // OpenGL ES 1.1 needs 2^x pixels
 	if (ScrBuf == NULL) {
 		return FALSE;
@@ -331,7 +331,6 @@ int WinDraw_Init(void)
 	for (i = 0; i < 32*32; i++) {
 		BtnTex[i] = 0x03e0;
 	}
-
 
 	// ボタン用テクスチャ。とりあえず全部同じ色。
 	for (i = 1; i < 8; i++) {
@@ -393,6 +392,8 @@ int WinDraw_Init(void)
 
 	draw_kbd_to_tex();
 #else
+
+#ifdef USE_SDLGFX
 	sdl_rgbsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, 800, 600, 16, WinDraw_Pal16R, WinDraw_Pal16G, WinDraw_Pal16B, 0);
 
 	if (sdl_rgbsurface == 0) {
@@ -402,6 +403,10 @@ int WinDraw_Init(void)
 	ScrBuf = sdl_rgbsurface->pixels;
 
 	printf("drawbuf: 0x%x, ScrBuf: 0x%x\n", sdl_surface->pixels, ScrBuf);
+#else
+	ScrBuf = malloc(800 * 600 * 2);
+#endif
+
 #endif
 	return TRUE;
 }
@@ -418,7 +423,7 @@ WinDraw_Redraw(void)
 	TVRAM_SetAllDirty();
 }
 
-#ifdef ANDROID
+#ifdef USE_OGLES11
 #define SET_GLFLOATS(dst, a, b, c, d, e, f, g, h)		\
 {								\
 	dst[0] = (a); dst[1] = (b); dst[2] = (c); dst[3] = (d);	\
@@ -459,16 +464,12 @@ void draw_all_buttons(GLfloat *tex, GLfloat *ver, GLfloat scale)
 		p++;
 	}
 }
-#endif
+#endif // USE_OGLES11
 
 void FASTCALL
 WinDraw_Draw(void)
 {
-	SDL_Surface *sdl_surface, *roto_surface = NULL;
-	int ret;
-	int x, y, Bpp;
-	WORD c, *p, *p2, dummy, *dst16;
-	DWORD *dst32, dat32;
+	SDL_Surface *sdl_surface;
 	static int oldtextx = -1, oldtexty = -1;
 
 	if (oldtextx != TextDotX) {
@@ -480,7 +481,7 @@ WinDraw_Draw(void)
 		p6logd("TextDotY: %d\n", TextDotY);
 	}
 
-#if defined(ANDROID)
+#if defined(USE_OGLES11)
 	GLfloat texture_coordinates[8];
 	GLfloat vertices[8];
 	GLfloat w;
@@ -612,7 +613,6 @@ WinDraw_Draw(void)
 		sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT|GU_COLOR_5650|GU_VERTEX_16BIT|GU_TRANSFORM_2D, 2, 0, vtxr);
 	}
 
-
 	if (Keyboard_IsSwKeyboard()) {
 		vtxk->u = 0;
 		vtxk->v = 0;
@@ -639,12 +639,23 @@ WinDraw_Draw(void)
 
 	sceGuSwapBuffers();
 
-#else // Unix系 (要SDL_gfx)
+#else // OpenGL ES 未使用
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	sdl_surface = SDL_GetWindowSurface(sdl_window);
+#else
 	sdl_surface = SDL_GetVideoSurface();
+#endif
+
+#ifdef USE_SDLGFX
+	SDL_Surface *roto_surface = NULL;
+	int ret;
+
 	if (sdl_rgbsurface == NULL) {
 		puts("xxx sdl_rgbsurface not allocated yet");
 		return;
 	}
+
 	if (TextDotX <= 512) {
 		roto_surface = rotozoomSurfaceXY(sdl_rgbsurface, 0.0, 512.0*1.33333/TextDotX, 512.0/TextDotY, 0);
 	}
@@ -657,8 +668,69 @@ WinDraw_Draw(void)
 	if (ret < 0) {
 		printf("SDL_BlitSurface() failed %d\n", ret);
 	}
+#else
+	int x, y, Bpp;
+//	WORD c, *p, *p2, dummy, *dst16;
+	WORD *p, *dst16;
+	DWORD *dst32, dat32;
 
+	Bpp = sdl_surface->format->BytesPerPixel;
+	// 2倍に拡大する
+	if (TextDotX <= 256 && TextDotY <= 256) {
+		for (y = 0; y < 256; y++) {
+			p = ScrBuf + 800 * y;
+			// surface->pixelsはvoid *
+			dst16 = sdl_surface->pixels + sdl_surface->w * Bpp * y * 2;
+			dst32 = (DWORD *)dst16;
+			for (x = 0; x < 256; x++) {
+				if  (Bpp == 4) {
+					dat32 = (DWORD)(*p & 0xf800) << 8 | (*p & 0x07e0) << 5 | (*p & 0x001f) << 3;
+					*dst32++ = dat32;
+					*dst32 = dat32;
+					dst32 += sdl_surface->w;
+					*dst32-- = dat32;
+					*dst32 = dat32;
+					p++;
+					dst32 -= sdl_surface->w;
+					dst32 += 2;
+				} else if (Bpp == 2) {
+					*dst16++ = *p;
+					*dst16 = *p;
+					dst16 += sdl_surface->w;
+					*dst16-- = *p;
+					*dst16 = *p;
+					p++;
+					dst16 -= sdl_surface->w;
+					dst16 += 2;
+				} else {
+					// xxx 未サポート
+				}
+			}
+		}
+	} else {
+		for (y = 0; y < 512; y++) {
+			p = ScrBuf + 800 * y;
+			// surface->pixelsはvoid *
+			dst16 = sdl_surface->pixels + sdl_surface->w * Bpp * y;
+			dst32 = (DWORD *)dst16;
+			for (x = 0; x < 800; x++) {
+				if (Bpp == 4) {
+					*dst32++ = (DWORD)(*p & 0xf800) << 8 | (*p & 0x07e0) << 5 | (*p & 0x001f) << 3;
+				} else if (Bpp == 2) {
+					*dst16++ = *p;
+				}
+				p++;
+			}
+		}
+	}
+#endif
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	SDL_UpdateWindowSurface(sdl_window);
+#else
 	SDL_UpdateRect(sdl_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
+#endif
+
 #endif
 
 	FrameCount++;
@@ -1426,7 +1498,9 @@ struct _px68k_menu {
 	int mfs; // menu font size;
 } p6m;
 
+#if !defined(PSP) && !defined(USE_OGLES11)
 SDL_Surface *menu_surface;
+#endif
 
 // 画面タイプを変更する
 enum ScrType {x68k, pc98};
@@ -1653,7 +1727,7 @@ int WinDraw_MenuInit(void)
 	set_sbp(menu_buffer);
 	// 使用フォントの変更 24 or 16
 	set_mfs(16);
-#elif defined(ANDROID)
+#elif defined(USE_OGLES11)
 	//
 	menu_buffer = malloc(1024 * 1024 * 2);
 	if (menu_buffer == NULL) {
@@ -1662,7 +1736,13 @@ int WinDraw_MenuInit(void)
 	set_sbp(menu_buffer);
 	set_mfs(24);
 #else
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	menu_surface = SDL_GetWindowSurface(sdl_window);
+#else
 	menu_surface = SDL_GetVideoSurface();
+#endif
+
 	if (!menu_surface)
 		return FALSE;
 	set_sbp((WORD *)(menu_surface->pixels));
@@ -1715,8 +1795,8 @@ static void psp_draw_menu(void)
 }
 #endif
 
-#ifdef ANDROID
-static void android_draw_menu(void)
+#ifdef USE_OGLES11
+static void ogles11_draw_menu(void)
 {
 	GLfloat texture_coordinates[8];
 	GLfloat vertices[8];
@@ -1760,7 +1840,7 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 	int i;
 
 // ソフトウェアキーボード描画時にset_sbp(kbd_buffer)されているので戻す
-#if defined(PSP) || defined(ANDROID)
+#if defined(PSP) || defined(USE_OGLES11)
 	set_sbp(menu_buffer);
 #endif
 // ソフトウェアキーボード描画時にset_mfs(16)されているので戻す
@@ -1885,10 +1965,16 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 	}
 #if defined(PSP)
 	psp_draw_menu();
-#elif defined(ANDROID)
-	android_draw_menu();
+#elif defined(USE_OGLES11)
+	ogles11_draw_menu();
+#else
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	SDL_UpdateWindowSurface(sdl_window);
 #else
 	SDL_UpdateRect(menu_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
+#endif
+	
 #endif
 }
 
@@ -1932,10 +2018,16 @@ void WinDraw_DrawMenufile(struct menu_flist *mfl)
 
 #if defined(PSP)
 	psp_draw_menu();
-#elif defined(ANDROID)
-	android_draw_menu();
+#elif defined(USE_OGLES11)
+	ogles11_draw_menu();
+#else
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	SDL_UpdateWindowSurface(sdl_window);
 #else
 	SDL_UpdateRect(menu_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
+#endif
+
 #endif
 }
 
@@ -1943,7 +2035,7 @@ void WinDraw_ClearMenuBuffer(void)
 {
 #if defined(PSP)
 	memset(menu_buffer, 0, 512*272*2);
-#elif defined(ANDROID)
+#elif defined(USE_OGLES11)
 	memset(menu_buffer, 0, 800*600*2);
 #else
 	SDL_FillRect(menu_surface, NULL, 0);
@@ -1953,12 +2045,12 @@ void WinDraw_ClearMenuBuffer(void)
 
 /********** ソフトウェアキーボード描画 **********/
 
-#if defined(PSP) || defined(ANDROID)
+#if defined(PSP) || defined(USE_OGLES11)
 
 #if defined(PSP)
 // display width 480, buffer width 512
 #define KBDBUF_WIDTH 512
-#elif defined(ANDROID)
+#elif defined(USE_OGLES11)
 // display width 800, buffer width 1024 だけれど 800 にしないとだめ
 #define KBDBUF_WIDTH 800
 #endif

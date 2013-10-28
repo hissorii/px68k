@@ -5,14 +5,11 @@
 #include "prop.h"
 #include "joystick.h"
 #include "winui.h"
-#if defined(PSP)
+#ifdef PSP
 #include <pspctrl.h>
 #include <keyboard.h>
-#elif defined(ANDROID)
-#include <SDL.h>
-#include <android/log.h>
 #else
-#include <SDL.h> // for SDLK_...
+#include <SDL.h>
 #endif
 
 #if 0
@@ -362,11 +359,14 @@ void FASTCALL Joystick_Update(void)
 	JoyUpState0 = (ret0 ^ pre_ret0) & ret0;
 	pre_ret0 = ret0;
 
+#ifdef USE_OGLES11
 	// ソフトウェアキーボードを出しているときにはJoystick無効
 	if (!Keyboard_IsSwKeyboard()) {
 		JoyState0[num] = ret0;
 		JoyState1[num] = ret1;
 	}
+#endif
+
 #endif
 }
 

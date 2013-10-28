@@ -463,3 +463,10 @@ now pre  ^  ~^  up
  0   1   1   0   0
 
 up = (now ^ pre) & now;
+
+** 2012/10/28
+
+OpenGL ES 1.1 を使う -> USE_OGLES11
+SDL_gfx を使う -> USE_SDLGFX
+
+Software Keyboard は PSP または OpenGL ES 1.1 専用

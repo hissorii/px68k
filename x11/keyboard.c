@@ -29,9 +29,6 @@
 #include "prop.h"
 #include "keyboard.h"
 #include "mfp.h"
-#ifdef ANDROID
-#include <android/log.h>
-#endif
 
 BYTE	KeyBufWP;
 BYTE	KeyBufRP;
@@ -558,7 +555,7 @@ Keyboard_Int(void)
 
 /********** ソフトウェアキーボード **********/
 
-#if defined(PSP) || defined(ANDROID)
+#if defined(PSP) || defined(USE_OGLES11)
 
 // 選択しているキーの座標 (初期値'Q')
 int  kbd_kx = 1, kbd_ky = 2;

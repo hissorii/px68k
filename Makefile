@@ -6,7 +6,13 @@ TAGS	 = etags
 DEPEND	 = gccmakedep
 DEPEND_DEFINES =
 
+# for debug
 CDEBUGFLAGS = -g -O0 -fno-strict-aliasing
+
+#
+# enable SDL_gfx
+#
+CDEBUGFLAGS+= -DUSE_SDLGFX
 
 #
 # disable sound
