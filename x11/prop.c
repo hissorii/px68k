@@ -142,6 +142,12 @@ set_modulepath(char *path, size_t len)
         sprintf(winx68k_ini, "/sdcard/px68k/config");
         return 0;
 #endif
+#if defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR)
+        puts("Iphone...");
+        sprintf(path, "/var/mobile/px68k");
+        sprintf(winx68k_ini, "/var/mobile/px68k/config");
+        return 0;
+#endif
 
 	homepath = getenv("HOME");
 	if (homepath == 0)

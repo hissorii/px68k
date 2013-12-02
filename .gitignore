@@ -6,4 +6,5 @@ px68k-android/obj
 px68k-android/.classpath
 px68k-android/.project
 px68k-android/.settings
-
+px68k-ios/px68k-ios.xcodeproj/project.xcworkspace
+px68k-ios/px68k-ios.xcodeproj/xcuserdata

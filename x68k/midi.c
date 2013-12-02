@@ -20,7 +20,7 @@
 #include "prop.h"
 #include "winx68k.h"
 #include "fileio.h"
-#include <mmsystem.h>
+#include "mmsystem.h"
 #include "memory.h"
 #include "irqh.h"
 #include "midi.h"

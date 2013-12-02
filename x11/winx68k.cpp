@@ -17,7 +17,7 @@ extern "C" {
 #include "winx68k.h"
 #include "windraw.h"
 #include "winui.h"
-#include "m68000.h" // xxx これはいずれいらなくなるはず
+#include "../x68k/m68000.h" // xxx これはいずれいらなくなるはず
 #include "../m68000/m68000.h"
 #include "../x68k/memory.h"
 #include "mfp.h"
@@ -55,7 +55,7 @@ extern "C" {
 #include "d68k.h"
 #endif
 
-#include "../icons/keropi_mono.xbm"
+//#include "../icons/keropi_mono.xbm"
 
 #define	APPNAME	"Keropi"
 
@@ -180,6 +180,7 @@ WinX68k_LoadROMs(void)
 	for (fp = 0, i = 0; fp == 0 && i < NELEMENTS(BIOSFILE); ++i) {
 		fp = File_OpenCurDir((char *)BIOSFILE[i]);
 	}
+
 	if (fp == 0) {
 		Error("BIOS ROM イメージが見つかりません.");
 		return FALSE;
@@ -586,6 +587,7 @@ int main(int argc, char *argv[])
 
 	dosio_init();
 	file_setcd(winx68k_dir);
+    puts(winx68k_dir);
 
 	LoadConfig();
 
@@ -739,6 +741,9 @@ int main(int argc, char *argv[])
 		break;
 	}
 
+#ifdef TARGET_OS_IPHONE
+	strcpy(Config.FDDImage[0], "FDD1.XDF");
+#endif
 	FDD_SetFD(0, Config.FDDImage[0], 0);
 	FDD_SetFD(1, Config.FDDImage[1], 0);
 

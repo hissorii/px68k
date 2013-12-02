@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+#define vline HOGEvline // workaround for redefinition of 'vline'
+
 #define		SCREEN_WIDTH		768
 #define		SCREEN_HEIGHT		512
 
