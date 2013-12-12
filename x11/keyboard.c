@@ -42,7 +42,7 @@ struct keyboard_key kbd_key[] = {
 
 extern BYTE traceflag;
 
-#if defined(PSP) || defined(ANDROID)
+#if defined(PSP) || defined(ANDROID) || TARGET_OS_IPHONE
 // キーボードの座標
 int kbd_x = 800, kbd_y = 0, kbd_w = 766, kbd_h = 218;
 #endif
@@ -587,7 +587,7 @@ int Keyboard_get_key_ptr(int x, int y)
 	return i + x;
 }
 
-static set_ptr_to_kxy(int p)
+static void set_ptr_to_kxy(int p)
 {
 	int kx = 0, ky = 0;
 	int i;

@@ -1,11 +1,15 @@
 #ifndef _winx68k_winui_h
 #define _winx68k_winui_h
 
+#include "common.h"
+
 extern	BYTE	Debug_Text, Debug_Grp, Debug_Sp;
 extern	DWORD	LastClock[4];
 
-#ifdef ANDROID
+#if defined(ANDROID)
 #define CUR_DIR_STR "/sdcard/px68k/"
+#elif TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR == 0
+#define CUR_DIR_STR "/var/mobile/px68k/"
 #else
 #define CUR_DIR_STR "./"
 #endif

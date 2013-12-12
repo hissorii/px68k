@@ -23,8 +23,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "common.h"
 #ifdef USE_OGLES11
+#if defined(ANDROID)
 #include <GLES/gl.h>
+#elif TARGET_OS_IPHONE
+#include <OpenGLES/ES1/gl.h>
+#endif
 #endif
 #ifdef PSP
 #include <pspkernel.h>
@@ -33,7 +38,6 @@
 #endif
 #include <SDL.h>
 //#include <SDL_rotozoom.h>
-#include "common.h"
 #include "winx68k.h"
 #include "winui.h"
 
@@ -90,7 +94,7 @@ DWORD WindowX = 0;
 DWORD WindowY = 0;
 
 #ifdef USE_OGLES11
-GLuint texid[10];
+static GLuint texid[11];
 #endif
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -318,7 +322,9 @@ int WinDraw_Init(void)
 	p6logd("kbd_buffer 0x%x", kbd_buffer);
 
 	memset(texid, 0, sizeof(texid));
-	glGenTextures(10, &texid[0]);
+	glGenTextures(11, &texid[0]);
+
+	// texid[0] for the main screen
 	glBindTexture(GL_TEXTURE_2D, texid[0]);
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -333,7 +339,7 @@ int WinDraw_Init(void)
 	}
 
 	// ボタン用テクスチャ。とりあえず全部同じ色。
-	for (i = 1; i < 8; i++) {
+	for (i = 1; i < 9; i++) {
 		glBindTexture(GL_TEXTURE_2D, texid[i]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -343,11 +349,18 @@ int WinDraw_Init(void)
 				BtnTex[j] = (0x7800 | 0x03e0);
 			}
 		}
+		if (i == 8) {
+			// とりあえずmenu onボタンは薄めの白色で。
+			for (j = 0; j < 32*32; j++) {
+				BtnTex[j] = (0x7800 | 0x03e0 | 0x0f);
+			}
+		}
+
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 32, 32, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, BtnTex);
 	}
 
 	// メニュー描画用テクスチャ。
-	glBindTexture(GL_TEXTURE_2D, texid[8]);
+	glBindTexture(GL_TEXTURE_2D, texid[9]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, menu_buffer);
@@ -355,7 +368,7 @@ int WinDraw_Init(void)
 	draw_kbd_to_tex();
 
 	// ソフトウェアキーボード描画用テクスチャ。
-	glBindTexture(GL_TEXTURE_2D, texid[9]);
+	glBindTexture(GL_TEXTURE_2D, texid[10]);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, kbd_buffer);
@@ -458,8 +471,8 @@ void draw_all_buttons(GLfloat *tex, GLfloat *ver, GLfloat scale)
 
 	p = Joystick_get_btn_points(scale);
 
-	// 仮想キーはtexid: 1から6まで、キーボードonボタンが7
-	for (i = 1; i < 8; i++) {
+	// 仮想キーはtexid: 1から6まで、キーボードonボタンが7、menuボタンが8
+	for (i = 1; i < 9; i++) {
 		draw_button(texid[i], p->x, p->y, scale, tex, ver);
 		p++;
 	}
@@ -524,7 +537,7 @@ WinDraw_Draw(void)
 	// ソフトウェアキーボード描画
 
 	if (Keyboard_IsSwKeyboard()) {
-		glBindTexture(GL_TEXTURE_2D, texid[9]);
+		glBindTexture(GL_TEXTURE_2D, texid[10]);
 		//kbd_bufferから800x600の領域を切り出してテクスチャに転送
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, kbd_buffer);
 
@@ -1806,7 +1819,7 @@ static void ogles11_draw_menu(void)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-	glBindTexture(GL_TEXTURE_2D, texid[8]);
+	glBindTexture(GL_TEXTURE_2D, texid[9]);
 	//ScrBufから800x600の領域を切り出してテクスチャに転送
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 600, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, menu_buffer);
 
@@ -1844,7 +1857,7 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 	set_sbp(menu_buffer);
 #endif
 // ソフトウェアキーボード描画時にset_mfs(16)されているので戻す
-#ifdef ANDROID
+#if defined(ANDROID) || TARGET_OS_IPHONE
 	set_mfs(24);
 #endif
 

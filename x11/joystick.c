@@ -45,9 +45,9 @@ BYTE JoyAnaPadY;
 #endif
 BYTE JoyPortData[2];
 
-#ifdef ANDROID
+#if defined(ANDROID) || TARGET_OS_IPHONE
 
-#define VBTN_MAX 7
+#define VBTN_MAX 8
 #define VBTN_NOUSE 0
 #define FINGER_MAX 10
 
@@ -76,7 +76,8 @@ SDL_TouchID touchId = -1;
 VBTN_POINTS vbtn_points[] = {
 	{20, 450}, {100, 450}, {60, 400}, {60, 500}, // 仮想d-pad
 	{680, 450}, {750, 450}, // 仮想ボタン
-	{768, 0} // ソフトウェアキーボードonボタン (右上隅/invisible)
+	{768, 0}, // ソフトウェアキーボードonボタン (右上隅/invisible)
+	{768, 52} // menu button
 };
 
 // これらの座標を常に固定して、スケーリングする
@@ -116,6 +117,14 @@ VBTN_POINTS *Joystick_get_btn_points(float scale)
 	scaled_vbtn_points[i].y
 		= 0;
 
+	i++;
+
+	// menu button
+	scaled_vbtn_points[i].x
+		= -VKEY_DKX(scale) + scale * vbtn_points[i].x;
+	scaled_vbtn_points[i].y
+		= 0 + scale * vbtn_points[i].y;
+
 	return scaled_vbtn_points;
 }
 
@@ -154,7 +163,8 @@ void Joystick_Init(void)
 	JoyState1[1] = 0xff;
 	JoyPortData[0] = 0;
 	JoyPortData[1] = 0;
-#ifdef ANDROID
+
+#if defined(ANDROID) || TARGET_OS_IPHONE
 	Joystick_Vbtn_Update(WinUI_get_vkscale());
 #endif
 }
@@ -279,7 +289,7 @@ void FASTCALL Joystick_Update(void)
 		JoyState0[num] = ret0;
 		JoyState1[num] = ret1;
 	}
-#elif defined(ANDROID)
+#elif defined(ANDROID) || TARGET_OS_IPHONE
 	BYTE ret0 = 0xff, ret1 = 0xff;
 	int num = 0; //xxx とりあえずJOY1のみ。
 	static BYTE pre_ret0 = 0xff;

@@ -397,7 +397,7 @@ static void menu_frame_skip(int v)
 static void menu_vkey_size(int v)
 {
 	Config.VkeyScale = v;
-#ifdef ANDROID
+#if defined(ANDROID) || TARGET_OS_IPHONE
 	Joystick_Vbtn_Update(WinUI_get_vkscale());
 #endif
 }

@@ -26,7 +26,7 @@ extern	BYTE	FrameChanged;
 
 extern const BYTE PrgTitle[];
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(TARGET_OS_IPHONE)
 extern int realdisp_w, realdisp_h;
 #endif
 

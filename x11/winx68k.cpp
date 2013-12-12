@@ -64,7 +64,7 @@ extern	WORD	BG_BGTOP;
 extern	WORD	BG_BGEND;
 extern	BYTE	BG_CHRSIZE;
 
-#ifdef ANDROID
+#if defined(ANDROID) || TARGET_OS_IPHONE
 extern SDL_TouchID touchId;
 #endif
 
@@ -565,8 +565,10 @@ int main(int argc, char *argv[])
 #ifndef PSP
 	SDL_Event ev;
 #endif
-#ifdef ANDROID
+#if defined(ANDROID) || TARGET_OS_IPHONE
 	int vk_cnt = -1;
+	int menu_cnt = -1;
+	BYTE state;
 #endif
 	int sdlaudio = -1;
 	enum {menu_out, menu_enter, menu_in};
@@ -580,7 +582,7 @@ int main(int argc, char *argv[])
 	sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
 #endif
 
-	p6logd("555 %d %s\n", 123, "hoge");
+	p6logd("20131205 %d %s\n", 123, "hoge");
 
 	if (set_modulepath(winx68k_dir, sizeof(winx68k_dir)))
 		return 1;
@@ -601,6 +603,7 @@ int main(int argc, char *argv[])
 
 #ifndef NOSOUND
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+		p6logd("SDL_Init error\n");		
 #endif
 		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 			return 1;
@@ -631,8 +634,12 @@ int main(int argc, char *argv[])
 #ifdef USE_OGLES11
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ); 
 
+#if TARGET_OS_IPHONE
+	sdl_window = SDL_CreateWindow(APPNAME" SDL", 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_SHOWN|SDL_WINDOW_BORDERLESS);
+#else
 	// for Android: window sizeの指定は関係なくフルスクリーンになるみたい
 	sdl_window = SDL_CreateWindow(APPNAME" SDL", 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_SHOWN);
+#endif
 #else
 	sdl_window = SDL_CreateWindow(APPNAME" SDL", 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 #endif
@@ -741,9 +748,6 @@ int main(int argc, char *argv[])
 		break;
 	}
 
-#ifdef TARGET_OS_IPHONE
-	strcpy(Config.FDDImage[0], "FDD1.XDF");
-#endif
 	FDD_SetFD(0, Config.FDDImage[0], 0);
 	FDD_SetFD(1, Config.FDDImage[1], 0);
 
@@ -754,11 +758,17 @@ int main(int argc, char *argv[])
 		if (menu_mode == menu_out
 		    && (NoWaitMode || Timer_GetCount())) {
 			WinX68k_Exec();
-#ifdef ANDROID
+#if defined(ANDROID) || TARGET_OS_IPHONE
 			if (vk_cnt > 0) {
 				vk_cnt--;
 				if (vk_cnt == 0) {
 					p6logd("vk_cnt 0");
+				}
+			}
+			if  (menu_cnt > 0) {
+				menu_cnt--;
+				if (menu_cnt == 0) {
+					p6logd("menu_cnt 0");
 				}
 			}
 #endif
@@ -773,7 +783,7 @@ int main(int argc, char *argv[])
 			switch (ev.type) {
 			case SDL_QUIT:
 				goto end_loop;
-#ifdef ANDROID
+#if defined(ANDROID) || TARGET_OS_IPHONE
 			case SDL_APP_WILLENTERBACKGROUND:
 				DSound_Stop();
 				break;
@@ -788,7 +798,7 @@ int main(int argc, char *argv[])
 				break;
 			case SDL_FINGERMOTION:
 				float kx, ky, dx, dy;
-				//p6logd("FM: x:%f y:%f dx:%f dy:%f", ev.tfinger.x, ev.tfinger.y, ev.tfinger.dx, ev.tfinger.dy);
+				p6logd("FM: x:%f y:%f dx:%f dy:%f", ev.tfinger.x, ev.tfinger.y, ev.tfinger.dx, ev.tfinger.dy);
 				if (vk_cnt == 0) {
 					kx = ev.tfinger.x * 800;
 					ky = ev.tfinger.y * 600;
@@ -809,7 +819,7 @@ int main(int argc, char *argv[])
 				break;
 #endif
 			case SDL_KEYDOWN:
-#ifdef ANDROID
+#if defined(ANDROID) || TARGET_OS_IPHONE
 				static DWORD bef = 0;
 				DWORD now;
 				switch (ev.key.keysym.sym) {
@@ -843,7 +853,7 @@ int main(int argc, char *argv[])
 					}
 				}
 				if (menu_mode != menu_out) {
-#if !defined(PSP) && !defined(ANDROID)
+#if !defined(PSP) && !defined(ANDROID) && !defined(TARGET_OS_IPHONE)
 					menukey_update(ev.key.keysym.sym);
 #endif
 				} else {
@@ -883,6 +893,36 @@ int main(int argc, char *argv[])
 		}
 #endif
 
+#if defined(ANDROID) || TARGET_OS_IPHONE
+
+		state = Joystick_get_vbtn_state(7);
+
+		if (menu_mode == menu_in) {
+			if (state == VBTN_OFF && menu_cnt == 0) {
+				menu_cnt = -2;
+			}
+			if (state == VBTN_ON && menu_cnt == -2) {
+				DSound_Play();
+				menu_mode = menu_out;
+			}
+		} else if (menu_mode == menu_out) {
+			if (state == VBTN_OFF && menu_cnt == -2) {
+				menu_cnt = -1;
+			}
+			if (menu_cnt == -1 && state == VBTN_ON) {
+				p6logd("menu_cnt start");
+				menu_cnt = 20;
+			} else if (menu_cnt > 0 && state == VBTN_OFF) {
+				menu_cnt = -1;
+			}
+			if (menu_cnt == 0) {
+				p6logd("menu mode on");
+				menu_mode = menu_enter;
+				DSound_Stop();
+			}
+		}
+
+#endif
 		if (menu_mode != menu_out) {
 			int ret; 
 
@@ -903,8 +943,8 @@ int main(int argc, char *argv[])
 		}
 #endif
 
-#ifdef ANDROID
-		BYTE state;
+#if defined(ANDROID) || TARGET_OS_IPHONE
+
 		if (menu_mode == menu_out) {
 			state = Joystick_get_vbtn_state(6);
 			if (vk_cnt == -1 && state == VBTN_ON) {

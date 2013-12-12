@@ -770,8 +770,10 @@
 		C7F0A4C71846DAC200589C05 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_IDENTITY = "";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "px68k-ios/px68k-ios-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
@@ -782,6 +784,7 @@
 				INFOPLIST_FILE = "px68k-ios/px68k-ios-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
 				LIBRARY_SEARCH_PATHS = libsdl/debug;
+				OTHER_CFLAGS = "-DUSE_OGLES11";
 				OTHER_LDFLAGS = "-lSDL2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
@@ -791,8 +794,10 @@
 		C7F0A4C81846DAC200589C05 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_IDENTITY = "";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "px68k-ios/px68k-ios-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
@@ -803,7 +808,7 @@
 				INFOPLIST_FILE = "px68k-ios/px68k-ios-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
 				LIBRARY_SEARCH_PATHS = libsdl/release;
-				"LIBRARY_SEARCH_PATHS[arch=*]" = "";
+				OTHER_CFLAGS = "-DUSE_OGLES11";
 				OTHER_LDFLAGS = "-lSDL2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;

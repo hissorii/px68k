@@ -17,7 +17,7 @@
 #define	JOY_TRG8	0x20
 #define	JOY_TRG6	0x40
 
-#ifdef ANDROID
+#if defined(ANDROID) || TARGET_OS_IPHONE
 #define VBTN_ON 2
 #define VBTN_OFF 1
 
@@ -45,7 +45,7 @@ void Joystick_reset_downstate_psp(DWORD ctrl_bit);
 void Joystatic_reset_anapad_psp(void);
 void Joystick_mv_anapad_psp(void);
 #endif
-#ifdef ANDROID
+#if defined(ANDROID) || TARGET_OS_IPHONE
 VBTN_POINTS *Joystick_get_btn_points(float scale);
 void Joystick_Vbtn_Update(float scale);
 BYTE Joystick_get_vbtn_state(WORD n);
