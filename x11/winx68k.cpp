@@ -279,11 +279,19 @@ WinX68k_Init(void)
 {
 
 	IPL = (BYTE*)malloc(0x40000);
-	MEM = (BYTE*)malloc(0x200000);
+#ifdef PSP
+	MEM = (BYTE*)malloc(0x400000);
+#else
+	MEM = (BYTE*)malloc(0xc00000);
+#endif
 	FONT = (BYTE*)malloc(0xc0000);
 
 	if (MEM)
-		ZeroMemory(MEM, 0x200000);
+#ifdef PSP
+		ZeroMemory(MEM, 0x400000);
+#else
+		ZeroMemory(MEM, 0xc00000);
+#endif
 
 	if (MEM && FONT && IPL) {
 	  	m68000_init();  
@@ -992,7 +1000,7 @@ end_loop:
 #if defined(PSP)
 	puts("before end");
 	sceKernelExitGame();
-#elif defined(ANDROID)
+#elif defined(ANDROID) || TARGET_OS_IPHONE
 	exit(0);
 #endif
 	return 0;
