@@ -4,7 +4,7 @@ extern "C" {
 
 #include <SDL.h>
 #ifdef USE_OGLES11
-#include "SDL_opengles.h"
+#include <SDL_opengles.h>
 #endif
 #include "common.h"
 #include "fileio.h"
@@ -277,21 +277,17 @@ WinX68k_Reset(void)
 int
 WinX68k_Init(void)
 {
-
-	IPL = (BYTE*)malloc(0x40000);
 #ifdef PSP
-	MEM = (BYTE*)malloc(0x400000);
+#define MEM_SIZE 0x400000
 #else
-	MEM = (BYTE*)malloc(0xc00000);
+#define MEM_SIZE 0xc00000
 #endif
+	IPL = (BYTE*)malloc(0x40000);
+	MEM = (BYTE*)malloc(MEM_SIZE);
 	FONT = (BYTE*)malloc(0xc0000);
 
 	if (MEM)
-#ifdef PSP
-		ZeroMemory(MEM, 0x400000);
-#else
-		ZeroMemory(MEM, 0xc00000);
-#endif
+		ZeroMemory(MEM, MEM_SIZE);
 
 	if (MEM && FONT && IPL) {
 	  	m68000_init();  
@@ -633,13 +629,13 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 #else
+#ifdef USE_OGLES11
 	SDL_DisplayMode sdl_dispmode;
 	SDL_GetCurrentDisplayMode(0, &sdl_dispmode);
 	p6logd("width: %d height: %d", sdl_dispmode.w, sdl_dispmode.h);
 	// ナビゲーションバーを除くアプリが触れる画面
 	realdisp_w = sdl_dispmode.w, realdisp_h = sdl_dispmode.h;
 
-#ifdef USE_OGLES11
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ); 
 
 #if TARGET_OS_IPHONE
@@ -861,7 +857,7 @@ int main(int argc, char *argv[])
 					}
 				}
 				if (menu_mode != menu_out) {
-#if !defined(PSP) && !defined(ANDROID) && !defined(TARGET_OS_IPHONE)
+#if !defined(PSP) && !defined(ANDROID) && TARGET_OS_IPHONE == 0
 					menukey_update(ev.key.keysym.sym);
 #endif
 				} else {

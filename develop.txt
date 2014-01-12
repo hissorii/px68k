@@ -1,85 +1,145 @@
-�ݡ����֥�X68000���ߥ�졼��
+ポータブルX68000エミュレータ
 PX68K ( Portable (x)keropi PRO-68K )
 
-��������ʬ�ǥ���ѥ��뤹��ݤ����Ω�Ĥ��⤷��ʤ��ɥ������
-                                                          2013/10/21 �Ҥä��ꤣ
+ソースを自分でコンパイルする際に役に立つかもしれないドキュメント
+                                                          2014/01/12 ひっそりぃ
 
-����ȯ�Ķ��ˤĤ���
+■開発環境について
 
-��UNIX��
+・UNIX 系
 
   Ubuntu Linux 13.04
   SDL 1.2
   SDL_gfx 1.2-4
 
-��PSP
+・PSP
 
   Ubuntu Linux 13.04
   psptoolchain
   psplibraries (SDL 1.2.9)
 
-��Android
+・Android
 
   Ubuntu Linux 13.04
-  SDL2-2.0.0 (http://www.libsdl.org/ ��������)
+  SDL2-2.0.0 (http://www.libsdl.org/ から入手)
   android-ndk-r9-linux-x86 (Android NDK)
   adt-bundle-linux-x86-20130729 (Android SDK)
   OpenGL ES 1.1
 
-������ѥ���ˤĤ���
+・Mac OS X
 
-��UNIX��
+  Mac OS X 10.9.1
+  SDL2-2.0.1
+  SDL2_gfx-1.0.0
+  Xcode 5.0.2 (GUIは使わずMakefileを用いてコマンドからmake)
 
-  $ make
 
-  (�Ф�Ф꥽���������ȥ���ѥ���򤹤����ϡ�make depend ��
-   ���餫���� Makefile �˰�¸�ط��������Ϳ���Ƥ�������)
+■コンパイルについて
 
-��PSP
+・UNIX 系
+
+  ・SDL1.2 の場合
+
+    $ make
+
+    (ばりばりソース修正とコンパイルをする方は、make depend で
+     あらかじめ Makefile に依存関係情報を付与してください)
+
+  ・SDL2 の場合
+
+    $ make SDL2=1
+
+
+・PSP
 
   $ make -f Makefile.psp
 
-��Android
 
-  * px68k-android/jni/ ��SDL�Ȥ���̾����SDL2-2.0.0�Υǥ��쥯�ȥ�򥳥ԡ�
-    ���뤫������ܥ�å���󥯤�ϤäƤ���������
+・Android
+
+  * px68k-android/jni/ にSDLという名前でSDL2-2.0.0のディレクトリをコピー
+    するか、シンボリックリンクをはってください。
     
-  * Android.mk �� LOCAL_C_INCLUDES���ǡ�ndk�Υǥ��쥯�ȥ����ꤷ�Ƥ���
-    �ս�ϡ���ʬ�δĶ��ˤ��碌�ƽ�ľ������
+  * Android.mk の LOCAL_C_INCLUDES　で、ndkのディレクトリを指定している
+    箇所は、自分の環境にあわせて書き直すこと
 
-  * �ޤ���native code�Υ���ѥ���
+  * まずはnative codeのコンパイル
 
-    px68k-android/jni/src�ǥ��쥯�ȥ�˰�ư���Ƥ��顢
-    $ /usr/local/android-ndk-r9/ndk-build (ndk��/usr/local/�����줿���)
+    px68k-android/jni/srcディレクトリに移動してから、
+    $ /usr/local/android-ndk-r9/ndk-build (ndkを/usr/local/に入れた場合)
 
-  * Eclipse�ؤΥץ��������Ȥ���Ͽ
+  * Eclipseへのプロジェクトの登録
    
-    ��[File] -> [New] -> [Other]
-       Android Project from Existing Code �����򤷤�[Next]
+    ・[File] -> [New] -> [Other]
+       Android Project from Existing Code を選択して[Next]
 
-    ��[Root Directory:]��android-project�Υǥ��쥯�ȥ����ꤹ��
-      (��) /home/hissorii/src/px68k/px68k-android
+    ・[Root Directory:]にandroid-projectのディレクトリを指定する
+      (例) /home/hissorii/src/px68k/px68k-android
 
-    ��[Projects:]��[New Project Name]��SDLActivity����ĤȤ�PX68K���ѹ�
+    ・[Projects:]の[New Project Name]のSDLActivityを二つともPX68Kに変更
 
-    ��[Finish] �򥯥�å�
+    ・[Finish] をクリック
 
-  * ����apk�κ���
+  * 次にapkの作成
 
-    px68k-android�ǥ��쥯�ȥ�˰�ư���Ƥ��顢
-    $ ant release (�ޤ���ant debug)
+    px68k-androidディレクトリに移動してから、
+    $ ant release (またはant debug)
 
-    �ǡ�px68k-android/bin/ �� .apk �ե����뤬���������
+    で、px68k-android/bin/ に .apk ファイルが作成される
 
-    README-android.txt�˵��ܤ����뤬��ant��¹Ԥ��뤿��ˤϡ�
-    px68k-android/local.propaties��sdk�Υѥ�����ꤷ�Ƥ������ȡ�
-    �Ҥä��ꤣ������ϰʲ���
+    README-android.txtに記載があるが、antを実行するためには、
+    px68k-android/local.propatiesにsdkのパスを指定しておくこと。
+    ひっそりぃの設定は以下。
     hissorii@ubuntu:~/src/px68k/px68k-android$ cat local.properties
     sdk.dir=/usr/local/adt-bundle-linux-x86-20130729/sdk
 
-    ant�Ǻ�������release�Ǥ�.apk���󥹥ȡ���ǤϤ������ʡ������ࡣ
-    ��̾�򤷤ʤ���Фʤ�ʤ��餷����
-    �Ȥꤢ����eclipse���[Run]->[Run]�Ǻ��������.apk��������ס�
+    antで作成したrelease版は.apkインストールではじかれるな。うーむ。
+    署名をしなければならないらしい。
+    とりあえずeclipse上で[Run]->[Run]で作成される.apkだと大丈夫。
 
 
-�ʾ�
+・Raspberry Pi (Raspbian) について
+
+  ・自前でコンパイルしてください。
+
+  ・インターネットにつながっている状態で、以下を実行してください。
+
+    $ sudo apt-get install libsdl1.2-dev libsdl-gfx1.2-dev
+    $ mkdir src ; cd src ; git clone http://github.com/hissorii/px68k
+    $ cd px68k
+    $ make
+
+  ・GitHub 上のソースが更新された場合は、インターネットにつながっている
+    状態で、以下を実行してください。
+
+    $ cd src/px68k
+    $ git pull http://github.com/hissorii/px68k
+    $ make clean ; make
+
+
+・Mac OS X 版
+
+  SDL2 はソースを入手してコンパイルします。
+  SDL2 のソースを解凍したディレクトリに移動し、以下を実行します。
+
+  $ ./configure CFLAGS="-m32 -O3" LDFLAGS=-m32
+  $ make
+  $ sudo make install
+
+  次にSDL2_gfx のコンパイルをします。
+
+  $ ./configure CFLAGS="-m32 -O2" LDFLAGS=-m32
+  $ make
+  $ sudo make install
+
+  ここまでで、/usr/local/ 以下に 32bit 版の SDL2, SDL2_gfx が
+  インストールされます。
+  64bit の SDL アプリを作成したい場合は、これらのライブラリも
+  64bit で作り直す必要がありますのでご注意ください。
+
+  次に px68k のディレクトリに移動し、以下を実行してください。
+
+  $ make MAC=1
+
+
+以上

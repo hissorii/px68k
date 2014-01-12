@@ -57,7 +57,7 @@ cd ~/tmp/apt
 dpkg-deb -b px68k-ios
 
 ## Modify below if you have other package(s).
-# workaround for "dpkg-scanpackages ignore Name: filed"
+# workaround for "dpkg-scanpackages ignore Name: field"
 grep Name: px68k-ios/DEBIAN/control > Packages
 dpkg-scanpackages . /dev/null >> Packages
 gzip Packages

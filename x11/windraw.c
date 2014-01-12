@@ -24,19 +24,15 @@
  */
 
 #include "common.h"
+#include <SDL.h>
 #ifdef USE_OGLES11
-#if defined(ANDROID)
-#include <GLES/gl.h>
-#elif TARGET_OS_IPHONE
-#include <OpenGLES/ES1/gl.h>
-#endif
+#include <SDL_opengles.h>
 #endif
 #ifdef PSP
 #include <pspkernel.h>
 #include <pspdisplay.h>
 #include <pspgu.h>
 #endif
-#include <SDL.h>
 //#include <SDL_rotozoom.h>
 #include "winx68k.h"
 #include "winui.h"
@@ -1751,7 +1747,7 @@ int WinDraw_MenuInit(void)
 #else
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	menu_surface = SDL_GetWindowSurface(sdl_window);
+	menu_surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 800, 600, 16, WinDraw_Pal16R, WinDraw_Pal16G, WinDraw_Pal16B, 0);
 #else
 	menu_surface = SDL_GetVideoSurface();
 #endif
@@ -1983,6 +1979,9 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 #else
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+	SDL_Surface *sdl_surface;
+	sdl_surface = SDL_GetWindowSurface(sdl_window);
+	SDL_BlitSurface(menu_surface, NULL, sdl_surface, NULL);
 	SDL_UpdateWindowSurface(sdl_window);
 #else
 	SDL_UpdateRect(menu_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
@@ -2036,6 +2035,9 @@ void WinDraw_DrawMenufile(struct menu_flist *mfl)
 #else
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+	SDL_Surface *sdl_surface;
+	sdl_surface = SDL_GetWindowSurface(sdl_window);
+	SDL_BlitSurface(menu_surface, NULL, sdl_surface, NULL);
 	SDL_UpdateWindowSurface(sdl_window);
 #else
 	SDL_UpdateRect(menu_surface, 0, 0, FULLSCREEN_WIDTH, FULLSCREEN_HEIGHT);
