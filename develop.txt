@@ -139,7 +139,7 @@ PX68K ( Portable (x)keropi PRO-68K )
 
   次に px68k のディレクトリに移動し、以下を実行してください。
 
-  $ make MAC=1
+  $ make SDL2=1
 
 
 以上

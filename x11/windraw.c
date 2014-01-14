@@ -1844,7 +1844,7 @@ static void ogles11_draw_menu(void)
 #endif
 
 
-void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
+void WinDraw_DrawMenu(int menu_state, int mkey_pos, int mkey_y, int *mval_y)
 {
 	int i;
 
@@ -1905,21 +1905,21 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 	set_mcolor(0xffff);
 	for (i = 0; i < 7; i++) {
 		set_mlocateC(3, 5 + i);
-		if (menu_state == ms_key && i == mkey_y) {
+		if (menu_state == ms_key && i == (mkey_y - mkey_pos)) {
 			set_mcolor(0x0);
 			set_mbcolor(0xffe0); // yellow);
 		} else {
 			set_mcolor(0xffff);
 			set_mbcolor(0x0);
 		}
-		draw_str(menu_item_key[i]);
+		draw_str(menu_item_key[i + mkey_pos]);
 	}
 
 	// アイテム/現在値
 	set_mcolor(0xffff);
 	set_mbcolor(0x0);
 	for (i = 0; i < 7; i++) {
-		if (menu_state == ms_value && i == mkey_y) {
+		if (menu_state == ms_value && i == (mkey_y - mkey_pos)) {
 			set_mcolor(0x0);
 			set_mbcolor(0xffe0); // yellow);
 		} else {
@@ -1931,12 +1931,12 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 		} else {
 			set_mlocateC(25, 5 + i);
 		}
-		if ((i == 1 || i == 2) && mval_y[i] == 0) {
-			if (Config.FDDImage[i - 1][0] == '\0') {
+		if (((i + mkey_pos) == 1 || (i + mkey_pos) == 2) && mval_y[i] == 0) {
+			if (Config.FDDImage[(i + mkey_pos) - 1][0] == '\0') {
 				draw_str(" -- no disk --");
 			} else {
 				char *p;
-				p = Config.FDDImage[i - 1];
+				p = Config.FDDImage[(i + mkey_pos) - 1];
 				// 先頭のカレントディレクトリ名を表示しない
 				if (!strncmp(CUR_DIR_STR, p, CUR_DIR_SLEN)) {
 					draw_str(p + CUR_DIR_SLEN);
@@ -1945,7 +1945,7 @@ void WinDraw_DrawMenu(int menu_state, int mkey_y, int *mval_y)
 				}
 			}
 		} else {
-			draw_str(menu_items[i][mval_y[i]]);
+			draw_str(menu_items[i + mkey_pos][mval_y[i + mkey_pos]]);
 		}
 	}
 
