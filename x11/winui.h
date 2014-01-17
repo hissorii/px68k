@@ -39,6 +39,8 @@ struct menu_flist {
 extern char menu_item_key[][15];
 extern char menu_items[][10][30];
 
+int WinUI_get_fdd_num(int key);
+
 #ifndef _winx68k_gtkui_h
 #define _winx68k_gtkui_h
 #endif //winx68k_gtkui_h

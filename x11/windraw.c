@@ -1846,7 +1846,7 @@ static void ogles11_draw_menu(void)
 
 void WinDraw_DrawMenu(int menu_state, int mkey_pos, int mkey_y, int *mval_y)
 {
-	int i;
+	int i, drv;
 
 // ソフトウェアキーボード描画時にset_sbp(kbd_buffer)されているので戻す
 #if defined(PSP) || defined(USE_OGLES11)
@@ -1931,12 +1931,14 @@ void WinDraw_DrawMenu(int menu_state, int mkey_pos, int mkey_y, int *mval_y)
 		} else {
 			set_mlocateC(25, 5 + i);
 		}
-		if (((i + mkey_pos) == 1 || (i + mkey_pos) == 2) && mval_y[i] == 0) {
-			if (Config.FDDImage[(i + mkey_pos) - 1][0] == '\0') {
+
+		drv = WinUI_get_fdd_num(i + mkey_pos);
+		if ((drv == 0 || drv == 1) && mval_y[i] == 0) {
+			if (Config.FDDImage[drv][0] == '\0') {
 				draw_str(" -- no disk --");
 			} else {
 				char *p;
-				p = Config.FDDImage[(i + mkey_pos) - 1];
+				p = Config.FDDImage[drv];
 				// 先頭のカレントディレクトリ名を表示しない
 				if (!strncmp(CUR_DIR_STR, p, CUR_DIR_SLEN)) {
 					draw_str(p + CUR_DIR_SLEN);

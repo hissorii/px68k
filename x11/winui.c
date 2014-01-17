@@ -121,6 +121,36 @@ char menu_items[][10][30] = {
 	{"oyo", "buuuuun", ""}
 };
 
+static void menu_system(int v);
+static void menu_create_flist(int v);
+static void menu_frame_skip(int v);
+static void menu_vkey_size(int v);
+static void menu_vbtn_swap(int v);
+static void menu_nowait(int v);
+
+struct _menu_func {
+	void (*func)(int v);
+	int imm;
+};
+
+struct _menu_func menu_func[] = {
+	{menu_system, 0}, 
+	{menu_create_flist, 0},
+	{menu_create_flist, 0},
+	{menu_frame_skip, 1},
+	{menu_vkey_size, 1},
+	{menu_vbtn_swap, 1},
+	{menu_nowait, 1}
+};
+
+int WinUI_get_fdd_num(int key)
+{
+	return strcmp("FDD1", menu_item_key[key])?
+		(strcmp("FDD2", menu_item_key[key])? -1 : 1) : 0;
+}
+
+
+
 /******************************************************************************
  * init
  ******************************************************************************/
@@ -240,12 +270,19 @@ static void upper(char *s)
 
 static void menu_create_flist(int v)
 {
+	int drv;
+
+	drv = WinUI_get_fdd_num(mkey_y);
+	printf("***** drv:%d *****\n", drv);
+	if (drv < 0) {
+		return;
+	}
 
 	// set current directory when FDD is ejected
 	if (v == 1) {
-		FDD_EjectFD(mkey_y - 1);
-		Config.FDDImage[mkey_y - 1][0] = '\0';
-		strcpy(mfl.dir[mkey_y - 1], CUR_DIR_STR);
+		FDD_EjectFD(drv);
+		Config.FDDImage[drv][0] = '\0';
+		strcpy(mfl.dir[drv], CUR_DIR_STR);
 		return;
 	}
 
@@ -259,7 +296,7 @@ static void menu_create_flist(int v)
 	char support[] = "D8888DHDMDUP2HDDIMXDFIMG";
 	char ent_name[MAX_PATH];
 
-	dp = opendir(mfl.dir[mkey_y - 1]);
+	dp = opendir(mfl.dir[drv]);
 
 	// xxx You can get only MFL_MAX files.
 	for (i = 0 ; i < MFL_MAX; i++) {
@@ -268,7 +305,7 @@ static void menu_create_flist(int v)
 			break;
 		}
 		n = dent->d_name;
-		strcpy(ent_name, mfl.dir[mkey_y - 1]);
+		strcpy(ent_name, mfl.dir[drv]);
 		strcat(ent_name, n);
 		stat(ent_name, &buf);
 
@@ -293,7 +330,7 @@ static void menu_create_flist(int v)
 			}
 			// You can't go up over current directory.
 			if (!strcmp(n, "..") &&
-			    !strcmp(mfl.dir[mkey_y - 1], CUR_DIR_STR)) {
+			    !strcmp(mfl.dir[drv], CUR_DIR_STR)) {
 				i--;
 				continue;
 			}
@@ -341,16 +378,6 @@ static void menu_nowait(int v)
 	// xxx Not saving to config file.
 	NoWaitMode = v;
 }
-
-static void (*menu_func[])(int v) = {
-	menu_system,
-	menu_create_flist,
-	menu_create_flist,
-	menu_frame_skip,
-	menu_vkey_size,
-	menu_vbtn_swap,
-	menu_nowait
-};
 
 // ex. ./hoge/.. -> ./
 // ( ./ ---down hoge dir--> ./hoge ---up hoge dir--> ./hoge/.. )
@@ -416,9 +443,8 @@ int WinUI_Menu(int first)
 				mval_y[mkey_y]--;
 
 				// do something immediately
-				if (mkey_y == 3 || mkey_y == 4
-				    || mkey_y == 5 || mkey_y == 6) {
-					menu_func[mkey_y](mval_y[mkey_y]);
+				if (menu_func[mkey_y].imm) {
+					menu_func[mkey_y].func(mval_y[mkey_y]);
 				}
 
 				menu_redraw = 1;
@@ -451,9 +477,8 @@ int WinUI_Menu(int first)
 			if (menu_items[mkey_y][mval_y[mkey_y] + 1][0] != '\0') {
 				mval_y[mkey_y]++;
 
-				if (mkey_y == 3 || mkey_y == 4
-				    || mkey_y == 5 || mkey_y == 6) {
-					menu_func[mkey_y](mval_y[mkey_y]);
+				if (menu_func[mkey_y].imm) {
+					menu_func[mkey_y].func(mval_y[mkey_y]);
 				}
 
 				menu_redraw = 1;
@@ -482,14 +507,17 @@ int WinUI_Menu(int first)
 			menu_redraw = 1;
 			break;
 		case ms_value:
-			menu_func[mkey_y](mval_y[mkey_y]);
+			menu_func[mkey_y].func(mval_y[mkey_y]);
+
 
 			// get back key_mode if value is set.
 			// go file_mode if value is filename.
 			menu_state = ms_key;
 			menu_redraw = 1;
 
-			if (mkey_y == 1 || mkey_y == 2) {
+			drv = WinUI_get_fdd_num(mkey_y);
+			printf("***** drv:%d *****\n", drv);
+			if (drv == 0 || drv == 1) {
 				if (mval_y[mkey_y] == 0) {
 					// go file_mode
 					printf("hoge:%d", mval_y[mkey_y]);
@@ -500,7 +528,7 @@ int WinUI_Menu(int first)
 					// FDD_EjectFD() is done, so set 0.
 					mval_y[mkey_y] = 0;
 				}
-			} else if (mkey_y == 0) {
+			} else if (!strcmp("SYSTEM", menu_item_key[mkey_y])) {
 				if (mval_y[mkey_y] == 2) {
 					return WUM_EMU_QUIT;
 				}
@@ -508,7 +536,11 @@ int WinUI_Menu(int first)
 			}
 			break;
 		case ms_file:
-			drv = mkey_y - 1;
+			drv = WinUI_get_fdd_num(mkey_y);
+			printf("***** drv:%d *****\n", drv);
+			if (drv < 0) {
+				break; 
+			}
 			y = mfl.ptr + mfl.y;
 			printf("file slect %s\n", mfl.name[y]);
 			if (mfl.type[y]) {
@@ -519,7 +551,7 @@ int WinUI_Menu(int first)
 					strcat(mfl.dir[drv], mfl.name[y]);
 					strcat(mfl.dir[drv], "/");
 				}
-				menu_func[mkey_y](0);
+				menu_func[mkey_y].func(0);
 				mfile_redraw = 1;
 			} else {
 				// file operation
