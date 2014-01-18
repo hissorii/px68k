@@ -460,7 +460,7 @@ void draw_button(GLuint texid, GLfloat x, GLfloat y, GLfloat s, GLfloat *tex, GL
 	draw_texture(tex, ver);
 }
 
-void draw_all_buttons(GLfloat *tex, GLfloat *ver, GLfloat scale)
+void draw_all_buttons(GLfloat *tex, GLfloat *ver, GLfloat scale, int menu)
 {
 	int i;
 	VBTN_POINTS *p;
@@ -469,7 +469,9 @@ void draw_all_buttons(GLfloat *tex, GLfloat *ver, GLfloat scale)
 
 	// 仮想キーはtexid: 1から6まで、キーボードonボタンが7、menuボタンが8
 	for (i = 1; i < 9; i++) {
-		draw_button(texid[i], p->x, p->y, scale, tex, ver);
+		if (menu || !Config.JoyOrMouse || Keyboard_IsSwKeyboard() || i >= 5) {
+			draw_button(texid[i], p->x, p->y, scale, tex, ver);
+		}
 		p++;
 	}
 }
@@ -563,7 +565,7 @@ WinDraw_Draw(void)
 	// アルファブレンドする(スケスケいやん)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-	draw_all_buttons(texture_coordinates, vertices, (GLfloat)WinUI_get_vkscale());
+	draw_all_buttons(texture_coordinates, vertices, (GLfloat)WinUI_get_vkscale(), 0);
 
 	//	glDeleteTextures(1, &texid);
 
@@ -1434,67 +1436,6 @@ void WinDraw_DrawLine(void)
 	}
 }
 
-
-/* ----- */
-
-/**
- * 最大公約数を求める
- */
-unsigned int
-gcd(unsigned int v0, unsigned int v1)
-{
-#if 0
-/*
- * ユークリッドの互除法版
- */
-	unsigned int t;
-
-	if (v0 == 0 || v1 == 0)
-		return 0;
-	if (v0 == 1 || v1 == 1)
-		return 1;
-
-	if (v0 < v1)
-		t = v0, v0 = v1, v1 = t;
-
-	for (; t = v0 % v1; v0 = v1, v1 = t)
-		continue;
-	return v1;
-#else
-/*
- * Brent の改良型アルゴリズム
- */
-	unsigned int c;
-	unsigned int d;
-	unsigned int t;
-
-	if (v0 == 0 || v1 == 0)
-		return 0;
-	if (v0 == 1 || v1 == 1)
-		return 1;
-	if (v0 == v1)
-		return v0;
-
-	for (c = 0; !(v0 & 1) && !(v1 & 1); v0 >>= 1, v1 >>= 1, ++c)
-		continue;
-
-	while (!(v0 & 1))
-		v0 >>= 1;
-	while (!(v1 & 1))
-		v1 >>= 1;
-	if (v0 < v1)
-		t = v0, v0 = v1, v1 = t;
-
-	for (; (d = v0 - v1) != 0; v0 = v1, v1 = d) {
-		while ((d & 1) == 0)
-			d >>= 1;
-		if (v1 < d)
-			t = v1, v1 = d, d = t;
-	}
-	return v1 << c;
-#endif
-}
-
 /********** menu 関連ルーチン **********/
 
 struct _px68k_menu {
@@ -1837,7 +1778,7 @@ static void ogles11_draw_menu(void)
 
 	draw_texture(texture_coordinates, vertices);
 
-	draw_all_buttons(texture_coordinates, vertices, (GLfloat)WinUI_get_vkscale());
+	draw_all_buttons(texture_coordinates, vertices, (GLfloat)WinUI_get_vkscale(), 1);
 
 	SDL_GL_SwapWindow(sdl_window);
 }
@@ -1933,7 +1874,7 @@ void WinDraw_DrawMenu(int menu_state, int mkey_pos, int mkey_y, int *mval_y)
 		}
 
 		drv = WinUI_get_fdd_num(i + mkey_pos);
-		if ((drv == 0 || drv == 1) && mval_y[i] == 0) {
+		if ((drv == 0 || drv == 1) && mval_y[i + mkey_pos] == 0) {
 			if (Config.FDDImage[drv][0] == '\0') {
 				draw_str(" -- no disk --");
 			} else {

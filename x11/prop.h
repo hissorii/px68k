@@ -47,6 +47,7 @@ typedef struct
 	char FDDImage[2][MAX_PATH];
 	int VkeyScale;
 	int VbtnSwap;
+	int JoyOrMouse;
 } Win68Conf;
 
 extern Win68Conf Config;

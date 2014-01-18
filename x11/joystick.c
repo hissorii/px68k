@@ -1,5 +1,4 @@
-// JOYSTICK.C - ジョイスティックサポート for WinX68k
-// DInputの初期化／終了と、ジョイスティックポートチェック
+// JOYSTICK.C - joystick support for WinX68k
 
 #include "common.h"
 #include "prop.h"
@@ -10,6 +9,9 @@
 #include <keyboard.h>
 #else
 #include <SDL.h>
+#endif
+#if defined(ANDROID) || TARGET_OS_IPHONE
+#include "mouse.h"
 #endif
 
 #if 0
@@ -32,10 +34,10 @@ BYTE JoyKeyState1;
 BYTE JoyState0[2];
 BYTE JoyState1[2];
 
-// ボタンが「押された」かを記憶。押しっぱなしでリピートしたくない場合に使用
+// This stores whether the buttons were down. This avoids key repeats.
 BYTE JoyDownState0;
 
-// ボタンが「放された」かを記憶。押しっぱなしでリピートしたくない場合に使用
+// This stores whether the buttons were up. This avoids key repeats.
 BYTE JoyUpState0;
 
 #ifdef PSP
@@ -51,7 +53,7 @@ BYTE JoyPortData[2];
 #define VBTN_NOUSE 0
 #define FINGER_MAX 10
 
-// SDL_FINGERと比較するので範囲は0~1.0
+// The value is (0..1.0), which compares with SDL_FINGER.
 typedef struct _vbtn_rect {
 	float x;
 	float y;
@@ -72,21 +74,21 @@ SDL_TouchID touchId = -1;
 	vbtn_rect[id].y2 = ((float)(by) + 32.0*(s)) / 600.0;	\
 }
 
-// 基準となる仮想キーの位置
+// base points of the virtual keys
 VBTN_POINTS vbtn_points[] = {
-	{20, 450}, {100, 450}, {60, 400}, {60, 500}, // 仮想d-pad
-	{680, 450}, {750, 450}, // 仮想ボタン
-	{768, 0}, // ソフトウェアキーボードonボタン (右上隅/invisible)
+	{20, 450}, {100, 450}, {60, 400}, {60, 500}, // d-pad
+	{680, 450}, {750, 450}, // pad button
+	{768, 0}, // software keyboard button
 	{768, 52} // menu button
 };
 
-// これらの座標を常に固定して、スケーリングする
-#define VKEY_L_X 20 //一番左の仮想キーのX座標
-#define VKEY_D_Y 532 //一番下の仮想キーの底辺のY座標
-#define VKEY_R_X 782 // 一番右の仮想キーの右辺のX座標
-#define VKEY_K_X 800 // キーボードonボタンの右辺のX座標
+// fixed coordinates, which are fixed with any scalings.
+#define VKEY_L_X 20 // x of the left d-pad key
+#define VKEY_D_Y 532 // y of the base of the down d-pad key
+#define VKEY_R_X 782 // x of the right side of the right pad button
+#define VKEY_K_X 800 // x of the right side of keyboard button
 
-// キー固定用補正値
+// correction value for fixing keys
 #define VKEY_DLX(scale) (VKEY_L_X * (scale) - VKEY_L_X)
 #define VKEY_DDY(scale) (VKEY_D_Y * (scale) - VKEY_D_Y)
 #define VKEY_DRX(scale) (VKEY_R_X * (scale) - VKEY_R_X)
@@ -111,7 +113,7 @@ VBTN_POINTS *Joystick_get_btn_points(float scale)
 			= -VKEY_DDY(scale) + scale * vbtn_points[i].y;
 	}
 
-	// キーボードonスイッチ
+	// keyboard button
 	scaled_vbtn_points[i].x
 		= -VKEY_DKX(scale) + scale * vbtn_points[i].x;
 	scaled_vbtn_points[i].y
@@ -152,7 +154,7 @@ BYTE Joystick_get_vbtn_state(WORD n)
 
 void Joystick_Init(void)
 {
-	joy[0] = 1;  // とりあえず一つ目だけ有効
+	joy[0] = 1;  // active only one
 	joy[1] = 0;
 	JoyKeyState = 0;
 	JoyKeyState0 = 0;
@@ -242,7 +244,7 @@ void FASTCALL Joystick_Update(void)
 {
 #if defined(PSP)
 	BYTE ret0 = 0xff, ret1 = 0xff;
-	int num = 0; //xxx とりあえずJOY1のみ。
+	int num = 0; //xxx active only one
 	static BYTE pre_ret0 = 0xff;
 	static DWORD button_down = 0;
 	DWORD button_changing;
@@ -273,49 +275,49 @@ void FASTCALL Joystick_Update(void)
 	JoyUpState0 = (ret0 ^ pre_ret0) & ret0;
 	pre_ret0 = ret0;
 
-	// 前回と変化のあったbitを立てる
+	// up the bits which changed the states
 	button_changing = psppad.Buttons ^ button_down;
-	// 今回初めて押された = 前回と変化がある & 今ボタンが押されている
+	// first down = changing the state & down now
 	JoyDownStatePSP = button_changing & psppad.Buttons;
-	// 変化のあったbitを反転させる
+	// invert the bits which changed the states
 	button_down ^= button_changing;
 
-	// Analog padの情報を保存
+	// save the states of Analog pad
 	JoyAnaPadX = psppad.Lx;
 	JoyAnaPadY = psppad.Ly;
 
-	// ソフトウェアキーボードを出しているときにはJoystick無効
+	// disable Joystick when software keyboard is active
 	if (!Keyboard_IsSwKeyboard()) {
 		JoyState0[num] = ret0;
 		JoyState1[num] = ret1;
 	}
 #elif defined(ANDROID) || TARGET_OS_IPHONE
 	BYTE ret0 = 0xff, ret1 = 0xff;
-	int num = 0; //xxx とりあえずJOY1のみ。
+	int num = 0; //xxx only joy1
 	static BYTE pre_ret0 = 0xff;
 
 	SDL_Finger *finger;
 	SDL_FingerID fid;
 	float fx, fy;
 	int i, j;
-	float scale, asb_x, asb_y; // あそびx, あそびy
+	float scale, asb_x, asb_y; // play x, play y of a button
 
 	if (touchId == -1)
 		return;
 
-	// 使用中の物は全てオフにリセットする
+	// all active buttons are set to off
 	for (i = 0; i < VBTN_MAX; i++) {
 		if (vbtn_state[i] != VBTN_NOUSE) {
 			vbtn_state[i] = VBTN_OFF;
 		}
 	}
 
-	// 仮想キーの大きさに従ってあそびも大きくする
+	// A play of the button changes size according to scale.
 	scale = WinUI_get_vkscale();
 	asb_x = (float)20 * scale / 800.0;
 	asb_y = (float)20 * scale / 600.0;
 
-	// この瞬間押されているボタンだけをオンにする
+	// set the button on, only which is pushed just now
 	for (i = 0; i < FINGER_MAX; i++) {
 		finger = SDL_GetTouchFinger(touchId, i);
 		if (!finger)
@@ -329,7 +331,7 @@ void FASTCALL Joystick_Update(void)
 		for (j = 0; j < VBTN_MAX; j++) {
 			if (vbtn_state[j] == VBTN_NOUSE)
 				continue;
-			// 性能を考え一個ずつ判定。少し遊びをもたせる。
+
 			if (vbtn_rect[j].x - asb_x > fx)
 				continue;
 			if (vbtn_rect[j].x2 + asb_x < fx)
@@ -339,9 +341,8 @@ void FASTCALL Joystick_Update(void)
 			if (vbtn_rect[j].y2 + asb_y < fy)
 				continue;
 
-			//マッチしたらオンにする
 			vbtn_state[j] = VBTN_ON;
-			//仮想ボタンは重ならない
+			// The buttons don't overlap.
 			break;
 		}
 	}
@@ -370,11 +371,26 @@ void FASTCALL Joystick_Update(void)
 	pre_ret0 = ret0;
 
 #ifdef USE_OGLES11
-	// ソフトウェアキーボードを出しているときにはJoystick無効
-	if (!Keyboard_IsSwKeyboard()) {
+	// disable Joystick when software keyboard or mouse is active
+	if (!Keyboard_IsSwKeyboard() && !Config.JoyOrMouse) {
 		JoyState0[num] = ret0;
 		JoyState1[num] = ret1;
 	}
+	// update the states of the mouse buttons
+	// when sw keyboard is inactive and mouse is active.
+	// state is updated when menu is open, but don't care
+	// because emulation doesn't work.
+	if (!Keyboard_IsSwKeyboard() && Config.JoyOrMouse) {
+		if (!(JoyDownState0 & JOY_TRG1) | (JoyUpState0 & JOY_TRG1)) {
+			printf("mouse btn1 event\n");
+			Mouse_Event(1, (JoyUpState0 & JOY_TRG1)? 0 : 1.0, 0);
+		}
+		if (!(JoyDownState0 & JOY_TRG2) | (JoyUpState0 & JOY_TRG2)) {
+			printf("mouse btn2 event\n");
+			Mouse_Event(2, (JoyUpState0 & JOY_TRG2)? 0 : 1.0, 0);
+		}
+	}
+
 #endif
 
 #endif
@@ -445,13 +461,13 @@ void Joystatic_reset_anapad_psp(void)
 
 void _get_anapad_sub(BYTE av, int *v, int max)
 {
-	// アナログスティックの倒し加減で加速させる
+	// accelerate accroding to an angle of the stick
 	if (av > 255 / 2 + 32) {
-		(*v)++; // ちょい動かし
+		(*v)++; // move a little bit
 		if (av > 255 - 5) {
-			(*v)++; // 加速
+			(*v)++; // accelerate
 			if (av == 255) {
-				*v += 2; // 最加速
+				*v += 2; // more accelerate
 			}
 		}
 		if (*v > max) {

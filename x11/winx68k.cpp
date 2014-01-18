@@ -787,6 +787,9 @@ int main(int argc, char *argv[])
 			switch (ev.type) {
 			case SDL_QUIT:
 				goto end_loop;
+			case SDL_MOUSEMOTION:
+				p6logd("x:%d y:%d xrel:%d yrel:%d\n", ev.motion.x, ev.motion.y, ev.motion.xrel, ev.motion.yrel);
+				break;
 #if defined(ANDROID) || TARGET_OS_IPHONE
 			case SDL_APP_WILLENTERBACKGROUND:
 				DSound_Stop();
@@ -802,7 +805,7 @@ int main(int argc, char *argv[])
 				break;
 			case SDL_FINGERMOTION:
 				float kx, ky, dx, dy;
-				p6logd("FM: x:%f y:%f dx:%f dy:%f", ev.tfinger.x, ev.tfinger.y, ev.tfinger.dx, ev.tfinger.dy);
+				p6logd("FM: x:%f y:%f dx:%f dy:%f\n", ev.tfinger.x, ev.tfinger.y, ev.tfinger.dx, ev.tfinger.dy);
 				if (vk_cnt == 0) {
 					kx = ev.tfinger.x * 800;
 					ky = ev.tfinger.y * 600;
@@ -819,6 +822,8 @@ int main(int argc, char *argv[])
 						}
 						if (kbd_y > 550) kbd_y = 550;
 					}
+				} else if (Config.JoyOrMouse) { // Mouse mode is off when the keyboard is active
+					Mouse_Event(0, ev.tfinger.dx * 50 * Config.MouseSpeed, ev.tfinger.dy * 50 * Config.MouseSpeed);
 				}
 				break;
 #endif

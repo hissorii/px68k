@@ -99,29 +99,29 @@ struct menu_flist mfl;
 
 /***** menu items *****/
 
-#define MENU_NUM 9
+#define MENU_NUM 8
 #define MENU_WINDOW 7
 
-int mval_y[] = {0, 0, 0, 0, 2, 1, 1, 0, 0};
+int mval_y[] = {0, 0, 0, 0, 0, 2, 1, 1};
 
 // Max # of characters is 15.
-char menu_item_key[][15] = {"SYSTEM", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VBtn Swap", "No Wait Mode", "hoge", "uhyo", ""};
+char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VBtn Swap", "No Wait Mode", "hoge", "uhyo", ""};
 
 // Max # of characters is 30.
 // Max # of items including terminater `""' in each line is 10.
 char menu_items[][10][30] = {
 	{"RESET", "NMI RESET", "QUIT", ""},
+	{"Joystick", "Mouse", ""},
 	{"dummy", "EJECT", ""},
 	{"dummy", "EJECT", ""},
 	{"Auto Frame Skip", "Full Frame", "1/2 Frame", "1/3 Frame", "1/4 Frame", "1/5 Frame", "1/6 Frame", "1/8 Frame", ""},
 	{"Ultra Huge", "Super Huge", "Huge", "Large", "Medium", "Small", ""},
 	{"TRIG1 TRIG2", "TRIG2 TRIG1", ""},
-	{"Off", "On", ""},
-	{"ahya", "hehe", ""},
-	{"oyo", "buuuuun", ""}
+	{"Off", "On", ""}
 };
 
 static void menu_system(int v);
+static void menu_joy_or_mouse(int v);
 static void menu_create_flist(int v);
 static void menu_frame_skip(int v);
 static void menu_vkey_size(int v);
@@ -135,6 +135,7 @@ struct _menu_func {
 
 struct _menu_func menu_func[] = {
 	{menu_system, 0}, 
+	{menu_joy_or_mouse, 1},
 	{menu_create_flist, 0},
 	{menu_create_flist, 0},
 	{menu_frame_skip, 1},
@@ -157,16 +158,17 @@ int WinUI_get_fdd_num(int key)
 void
 WinUI_Init(void)
 {
+	mval_y[1] = Config.JoyOrMouse;
 	if (FrameRate == 7) {
-		mval_y[3] = 0;
+		mval_y[4] = 0;
 	} else if (FrameRate == 8) {
-		mval_y[3] = 7;
+		mval_y[4] = 7;
 	} else {
-		mval_y[3] = FrameRate;
+		mval_y[4] = FrameRate;
 	}
-	mval_y[4] = Config.VkeyScale;
-	mval_y[5] = Config.VbtnSwap;
-	mval_y[6] = NoWaitMode;
+	mval_y[5] = Config.VkeyScale;
+	mval_y[6] = Config.VbtnSwap;
+	mval_y[7] = NoWaitMode;
 
 	strcpy(mfl.dir[0], CUR_DIR_STR);
 	strcpy(mfl.dir[1], CUR_DIR_STR);
@@ -257,6 +259,13 @@ static void menu_system(int v)
 		break;
 	}
 }
+
+static void menu_joy_or_mouse(int v)
+{
+	Config.JoyOrMouse = v;
+	Mouse_StartCapture(v == 1);
+}
+
 
 static void upper(char *s)
 {

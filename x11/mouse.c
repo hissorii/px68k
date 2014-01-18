@@ -30,8 +30,8 @@
 #include "crtc.h"
 #include "mouse.h"
 
-int	MousePosX = 0;
-int	MousePosY = 0;
+float	MouseDX = 0;
+float	MouseDY = 0;
 BYTE	MouseStat = 0;
 BYTE	MouseSW = 0;
 
@@ -48,65 +48,41 @@ void gdk_window_set_pointer(GdkWindow *window, gint x, gint y);
 
 void Mouse_Init(void)
 {
-#if 0
-	static gchar hide_cursor[16*16/8] = {
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-	};
-	static int inited = 0;
-
-	if (!inited) {
-		GtkWidget *w = window;
-
-		inited = 1;
-
-		cursor_pixmap = gdk_pixmap_create_from_data(w->window,
-		    hide_cursor, 16, 16, 1, &w->style->black, &w->style->black);
-		cursor = gdk_cursor_new_from_pixmap(cursor_pixmap,
-		    cursor_pixmap, &w->style->black, &w->style->black, 0, 0);
+	if (Config.JoyOrMouse) {
+		Mouse_StartCapture(1);
 	}
-
-	MousePosX = (TextDotX / 2);
-	MousePosY = (TextDotY / 2);
-	MouseStat = 0;
-#endif
 }
 
 
 // ----------------------------------
 //	Mouse Event Occured
 // ----------------------------------
-void Mouse_Event(DWORD wparam, DWORD lparam)
+void Mouse_Event(int param, float dx, float dy)
 {
-#if 0
-	if (MouseSW) {
-		switch (wparam) {
-		case 0:	// マウス移動
-			MousePosX = (lparam >> 16) & 0xffff;
-			MousePosY = (lparam & 0xffff);
-			break;
+	printf("ME(): %d %d\n", dx, dy);
 
-		case 1:	// 左ボタン
-			if (lparam == TRUE)
+	if (MouseSW) {
+		switch (param) {
+		case 0:	// mouse move
+			MouseDX += dx;
+			MouseDY += dy;
+			break;
+		case 1:	// left button
+			if (dx != 0)
 				MouseStat |= 1;
 			else
 				MouseStat &= 0xfe;
 			break;
-
-		case 2:	// 右ボタン
-			if (lparam == TRUE)
+		case 2:	// right button
+			if (dx != 0)
 				MouseStat |= 2;
 			else
 				MouseStat &= 0xfd;
 			break;
-
 		default:
 			break;
 		}
 	}
-#endif
 }
 
 
@@ -115,19 +91,16 @@ void Mouse_Event(DWORD wparam, DWORD lparam)
 // ----------------------------------
 void Mouse_SetData(void)
 {
-#if 0
 	POINT pt;
 	int x, y;
 
 	if (MouseSW) {
-		getmaincenter(window, &pt);
 
-		mousex += (MousePosX - pt.x) * Config.MouseSpeed;
-		mousey += (MousePosY - pt.y) * Config.MouseSpeed;
-		x = mousex / 10;
-		y = mousey / 10;
-		mousex -= x * 10;
-		mousey -= y * 10;
+		x = (int)MouseDX;
+		y = (int)MouseDY;
+
+		MouseDX = MouseDY = 0;
+
 		MouseSt = MouseStat;
 
 		if (x > 127) {
@@ -150,13 +123,11 @@ void Mouse_SetData(void)
 			MouseY = (signed char)y;
 		}
 
-		gdk_window_set_pointer(window->window, pt.x, pt.y);
 	} else {
 		MouseSt = 0;
 		MouseX = 0;
 		MouseY = 0;
 	}
-#endif
 }
 
 
@@ -165,32 +136,12 @@ void Mouse_SetData(void)
 // ----------------------------------
 void Mouse_StartCapture(int flag)
 {
-#if 0
-	GtkWidget *w = window;
-	POINT pt;
-
 	if (flag && !MouseSW) {
-		int cx, cy;
-
-		gdk_window_get_pointer(w->window, &cx, &cy, NULL);
-		gdk_pointer_grab(w->window, TRUE, 0, w->window, cursor, 0);
-		getmaincenter(w, &pt);
-		gdk_window_set_pointer(w->window, pt.x, pt.y);
-
-		CursorPos.x = (WORD)cx;
-		CursorPos.y = (WORD)cy;
 		MouseSW = 1;
-	}
-
-	if (!flag && MouseSW) {
-		gdk_window_set_pointer(w->window, CursorPos.x, CursorPos.y);
-		gdk_pointer_ungrab(0);
-
+	} else 	if (!flag && MouseSW) {
 		MouseSW = 0;
 	}
-#endif
 }
-
 
 void Mouse_ChangePos(void)
 {

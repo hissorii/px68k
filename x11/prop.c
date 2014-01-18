@@ -269,6 +269,8 @@ void LoadConfig(void)
 
 	Config.VbtnSwap = GetPrivateProfileInt(ini_title, "VbtnSwap", 0, winx68k_ini);
 
+	Config.JoyOrMouse = GetPrivateProfileInt(ini_title, "JoyOrMouse", 0, winx68k_ini);
+
 	for (i=0; i<2; i++)
 	{
 		for (j=0; j<8; j++)
@@ -380,6 +382,9 @@ void SaveConfig(void)
 
 	wsprintf(buf, "%d", Config.VbtnSwap);
 	WritePrivateProfileString(ini_title, "VbtnSwap", buf, winx68k_ini);
+
+	wsprintf(buf, "%d", Config.JoyOrMouse);
+	WritePrivateProfileString(ini_title, "JoyOrMouse", buf, winx68k_ini);
 
 	for (i=0; i<2; i++)
 	{
