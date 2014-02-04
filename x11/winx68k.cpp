@@ -990,7 +990,6 @@ end_loop:
 	FDD_Cleanup();
 	//CDROM_Cleanup();
 	MIDI_Cleanup();
-	Joystick_Cleanup();
 	DSound_Cleanup();
 	WinX68k_Cleanup();
 	WinDraw_Cleanup();

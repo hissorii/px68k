@@ -28,8 +28,6 @@ typedef struct _vbtn_points {
 #endif
 
 void Joystick_Init(void);
-void Joystick_Cleanup(void);
-void Joystick_Activate(UINT wParam);
 BYTE FASTCALL Joystick_Read(BYTE num);
 void FASTCALL Joystick_Write(BYTE num, BYTE data);
 void FASTCALL Joystick_Update(void);

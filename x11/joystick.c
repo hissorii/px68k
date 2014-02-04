@@ -10,12 +10,8 @@
 #else
 #include <SDL.h>
 #endif
-#if defined(ANDROID) || TARGET_OS_IPHONE
+#if defined(ANDROID) || TARGET_OS_IPHONE || defined(PSP)
 #include "mouse.h"
-#endif
-
-#if 0
-LPDIRECTINPUT		dinput = NULL;
 #endif
 
 #ifndef MAX_BUTTON
@@ -26,7 +22,6 @@ char joyname[2][MAX_PATH];
 char joybtnname[2][MAX_BUTTON][MAX_PATH];
 BYTE joybtnnum[2] = {0, 0};
 
-//static	int		joyactive = 0;
 BYTE joy[2];
 BYTE JoyKeyState;
 BYTE JoyKeyState0;
@@ -44,6 +39,7 @@ BYTE JoyUpState0;
 DWORD JoyDownStatePSP;
 BYTE JoyAnaPadX;
 BYTE JoyAnaPadY;
+static void mouse_update_psp(SceCtrlData psppad);
 #endif
 BYTE JoyPortData[2];
 
@@ -171,44 +167,10 @@ void Joystick_Init(void)
 #endif
 }
 
-void Joystick_Cleanup(void)
-{
-#if 0
-	if (joy[0]) IDirectInputDevice2_Release(joy[0]);
-	if (joy[1]) IDirectInputDevice2_Release(joy[1]);
-	if (dinput) IDirectInput_Release(dinput);
-#endif
-}
-
-
-void Joystick_Activate(UINT wParam)
-{
-#if 1
-	(void)wParam;
-#else
-	if (wParam != WA_INACTIVE)
-	{
-		if (joy[0]) IDirectInputDevice2_Acquire(joy[0]);
-		if (joy[1]) IDirectInputDevice2_Acquire(joy[1]);
-	}
-	else
-	{
-		if (joy[0]) IDirectInputDevice2_Unacquire(joy[0]);
-		if (joy[1]) IDirectInputDevice2_Unacquire(joy[1]);
-	}
-#endif
-}
-
-
 BYTE FASTCALL Joystick_Read(BYTE num)
 {
 	BYTE joynum = num;
 	BYTE ret0 = 0xff, ret1 = 0xff, ret;
-
-	(void)joynum;
-	(void)ret0;
-	(void)ret1;
-	ret = 0xff;
 
 	Config.JoyKey = 1;
 
@@ -286,11 +248,6 @@ void FASTCALL Joystick_Update(void)
 	JoyAnaPadX = psppad.Lx;
 	JoyAnaPadY = psppad.Ly;
 
-	// disable Joystick when software keyboard is active
-	if (!Keyboard_IsSwKeyboard()) {
-		JoyState0[num] = ret0;
-		JoyState1[num] = ret1;
-	}
 #elif defined(ANDROID) || TARGET_OS_IPHONE
 	BYTE ret0 = 0xff, ret1 = 0xff;
 	int num = 0; //xxx only joy1
@@ -369,8 +326,9 @@ void FASTCALL Joystick_Update(void)
 	JoyDownState0 = ~(ret0 ^ pre_ret0) | ret0;
 	JoyUpState0 = (ret0 ^ pre_ret0) & ret0;
 	pre_ret0 = ret0;
+#endif
 
-#ifdef USE_OGLES11
+#if defined(USE_OGLES11) || defined(PSP)
 	// disable Joystick when software keyboard or mouse is active
 	if (!Keyboard_IsSwKeyboard() && !Config.JoyOrMouse) {
 		JoyState0[num] = ret0;
@@ -389,9 +347,10 @@ void FASTCALL Joystick_Update(void)
 			printf("mouse btn2 event\n");
 			Mouse_Event(2, (JoyUpState0 & JOY_TRG2)? 0 : 1.0, 0);
 		}
-	}
-
+#ifdef PSP
+		mouse_update_psp(psppad);
 #endif
+	}
 
 #endif
 }
@@ -443,7 +402,6 @@ void reset_joy_upstate(void)
 	JoyUpState0 = 0x00;
 }
 
-
 #ifdef PSP
 DWORD Joystick_get_downstate_psp(DWORD ctrl_bit)
 {
@@ -492,6 +450,35 @@ void Joystick_mv_anapad_psp(void)
 {
 	_get_anapad_sub(JoyAnaPadX, &kbd_x, 450);
 	_get_anapad_sub(JoyAnaPadY, &kbd_y, 250);
+
+}
+static void mouse_update_psp(SceCtrlData psppad)
+{
+	int x = 128, y = 128; // origin is 128
+
+	_get_anapad_sub(JoyAnaPadX, &x, 255);
+	_get_anapad_sub(JoyAnaPadY, &y, 255);
+	
+	x -= 128; //x,y:(-4..4)
+	y -= 128;
+
+	if (psppad.Buttons & PSP_CTRL_LEFT) {
+		x--;
+	}
+	if (psppad.Buttons & PSP_CTRL_RIGHT) {
+		x++;
+	}
+	if (psppad.Buttons & PSP_CTRL_UP) {
+		y--;
+	}
+	if (psppad.Buttons & PSP_CTRL_DOWN) {
+		y++;
+	}
+
+	if (x != 0 || y != 0) {
+		printf("mouse x: %d y: %d", x, y);
+		Mouse_Event(0, (float)x * 0.1 * Config.MouseSpeed, (float)y * 0.1 * Config.MouseSpeed);
+	}
 }
 #endif
 
