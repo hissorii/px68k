@@ -171,22 +171,32 @@ void FASTCALL BG_Write(DWORD adr, BYTE data)
 			: "m" (adr), "g" (BG_VLINE), "m" (v)
 			: "ax", "bx", "memory");
 #else /* !USE_ASM && !(USE_GAS && __i386__) */
-			WORD t, *pw = (WORD *)Sprite_Regs;
-			int i;
 
-			t = (pw[((adr-v) & 0x3f8) + 1] - 16 + BG_VLINE) & 0x3ff;
-			for (i = 0; i < 16; i++) {
-				TextDirtyLine[t] = 1;
-				t = (t + 1) & 0x3ff;
-			}
+			WORD t0, t, *pw;
+
+			v = BG_VLINE - 16 - v;
+			// get YPOS pointer (Sprite_Regs[] is little endian)
+			pw = (WORD *)(Sprite_Regs + (adr & 0x3f8) + 2);
+
+#define UPDATE_TDL(t)				\
+{						\
+	int i;					\
+	for (i = 0; i < 16; i++) {		\
+		TextDirtyLine[(t)] = 1;		\
+		(t) = ((t) + 1) & 0x3ff;	\
+	}					\
+}
+
+			t = t0 = (*pw + v) & 0x3ff;
+			UPDATE_TDL(t);
 
 			Sprite_Regs[adr] = data;
 
-			t = (pw[((adr-v) & 0x3f8) + 1] - 16 + BG_VLINE) & 0x3ff;
-			for (i = 0; i < 16; i++) {
-				TextDirtyLine[t] = 1;
-				t = (t + 1) & 0x3ff;
+			t = (*pw + v) & 0x3ff;
+			if (t != t0) {
+				UPDATE_TDL(t);
 			}
+
 #endif /* USE_ASM */
 		}
 	}
@@ -645,6 +655,7 @@ LABEL void FASTCALL
 BG_DrawLine(int opaq, int gd)
 {
 	int i;
+	void (*func8)(WORD, DWORD, DWORD), (*func16)(WORD, DWORD, DWORD);
 
 	if (opaq) {
 		for (i = 16; i < TextDotX + 16; ++i) {
@@ -657,41 +668,19 @@ BG_DrawLine(int opaq, int gd)
 		}
 	}
 
-	if (gd) {
-		Sprite_DrawLineMcr(1);
-		Sprite_DrawLineMcr(2);
-		if (BG_Regs[9] & 8) { // BG1 表示on
-			if (BG_CHRSIZE == 8) {
-				BG_DrawLineMcr8(BG_BG1TOP, BG1ScrollX, BG1ScrollY);
-			} else {
-				BG_DrawLineMcr16(BG_BG1TOP, BG1ScrollX, BG1ScrollY);
-			}
-		}
-		if (BG_Regs[9] & 1) { // BG0 表示on
-			if (BG_CHRSIZE == 8) {
-				BG_DrawLineMcr8(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
-			} else {
-				BG_DrawLineMcr16(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
-			}
-		}
-	} else {
-		Sprite_DrawLineMcr(1);
+	func8 = (gd)? BG_DrawLineMcr8 : BG_DrawLineMcr8_ng;
+	func16 = (gd)? BG_DrawLineMcr16 : BG_DrawLineMcr16_ng;
+
+	Sprite_DrawLineMcr(1);
+	if ((BG_Regs[9] & 8) && (BG_CHRSIZE == 8)) { // BG1 on
+		(*func8)(BG_BG1TOP, BG1ScrollX, BG1ScrollY);
+	}
+	Sprite_DrawLineMcr(2);
+	if (BG_Regs[9] & 1) { // BG0 on
 		if (BG_CHRSIZE == 8) {
-			if (BG_Regs[9] & 8) {
-				BG_DrawLineMcr8_ng(BG_BG1TOP, BG1ScrollX, BG1ScrollY);
-			}
-			Sprite_DrawLineMcr(2);
-			if (BG_Regs[9] & 1) {
-				BG_DrawLineMcr8_ng(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
-			}
+			(*func8)(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
 		} else {
-//			if (BG_Regs[9] & 8) {
-//				BG_DrawLineMcr16_ng(BG_BG1TOP, BG1ScrollX, BG1ScrollY);
-//			}
-			Sprite_DrawLineMcr(2);
-			if (BG_Regs[9] & 1) {
-				BG_DrawLineMcr16_ng(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
-			}
+			(*func16)(BG_BG0TOP, BG0ScrollX, BG0ScrollY);
 		}
 	}
 	Sprite_DrawLineMcr(3);

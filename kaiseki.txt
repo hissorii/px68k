@@ -470,3 +470,31 @@ OpenGL ES 1.1 を使う -> USE_OGLES11
 SDL_gfx を使う -> USE_SDLGFX
 
 Software Keyboard は PSP または OpenGL ES 1.1 専用
+
+** 2014/2/12
+
+* 以前解析した分を忘れているので復習
+
+* BYTE CRTC_Regs[0x30] CRTC内部レジスタ (big endian)
+
+  0xe80000 - 0xe80480
+
+  - CRTC_VSTART = (((WORD)CRTC_Regs[0xc]<<8)+CRTC_Regs[0xd]);
+    垂直表示開始位置
+
+  - CRTC_VEND = (((WORD)CRTC_Regs[0xe]<<8)+CRTC_Regs[0xf]);
+    垂直表示終了位置
+
+  - CRTC_Regs[0x29]&4  垂直ドット数   0: 256Line 1: 512Line
+  - CRTC_Regs[0x29]&16 水平偏向周波数 0: 15.98kHz 1: 31.50kHz
+
+
+* BYTE BG_Regs[0x12] BGスクロールレジスタ/画面モードレジスタ (big endian)
+
+ (- BG_Regs[0x0c] 水平表示位置 x8しないとだめ?)
+
+  - BG_VLINE = ((long)BG_Regs[0x0f]-CRTC_VSTART)/((BG_Regs[0x11]&4)?1:2); 
+    - BG_Regs[0x0f] BG垂直表示位置
+    - BG_Regs[0x11]&4 0: 垂直256ラインモード 1: 垂直512ラインモード
+    - BG_Regs[0x11]&16 水平同期周波数  0: 15.98kHz 1: 31.50kHz
+
