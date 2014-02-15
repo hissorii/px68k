@@ -51,8 +51,8 @@ BYTE FASTCALL RTC_Read(DWORD adr)
 		case 0x0d: ret=(BYTE)(tm->tm_wday); break;
 		case 0x0f: ret=(tm->tm_mday)%10; break;
 		case 0x11: ret=(tm->tm_mday)/10; break;
-		case 0x13: ret=(tm->tm_mon)%10; break;
-		case 0x15: ret=(tm->tm_mon)/10; break;
+		case 0x13: ret=(tm->tm_mon+1)%10; break;
+		case 0x15: ret=(tm->tm_mon+1)/10; break;
 		case 0x17: ret=((tm->tm_year)-80)%10; break;
 		case 0x19: ret=(((tm->tm_year)-80)/10)&0xf; break;
 		case 0x1b: ret=RTC_Regs[0][13]; break;
