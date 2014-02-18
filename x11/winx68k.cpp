@@ -35,6 +35,7 @@ extern "C" {
 #include "rtc.h"
 #include "sasi.h"
 #include "scsi.h"
+#include "sysport.h"
 #include "bg.h"
 #include "palette.h"
 #include "crtc.h"
@@ -721,6 +722,8 @@ int main(int argc, char *argv[])
 #endif
 	}
 
+	FDD_Init();
+	SysPort_Init();
 	Mouse_Init();
 	Joystick_Init();
 	SRAM_Init();
