@@ -125,7 +125,7 @@ void FASTCALL GVRAM_FastClear(void)
 		p = (WORD *)(GVRAM + offy + offx * 2);
 
 		for (x = 0; x < h; ++x) {
-			*p++ = CRTC_FastClrMask;
+			*p++ &= CRTC_FastClrMask;
 			offx = (offx + 1) & 0x1ff;
 		}
 
@@ -1808,7 +1808,7 @@ pop	edi
 		} else {
 			v &= 0xfe;
 			if (v != 0x00)
-				v = GrphPal[v] & Ibit;
+				v = GrphPal[v] | Ibit;
 			Grp_LineBufSP[i] = v;
 			Grp_LineBufSP2[i] = 0;
 		}
