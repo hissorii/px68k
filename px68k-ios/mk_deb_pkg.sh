@@ -41,7 +41,7 @@ Package: com.fc2.blog45.hissorii.px68k
 Author: hissorii
 Maintainer: hissorii <hissory@gmail.com>
 Section: Games
-Version: 0.03
+Version: 0.04
 Architecture: iphoneos-arm
 Description: Portable X68000 Emulator
 Depiction: http://hissorii.blog45.fc2.com
