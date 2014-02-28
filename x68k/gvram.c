@@ -1446,16 +1446,17 @@ void FASTCALL Grp_DrawLine4h(void)
 	}
 
 	x = GrphScrollX[0] & 0x1ff;
-	x = ((x & 0x1ff) ^ 0x1ff) + 1;
-
 	srcp = (WORD *)(GVRAM + y + x * 2);
 	destp = (WORD *)Grp_LineBuf;
+
+	x = ((x & 0x1ff) ^ 0x1ff) + 1;
 
 	for (i = 0; i < TextDotX; ++i) {
 		v = *srcp++;
 		*destp++ = GrphPal[(v >> bits) & 0x0f];
 
 		if (--x == 0) {
+			srcp -= 0x200;
 			bits ^= 4;
 			x = 512;
 		}
