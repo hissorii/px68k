@@ -90,7 +90,7 @@ int NoWaitMode = 0;
 unsigned int hTimerID = 0;
 DWORD TimerICount = 0;
 extern DWORD timertick;
-BYTE traceflag = 1;
+BYTE traceflag = 0;
 
 BYTE ForceDebugMode = 0;
 DWORD skippedframes = 0;
@@ -864,6 +864,12 @@ int main(int argc, char *argv[])
 						menu_mode = menu_out;
 					}
 				}
+#ifdef WIN68DEBUG
+				if (ev.key.keysym.sym == SDLK_F10) {
+					traceflag ^= 1;
+					printf("trace %s\n", (traceflag)?"on":"off");
+				}
+#endif
 				if (menu_mode != menu_out) {
 #if !defined(PSP) && !defined(ANDROID) && TARGET_OS_IPHONE == 0
 					menukey_update(ev.key.keysym.sym);
