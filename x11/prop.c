@@ -291,12 +291,14 @@ void LoadConfig(void)
 		GetPrivateProfileString(ini_title, buf, "", Config.HDImage[i], MAX_PATH, winx68k_ini);
 	}
 
+#if 0
 	fp = File_OpenCurDir(KEYCONFFILE);
 	if (fp)
 	{
 		File_Read(fp, KeyTable, 512);
 		File_Close(fp);
 	}
+#endif
 }
 
 
@@ -409,6 +411,7 @@ void SaveConfig(void)
 		WritePrivateProfileString(ini_title, buf, Config.HDImage[i], winx68k_ini);
 	}
 
+#if 0
 	fp = File_OpenCurDir(KEYCONFFILE);
 	if (!fp)
 		fp = File_CreateCurDir(KEYCONFFILE, FTYPE_TEXT);
@@ -417,6 +420,7 @@ void SaveConfig(void)
 		File_Write(fp, KeyTable, 512);
 		File_Close(fp);
 	}
+#endif
 }
 
 

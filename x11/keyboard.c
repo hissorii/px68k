@@ -84,12 +84,12 @@ Keyboard_Init(void)
 BYTE KeyTable[KEYTABLE_MAX] = {
 	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x00
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
-	//	    ,    ,    ,    ,    , RET,    ,    		; 0x08
-		  NC,  NC,  NC,  NC,  NC,0x1d,  NC,  NC,
+	//	  BS, TAB,    ,    ,    , RET,    ,    		; 0x08
+		0x0f,0x10,  NC,  NC,  NC,0x1d,  NC,  NC,
 	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x10
-		  NC,  NC,  NC,0x1d,  NC,  NC,  NC,  NC,
-	//	    ,    ,    ,    ,    ,    ,    ,    		; 0x18
 		  NC,  NC,  NC,  NC,  NC,  NC,  NC,  NC,
+	//	    ,    ,    , ESC,    ,    ,    ,    		; 0x18
+		  NC,  NC,  NC,0x01,  NC,  NC,  NC,  NC,
 	//	 SPC,  ! ,  " ,  # ,  $ ,  % ,  & ,  '		; 0x20
 		0x35,0x02,0x03,0x04,0x05,0x06,0x07,0x08,
 	//	  ( ,  ) ,  * ,  + ,  , ,  - ,  . ,  /		; 0x28
@@ -369,6 +369,96 @@ void send_keycode(BYTE code, int flag)
 	}
 }
 
+static BYTE get_x68k_keycode(DWORD wp)
+{
+	if (wp < KEYTABLE_MAX) {
+		return KeyTable[wp];
+	}
+
+	switch (wp) {
+	case SDLK_UP:
+		return 0x3c;
+	case SDLK_DOWN:
+		return 0x3e;
+	case SDLK_LEFT:
+		return 0x3b;
+	case SDLK_RIGHT:
+		return 0x3d;
+#ifndef PSP
+	case SDLK_KP_0:
+		return 0x4f;
+	case SDLK_KP_1:
+		return 0x4b;
+	case SDLK_KP_2:
+		return 0x4c;
+	case SDLK_KP_3:
+		return 0x4d;
+	case SDLK_KP_4:
+		return 0x47;
+	case SDLK_KP_5:
+		return 0x48;
+	case SDLK_KP_6:
+		return 0x49;
+	case SDLK_KP_7:
+		return 0x43;
+	case SDLK_KP_8:
+		return 0x44;
+	case SDLK_KP_9:
+		return 0x45;
+	case SDLK_NUMLOCKCLEAR:
+		return 0x3f;
+#endif
+	case SDLK_F1:
+		return 0x63;
+	case SDLK_F2:
+		return 0x64;
+	case SDLK_F3:
+		return 0x65;
+	case SDLK_F4:
+		return 0x66;
+	case SDLK_F5:
+		return 0x67;
+	case SDLK_F6:
+		return 0x68;
+	case SDLK_F7:
+		return 0x69;
+	case SDLK_F8:
+		return 0x6a;
+	case SDLK_F9:
+		return 0x6b;
+	case SDLK_F10:
+		return 0x6c;
+	case SDLK_LSHIFT:
+	case SDLK_RSHIFT:
+		return 0x70;
+	case SDLK_LCTRL:
+	case SDLK_RCTRL:
+		return 0x71;
+	case SDLK_KP_DIVIDE:
+		return 0x40;
+	case SDLK_KP_MULTIPLY:
+		return 0x41;
+	case SDLK_KP_MINUS:
+		return 0x42;
+	case SDLK_KP_PLUS:
+		return 0x46;
+	case SDLK_KP_ENTER:
+		return 0x4e;
+	case SDLK_INSERT:
+		return 0x5e;
+	case SDLK_HOME:
+		return 0x36;
+	case SDLK_END:
+		return 0x3a;
+	case SDLK_PAGEUP:
+		return 0x38;
+	case SDLK_PAGEDOWN:
+		return 0x39;
+	default:
+		return -1;
+	}
+}
+
 // ----------------------------------
 //	WM_KEYDOWN〜
 // ----------------------------------
@@ -389,13 +479,10 @@ Keyboard_KeyDown(DWORD wp)
 	} else
 		code = KeyTable[wp & 0xff];
 #endif
-	if (wp >= KEYTABLE_MAX) {
-		// 拾う必要のあるkeycodeは個別に処理を追加する
-
+	code = get_x68k_keycode(wp);
+	if (code < 0) {
 		return;
 	}
-
-	code = KeyTable[wp];
 
 	printf("Keyboard_KeyDown: ");
 	printf("wp=0x%x, code=0x%x\n", wp, code);
@@ -475,14 +562,10 @@ Keyboard_KeyUp(DWORD wp)
 	} else
 		code = KeyTable[wp & 0xff];
 #endif
-	if (wp >= KEYTABLE_MAX) {
-		// 拾う必要のあるkeycodeは個別に処理を追加する
-
+	code = get_x68k_keycode(wp);
+	if (code < 0) {
 		return;
 	}
-
-	code = KeyTable[wp];
-
 #if 0
 	if (code != NC) {
 		newwp = ((KeyBufWP + 1) & (KeyBufSize - 1));
