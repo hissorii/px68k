@@ -637,6 +637,9 @@ int main(int argc, char *argv[])
 	// ナビゲーションバーを除くアプリが触れる画面
 	realdisp_w = sdl_dispmode.w, realdisp_h = sdl_dispmode.h;
 
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 1 );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
+
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ); 
 
 #if TARGET_OS_IPHONE

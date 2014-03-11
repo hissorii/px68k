@@ -2,7 +2,7 @@
 PX68K ( Portable (x)keropi PRO-68K )
 
 ソースを自分でコンパイルする際に役に立つかもしれないドキュメント
-                                                          2014/01/12 ひっそりぃ
+                                                          2014/03/11 ひっそりぃ
 
 ■開発環境について
 
@@ -21,7 +21,7 @@ PX68K ( Portable (x)keropi PRO-68K )
 ・Android
 
   Ubuntu Linux 13.04
-  SDL2-2.0.0 (http://www.libsdl.org/ から入手)
+  SDL2-2.0.2 (http://www.libsdl.org/ から入手)
   android-ndk-r9-linux-x86 (Android NDK)
   adt-bundle-linux-x86-20130729 (Android SDK)
   OpenGL ES 1.1
@@ -57,7 +57,16 @@ PX68K ( Portable (x)keropi PRO-68K )
 
 ・Android
 
-  * px68k-android/jni/ にSDLという名前でSDL2-2.0.0のディレクトリをコピー
+    ※ SDL2-2.0.0  から SDL2-2.0.2 に変更します。(2014/3/11)
+       既に SDL2-2.0.0 環境を作成している方は以下の対処を行ってください。
+       ・px68k/px68k-android/jni/SDL を 2.0.2 に更新
+       ・Eclipse で 「Android SDK Manager」を実行し、
+         「Android3.1 (API 12)」の「SDK Platform」をインストール
+       ・Eclipse で「Package Explorer」の「PX68K」アイコンを右クリックし、
+         「Propertiles」を選択。
+         「Android」をクリックし、「Android 3.1」を選択する。
+
+  * px68k-android/jni/ にSDLという名前でSDL2-2.0.2のディレクトリをコピー
     するか、シンボリックリンクをはってください。
     
   * Android.mk の LOCAL_C_INCLUDES　で、ndkのディレクトリを指定している
