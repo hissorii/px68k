@@ -859,22 +859,24 @@ void Keyboard_skbd(void)
 
 int skbd_mode = FALSE;
 
-int Keyboard_IsSwKeyboard(void)
-{
-#ifdef PSP
-	return skbd_mode;
-#else
-	if (kbd_x < 700) {
-		return TRUE;
-	} else {
-		return FALSE;
-	}
-#endif
-}
-
 void Keyboard_ToggleSkbd(void)
 {
 	skbd_mode = (skbd_mode == TRUE)? FALSE : TRUE;
 }
 
+#endif //defined(PSP) || defined(USE_OGLES11)
+
+int Keyboard_IsSwKeyboard(void)
+{
+#if defined(PSP)
+	return skbd_mode;
+#elif defined(USE_OGLES11)
+	if (kbd_x < 700) {
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+#else
+	return FALSE;
 #endif
+}

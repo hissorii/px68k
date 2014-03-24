@@ -500,7 +500,11 @@ void WinX68k_Exec(void)
 		}
 	}
 
+#ifdef PSP
 	Joystick_Update();
+#else
+	Joystick_Update(SDLK_UNKNOWN);
+#endif
 	FDD_SetFDInt();
 	if ( !DispFrame )
 		WinDraw_Draw();
@@ -569,6 +573,7 @@ int main(int argc, char *argv[])
 {
 #ifndef PSP
 	SDL_Event ev;
+	SDL_Keycode menu_key_down;
 #endif
 #if defined(ANDROID) || TARGET_OS_IPHONE
 	int vk_cnt = -1;
@@ -789,6 +794,8 @@ int main(int argc, char *argv[])
 			}
 		}
 #ifndef PSP
+		menu_key_down = SDLK_UNKNOWN;
+
 		while (SDL_PollEvent(&ev)) {
 			switch (ev.type) {
 			case SDL_QUIT:
@@ -874,9 +881,7 @@ int main(int argc, char *argv[])
 				}
 #endif
 				if (menu_mode != menu_out) {
-#if !defined(PSP) && !defined(ANDROID) && TARGET_OS_IPHONE == 0
-					menukey_update(ev.key.keysym.sym);
-#endif
+					menu_key_down = ev.key.keysym.sym;
 				} else {
 					Keyboard_KeyDown(ev.key.keysym.sym);
 				}
@@ -947,8 +952,11 @@ int main(int argc, char *argv[])
 		if (menu_mode != menu_out) {
 			int ret; 
 
+#ifdef PSP
 			Joystick_Update();
-
+#else
+			Joystick_Update(menu_key_down);
+#endif
 			ret = WinUI_Menu(menu_mode == menu_enter);
 			menu_mode = menu_in;
 			if (ret == WUM_MENU_END) {
@@ -988,7 +996,6 @@ int main(int argc, char *argv[])
 
 	}
 end_loop:
-
 	Memory_WriteB(0xe8e00d, 0x31);	// SRAM½ñ¤­¹þ¤ßµö²Ä
 	Memory_WriteD(0xed0040, Memory_ReadD(0xed0040)+1); // ÀÑ»»²ÔÆ¯»þ´Ö(min.)
 	Memory_WriteD(0xed0044, Memory_ReadD(0xed0044)+1); // ÀÑ»»µ¯Æ°²ó¿ô
@@ -998,6 +1005,7 @@ end_loop:
 	Mcry_Cleanup();
 #endif
 
+	Joystick_Cleanup();
 	SRAM_Cleanup();
 	FDD_Cleanup();
 	//CDROM_Cleanup();

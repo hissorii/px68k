@@ -2,6 +2,10 @@
 #define winx68k_joy_h
 
 #include "common.h"
+#ifndef PSP
+#include <SDL_keycode.h>
+#endif
+
 
 #define	JOY_UP		0x01
 #define	JOY_DOWN	0x02
@@ -28,11 +32,15 @@ typedef struct _vbtn_points {
 #endif
 
 void Joystick_Init(void);
+void Joystick_Cleanup(void);
 BYTE FASTCALL Joystick_Read(BYTE num);
 void FASTCALL Joystick_Write(BYTE num, BYTE data);
+#ifdef PSP
 void FASTCALL Joystick_Update(void);
+#else
+void FASTCALL Joystick_Update(SDL_Keycode key);
+#endif
 
-void menukey_update(signed int key);
 BYTE get_joy_downstate(void);
 void reset_joy_downstate(void);
 BYTE get_joy_upstate(void);

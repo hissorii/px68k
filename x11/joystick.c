@@ -148,8 +148,16 @@ BYTE Joystick_get_vbtn_state(WORD n)
 
 #endif
 
+#ifndef PSP
+SDL_Joystick *sdl_joy;
+#endif
+
 void Joystick_Init(void)
 {
+#ifndef PSP
+	int i, nr_joys, nr_btns;
+#endif
+
 	joy[0] = 1;  // active only one
 	joy[1] = 0;
 	JoyKeyState = 0;
@@ -164,6 +172,42 @@ void Joystick_Init(void)
 
 #if defined(ANDROID) || TARGET_OS_IPHONE
 	Joystick_Vbtn_Update(WinUI_get_vkscale());
+#endif
+
+#ifndef PSP
+	sdl_joy = 0;
+
+	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+
+	nr_joys = SDL_NumJoysticks();
+	p6logd("joy num %d\n", nr_joys);
+	for (i = 0; i < nr_joys; i++) {
+		sdl_joy = SDL_JoystickOpen(i);
+		if (sdl_joy) {
+			p6logd("Name: %s\n", SDL_JoystickNameForIndex(i));
+			p6logd("# of Axes: %d\n", SDL_JoystickNumAxes(sdl_joy));
+			p6logd("# of Btns: %d\n", SDL_JoystickNumButtons(sdl_joy));
+			p6logd("# of Balls: %d\n", SDL_JoystickNumBalls(sdl_joy));
+			p6logd("# of Hats: %d\n", SDL_JoystickNumHats(sdl_joy));
+			nr_btns = SDL_JoystickNumButtons(sdl_joy);
+			if (nr_btns < 2) {
+				sdl_joy = 0;
+			} else {
+				break;
+			}
+		} else {
+			p6logd("can't open joy %d\n", i);
+		}
+	}
+#endif
+}
+
+void Joystick_Cleanup(void)
+{
+#ifndef PSP
+	if (SDL_JoystickGetAttached(sdl_joy)) {
+		SDL_JoystickClose(sdl_joy);
+	}
 #endif
 }
 
@@ -202,7 +246,11 @@ void FASTCALL Joystick_Write(BYTE num, BYTE data)
 	if ( (num==0)||(num==1) ) JoyPortData[num] = data;
 }
 
+#ifdef PSP
 void FASTCALL Joystick_Update(void)
+#else
+void FASTCALL Joystick_Update(SDL_Keycode key)
+#endif
 {
 #if defined(PSP)
 	BYTE ret0 = 0xff, ret1 = 0xff;
@@ -248,11 +296,13 @@ void FASTCALL Joystick_Update(void)
 	JoyAnaPadX = psppad.Lx;
 	JoyAnaPadY = psppad.Ly;
 
-#elif defined(ANDROID) || TARGET_OS_IPHONE
+#else //defined(PSP)
 	BYTE ret0 = 0xff, ret1 = 0xff;
 	int num = 0; //xxx only joy1
 	static BYTE pre_ret0 = 0xff;
+	signed int x, y;
 
+#if defined(ANDROID) || TARGET_OS_IPHONE
 	SDL_Finger *finger;
 	SDL_FingerID fid;
 	float fx, fy;
@@ -322,18 +372,71 @@ void FASTCALL Joystick_Update(void)
 	if (vbtn_state[5] == VBTN_ON) {
 		ret0 ^= (Config.VbtnSwap == 0)? JOY_TRG2 : JOY_TRG1;
 	}
+#endif //defined(ANDROID) || TARGET_OS_IPHONE
+
+	// real gamepad
+	if (sdl_joy) {
+		SDL_JoystickUpdate();
+		x = SDL_JoystickGetAxis(sdl_joy, 0);
+		y = SDL_JoystickGetAxis(sdl_joy, 1);
+
+		if (x < -256) {
+			ret0 ^= JOY_LEFT;
+		}
+		if (x > 256) {
+			ret0 ^= JOY_RIGHT;
+		}
+		if (y < -256) {
+			ret0 ^= JOY_UP;
+		}
+		if (y > 256) {
+			ret0 ^= JOY_DOWN;
+		}
+		if (SDL_JoystickGetButton(sdl_joy, 0)) {
+			ret0 ^= JOY_TRG1;
+		}
+		if (SDL_JoystickGetButton(sdl_joy, 1)) {
+			ret0 ^= JOY_TRG2;
+		}
+	}
+
+	// scan keycode for menu UI
+	if (key != SDLK_UNKNOWN) {
+		switch (key) {
+		case SDLK_UP :
+			ret0 ^= JOY_UP;
+			break;
+		case SDLK_DOWN:
+			ret0 ^= JOY_DOWN;
+			break;
+		case SDLK_LEFT:
+			ret0 ^= JOY_LEFT;
+			break;
+		case SDLK_RIGHT:
+			ret0 ^= JOY_RIGHT;
+			break;
+		case SDLK_RETURN:
+			ret0 ^= JOY_TRG1;
+			break;
+		case SDLK_ESCAPE:
+			ret0 ^= JOY_TRG2;
+			break;
+		}
+	}
 
 	JoyDownState0 = ~(ret0 ^ pre_ret0) | ret0;
 	JoyUpState0 = (ret0 ^ pre_ret0) & ret0;
 	pre_ret0 = ret0;
-#endif
 
-#if defined(USE_OGLES11) || defined(PSP)
+#endif //defined(PSP)
+
 	// disable Joystick when software keyboard or mouse is active
 	if (!Keyboard_IsSwKeyboard() && !Config.JoyOrMouse) {
 		JoyState0[num] = ret0;
 		JoyState1[num] = ret1;
 	}
+
+#if defined(USE_OGLES11) || defined(PSP)
 	// update the states of the mouse buttons
 	// when sw keyboard is inactive and mouse is active.
 	// state is updated when menu is open, but don't care
@@ -354,36 +457,6 @@ void FASTCALL Joystick_Update(void)
 
 #endif
 }
-
-#if !defined(PSP) && !defined(ANDROID)
-void menukey_update(signed int key)
-{
-	BYTE ret0 = 0xff;
-	switch (key) {
-	case SDLK_UP :
-		ret0 ^= JOY_UP;
-		break;
-	case SDLK_DOWN:
-		ret0 ^= JOY_DOWN;
-		break;
-	case SDLK_LEFT:
-		ret0 ^= JOY_LEFT;
-		break;
-	case SDLK_RIGHT:
-		ret0 ^= JOY_RIGHT;
-		break;
-	case SDLK_RETURN:
-		ret0 ^= JOY_TRG1;
-		break;
-	case SDLK_ESCAPE:
-		ret0 ^= JOY_TRG2;
-		break;
-
-	}
-	JoyDownState0 = ret0;
-
-}
-#endif
 
 BYTE get_joy_downstate(void)
 {
