@@ -31,9 +31,11 @@ BYTE JoyState1[2];
 
 // This stores whether the buttons were down. This avoids key repeats.
 BYTE JoyDownState0;
+BYTE MouseDownState0;
 
 // This stores whether the buttons were up. This avoids key repeats.
 BYTE JoyUpState0;
+BYTE MouseUpState0;
 
 #ifdef PSP
 DWORD JoyDownStatePSP;
@@ -155,7 +157,7 @@ SDL_Joystick *sdl_joy;
 void Joystick_Init(void)
 {
 #ifndef PSP
-	int i, nr_joys, nr_btns;
+	int i, nr_joys, nr_axes, nr_btns;
 #endif
 
 	joy[0] = 1;  // active only one
@@ -184,13 +186,18 @@ void Joystick_Init(void)
 	for (i = 0; i < nr_joys; i++) {
 		sdl_joy = SDL_JoystickOpen(i);
 		if (sdl_joy) {
+			nr_btns = SDL_JoystickNumButtons(sdl_joy);
+			nr_axes = SDL_JoystickNumAxes(sdl_joy);
+
 			p6logd("Name: %s\n", SDL_JoystickNameForIndex(i));
-			p6logd("# of Axes: %d\n", SDL_JoystickNumAxes(sdl_joy));
-			p6logd("# of Btns: %d\n", SDL_JoystickNumButtons(sdl_joy));
+			p6logd("# of Axes: %d\n", nr_axes);
+			p6logd("# of Btns: %d\n", nr_btns);
 			p6logd("# of Balls: %d\n", SDL_JoystickNumBalls(sdl_joy));
 			p6logd("# of Hats: %d\n", SDL_JoystickNumHats(sdl_joy));
-			nr_btns = SDL_JoystickNumButtons(sdl_joy);
-			if (nr_btns < 2) {
+
+			// skip accelerometer and keyboard
+			if (nr_btns < 2 || nr_axes < 2) {
+				Joystick_Cleanup();
 				sdl_joy = 0;
 			} else {
 				break;
@@ -247,43 +254,57 @@ void FASTCALL Joystick_Write(BYTE num, BYTE data)
 }
 
 #ifdef PSP
-void FASTCALL Joystick_Update(void)
+void FASTCALL Joystick_Update(int is_menu)
 #else
-void FASTCALL Joystick_Update(SDL_Keycode key)
+void FASTCALL Joystick_Update(int is_menu, SDL_Keycode key)
 #endif
 {
-#if defined(PSP)
 	BYTE ret0 = 0xff, ret1 = 0xff;
-	int num = 0; //xxx active only one
-	static BYTE pre_ret0 = 0xff;
+	BYTE mret0 = 0xff, mret1 = 0xff;
+	int num = 0; //xxx only joy1
+	static BYTE pre_ret0 = 0xff, pre_mret0 = 0xff;
+#if defined(PSP)
 	static DWORD button_down = 0;
 	DWORD button_changing;
 
 	SceCtrlData psppad;
 	sceCtrlPeekBufferPositive(&psppad, 1);
 
-	if (psppad.Buttons & PSP_CTRL_LEFT) {
-		ret0 ^= JOY_LEFT;
-	}
-	if (psppad.Buttons & PSP_CTRL_RIGHT) {
-		ret0 ^= JOY_RIGHT;
-	}
-	if (psppad.Buttons & PSP_CTRL_UP) {
-		ret0 ^= JOY_UP;
-	}
-	if (psppad.Buttons & PSP_CTRL_DOWN) {
-		ret0 ^= JOY_DOWN;
-	}
-	if (psppad.Buttons & PSP_CTRL_CIRCLE) {
-		ret0 ^= JOY_TRG1;
-	}
-	if (psppad.Buttons & PSP_CTRL_CROSS) {
-		ret0 ^= JOY_TRG2;
+	if (is_menu || !Config.JoyOrMouse || Keyboard_IsSwKeyboard()) {
+		if (psppad.Buttons & PSP_CTRL_LEFT) {
+			ret0 ^= JOY_LEFT;
+		}
+		if (psppad.Buttons & PSP_CTRL_RIGHT) {
+			ret0 ^= JOY_RIGHT;
+		}
+		if (psppad.Buttons & PSP_CTRL_UP) {
+			ret0 ^= JOY_UP;
+		}
+		if (psppad.Buttons & PSP_CTRL_DOWN) {
+			ret0 ^= JOY_DOWN;
+		}
+		if (psppad.Buttons & PSP_CTRL_CIRCLE) {
+			ret0 ^= JOY_TRG1;
+		}
+		if (psppad.Buttons & PSP_CTRL_CROSS) {
+			ret0 ^= JOY_TRG2;
+		}
+	} else {
+		if (psppad.Buttons & PSP_CTRL_CIRCLE) {
+			mret0 ^= JOY_TRG1;
+		}
+		if (psppad.Buttons & PSP_CTRL_CROSS) {
+			mret0 ^= JOY_TRG2;
+		}
 	}
 
 	JoyDownState0 = ~(ret0 ^ pre_ret0) | ret0;
 	JoyUpState0 = (ret0 ^ pre_ret0) & ret0;
 	pre_ret0 = ret0;
+
+	MouseDownState0 = ~(mret0 ^ pre_mret0) | mret0;
+	MouseUpState0 = (mret0 ^ pre_mret0) & mret0;
+	pre_mret0 = mret0;
 
 	// up the bits which changed the states
 	button_changing = psppad.Buttons ^ button_down;
@@ -297,11 +318,7 @@ void FASTCALL Joystick_Update(SDL_Keycode key)
 	JoyAnaPadY = psppad.Ly;
 
 #else //defined(PSP)
-	BYTE ret0 = 0xff, ret1 = 0xff;
-	int num = 0; //xxx only joy1
-	static BYTE pre_ret0 = 0xff;
 	signed int x, y;
-
 #if defined(ANDROID) || TARGET_OS_IPHONE
 	SDL_Finger *finger;
 	SDL_FingerID fid;
@@ -354,31 +371,41 @@ void FASTCALL Joystick_Update(SDL_Keycode key)
 		}
 	}
 
-	if (vbtn_state[0] == VBTN_ON) {
-		ret0 ^= JOY_LEFT;
+	if (need_Vpad()) {
+		if (vbtn_state[0] == VBTN_ON) {
+			ret0 ^= JOY_LEFT;
+		}
+		if (vbtn_state[1] == VBTN_ON) {
+			ret0 ^= JOY_RIGHT;
+		}
+		if (vbtn_state[2] == VBTN_ON) {
+			ret0 ^= JOY_UP;
+		}
+		if (vbtn_state[3] == VBTN_ON) {
+			ret0 ^= JOY_DOWN;
+		}
+		if (vbtn_state[4] == VBTN_ON) {
+			ret0 ^= (Config.VbtnSwap == 0)? JOY_TRG1 : JOY_TRG2;
+		}
+		if (vbtn_state[5] == VBTN_ON) {
+			ret0 ^= (Config.VbtnSwap == 0)? JOY_TRG2 : JOY_TRG1;
+		}
+	} else if (Config.JoyOrMouse) {
+		if (vbtn_state[4] == VBTN_ON) {
+			mret0 ^= (Config.VbtnSwap == 0)? JOY_TRG1 : JOY_TRG2;
+		}
+		if (vbtn_state[5] == VBTN_ON) {
+			mret0 ^= (Config.VbtnSwap == 0)? JOY_TRG2 : JOY_TRG1;
+		}
 	}
-	if (vbtn_state[1] == VBTN_ON) {
-		ret0 ^= JOY_RIGHT;
-	}
-	if (vbtn_state[2] == VBTN_ON) {
-		ret0 ^= JOY_UP;
-	}
-	if (vbtn_state[3] == VBTN_ON) {
-		ret0 ^= JOY_DOWN;
-	}
-	if (vbtn_state[4] == VBTN_ON) {
-		ret0 ^= (Config.VbtnSwap == 0)? JOY_TRG1 : JOY_TRG2;
-	}
-	if (vbtn_state[5] == VBTN_ON) {
-		ret0 ^= (Config.VbtnSwap == 0)? JOY_TRG2 : JOY_TRG1;
-	}
+
 #endif //defined(ANDROID) || TARGET_OS_IPHONE
 
-	// real gamepad
+	// Hardware Joystick
 	if (sdl_joy) {
 		SDL_JoystickUpdate();
-		x = SDL_JoystickGetAxis(sdl_joy, 0);
-		y = SDL_JoystickGetAxis(sdl_joy, 1);
+		x = SDL_JoystickGetAxis(sdl_joy, Config.HwJoyAxis[0]);
+		y = SDL_JoystickGetAxis(sdl_joy, Config.HwJoyAxis[1]);
 
 		if (x < -256) {
 			ret0 ^= JOY_LEFT;
@@ -392,10 +419,10 @@ void FASTCALL Joystick_Update(SDL_Keycode key)
 		if (y > 256) {
 			ret0 ^= JOY_DOWN;
 		}
-		if (SDL_JoystickGetButton(sdl_joy, 0)) {
+		if (SDL_JoystickGetButton(sdl_joy, Config.HwJoyBtn[0])) {
 			ret0 ^= JOY_TRG1;
 		}
-		if (SDL_JoystickGetButton(sdl_joy, 1)) {
+		if (SDL_JoystickGetButton(sdl_joy, Config.HwJoyBtn[1])) {
 			ret0 ^= JOY_TRG2;
 		}
 	}
@@ -428,32 +455,30 @@ void FASTCALL Joystick_Update(SDL_Keycode key)
 	JoyUpState0 = (ret0 ^ pre_ret0) & ret0;
 	pre_ret0 = ret0;
 
-#endif //defined(PSP)
+	MouseDownState0 = ~(mret0 ^ pre_mret0) | mret0;
+	MouseUpState0 = (mret0 ^ pre_mret0) & mret0;
+	pre_mret0 = mret0;
 
-	// disable Joystick when software keyboard or mouse is active
-	if (!Keyboard_IsSwKeyboard() && !Config.JoyOrMouse) {
+#endif //defined(PSP)
+	// disable Joystick when software keyboard is active
+	if (!is_menu && !Keyboard_IsSwKeyboard()) {
 		JoyState0[num] = ret0;
 		JoyState1[num] = ret1;
 	}
 
 #if defined(USE_OGLES11) || defined(PSP)
 	// update the states of the mouse buttons
-	// when sw keyboard is inactive and mouse is active.
-	// state is updated when menu is open, but don't care
-	// because emulation doesn't work.
-	if (!Keyboard_IsSwKeyboard() && Config.JoyOrMouse) {
-		if (!(JoyDownState0 & JOY_TRG1) | (JoyUpState0 & JOY_TRG1)) {
-			printf("mouse btn1 event\n");
-			Mouse_Event(1, (JoyUpState0 & JOY_TRG1)? 0 : 1.0, 0);
-		}
-		if (!(JoyDownState0 & JOY_TRG2) | (JoyUpState0 & JOY_TRG2)) {
-			printf("mouse btn2 event\n");
-			Mouse_Event(2, (JoyUpState0 & JOY_TRG2)? 0 : 1.0, 0);
-		}
-#ifdef PSP
-		mouse_update_psp(psppad);
-#endif
+	if (!(MouseDownState0 & JOY_TRG1) | (MouseUpState0 & JOY_TRG1)) {
+		printf("mouse btn1 event\n");
+		Mouse_Event(1, (MouseUpState0 & JOY_TRG1)? 0 : 1.0, 0);
 	}
+	if (!(MouseDownState0 & JOY_TRG2) | (MouseUpState0 & JOY_TRG2)) {
+		printf("mouse btn2 event\n");
+		Mouse_Event(2, (MouseUpState0 & JOY_TRG2)? 0 : 1.0, 0);
+	}
+#ifdef PSP
+	mouse_update_psp(psppad);
+#endif
 
 #endif
 }

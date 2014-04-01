@@ -271,6 +271,14 @@ void LoadConfig(void)
 
 	Config.JoyOrMouse = GetPrivateProfileInt(ini_title, "JoyOrMouse", 0, winx68k_ini);
 
+	Config.HwJoyAxis[0] = GetPrivateProfileInt(ini_title, "HwJoyAxis0", 0, winx68k_ini);
+
+	Config.HwJoyAxis[1] = GetPrivateProfileInt(ini_title, "HwJoyAxis1", 1, winx68k_ini);
+
+	Config.HwJoyBtn[0] = GetPrivateProfileInt(ini_title, "HwJoyBtn0", 0, winx68k_ini);
+
+	Config.HwJoyBtn[1] = GetPrivateProfileInt(ini_title, "HwJoyBtn1", 1, winx68k_ini);
+
 	for (i=0; i<2; i++)
 	{
 		for (j=0; j<8; j++)
@@ -387,6 +395,18 @@ void SaveConfig(void)
 
 	wsprintf(buf, "%d", Config.JoyOrMouse);
 	WritePrivateProfileString(ini_title, "JoyOrMouse", buf, winx68k_ini);
+
+	wsprintf(buf, "%d", Config.HwJoyAxis[0]);
+	WritePrivateProfileString(ini_title, "HwJoyAxis0", buf, winx68k_ini);
+
+	wsprintf(buf, "%d", Config.HwJoyAxis[1]);
+	WritePrivateProfileString(ini_title, "HwJoyAxis1", buf, winx68k_ini);
+
+	wsprintf(buf, "%d", Config.HwJoyBtn[0]);
+	WritePrivateProfileString(ini_title, "HwJoyBtn0", buf, winx68k_ini);
+
+	wsprintf(buf, "%d", Config.HwJoyBtn[1]);
+	WritePrivateProfileString(ini_title, "HwJoyBtn1", buf, winx68k_ini);
 
 	for (i=0; i<2; i++)
 	{

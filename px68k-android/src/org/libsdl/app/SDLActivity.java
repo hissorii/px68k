@@ -676,11 +676,11 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                    (event.getSource() & InputDevice.SOURCE_DPAD) != 0 ) {
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
                 if (SDLActivity.onNativePadDown(event.getDeviceId(), keyCode) == 0) {
-                    return true;
+//                    return true; // workaround for px68k
                 }
             } else if (event.getAction() == KeyEvent.ACTION_UP) {
                 if (SDLActivity.onNativePadUp(event.getDeviceId(), keyCode) == 0) {
-                    return true;
+//                    return true; // workaround for px68k
                 }
             }
         }

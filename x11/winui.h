@@ -23,7 +23,7 @@ void send_key(void);
 #define WUM_MENU_END 1
 #define WUM_EMU_QUIT 2
 
-enum MenuState {ms_key, ms_value, ms_file};
+enum MenuState {ms_key, ms_value, ms_file, ms_hwjoy_set};
 
 #define MFL_MAX 1000
 

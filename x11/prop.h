@@ -48,6 +48,8 @@ typedef struct
 	int VkeyScale;
 	int VbtnSwap;
 	int JoyOrMouse;
+	int HwJoyAxis[2];
+	int HwJoyBtn[2];
 } Win68Conf;
 
 extern Win68Conf Config;

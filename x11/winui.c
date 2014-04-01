@@ -99,13 +99,13 @@ struct menu_flist mfl;
 
 /***** menu items *****/
 
-#define MENU_NUM 8
+#define MENU_NUM 9
 #define MENU_WINDOW 7
 
-int mval_y[] = {0, 0, 0, 0, 0, 2, 1, 1};
+int mval_y[] = {0, 0, 0, 0, 0, 2, 1, 0, 1};
 
 // Max # of characters is 15.
-char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VBtn Swap", "No Wait Mode", "hoge", "uhyo", ""};
+char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "hoge", "uhyo", ""};
 
 // Max # of characters is 30.
 // Max # of items including terminater `""' in each line is 10.
@@ -117,6 +117,7 @@ char menu_items[][10][30] = {
 	{"Auto Frame Skip", "Full Frame", "1/2 Frame", "1/3 Frame", "1/4 Frame", "1/5 Frame", "1/6 Frame", "1/8 Frame", ""},
 	{"Ultra Huge", "Super Huge", "Huge", "Large", "Medium", "Small", ""},
 	{"TRIG1 TRIG2", "TRIG2 TRIG1", ""},
+	{"Axis0: xx", "Axis1: xx", "Button0: xx", "Button1: xx",  ""},
 	{"Off", "On", ""}
 };
 
@@ -126,6 +127,7 @@ static void menu_create_flist(int v);
 static void menu_frame_skip(int v);
 static void menu_vkey_size(int v);
 static void menu_vbtn_swap(int v);
+static void menu_hwjoy_setting(int v);
 static void menu_nowait(int v);
 
 struct _menu_func {
@@ -141,6 +143,7 @@ struct _menu_func menu_func[] = {
 	{menu_frame_skip, 1},
 	{menu_vkey_size, 1},
 	{menu_vbtn_swap, 1},
+	{menu_hwjoy_setting, 0},
 	{menu_nowait, 1}
 };
 
@@ -150,7 +153,19 @@ int WinUI_get_fdd_num(int key)
 		(strcmp("FDD2", menu_item_key[key])? -1 : 1) : 0;
 }
 
-
+static void menu_hwjoy_print(int v)
+{
+	if (v <= 1) {
+		sprintf(menu_items[7][v], "Axis%d(%s): %d",
+			v,
+			(v == 0)? "Left/Right" : "Up/Down",
+			Config.HwJoyAxis[v]);
+	} else if (v <= 3) {
+		sprintf(menu_items[7][v], "Button%d: %d",
+			v - 2,
+			Config.HwJoyBtn[v - 2]);
+	}
+}
 
 /******************************************************************************
  * init
@@ -158,6 +173,8 @@ int WinUI_get_fdd_num(int key)
 void
 WinUI_Init(void)
 {
+	int i;
+
 	mval_y[1] = Config.JoyOrMouse;
 	if (FrameRate == 7) {
 		mval_y[4] = 0;
@@ -168,7 +185,12 @@ WinUI_Init(void)
 	}
 	mval_y[5] = Config.VkeyScale;
 	mval_y[6] = Config.VbtnSwap;
-	mval_y[7] = NoWaitMode;
+
+	for (i = 0; i < 4; i++) {
+		menu_hwjoy_print(i);
+	}
+
+	mval_y[8] = NoWaitMode;
 
 	strcpy(mfl.dir[0], CUR_DIR_STR);
 	strcpy(mfl.dir[1], CUR_DIR_STR);
@@ -382,6 +404,11 @@ static void menu_vbtn_swap(int v)
 	Config.VbtnSwap = v;
 }
 
+static void menu_hwjoy_setting(int v)
+{
+	menu_state = ms_hwjoy_set;
+}
+
 static void menu_nowait(int v)
 {
 	// xxx Not saving to config file.
@@ -415,10 +442,11 @@ static void shortcut_dir(int drv)
 
 int WinUI_Menu(int first)
 {
-	int i;
+	int i, n;
 	int cursor0;
 	BYTE joy;
 	int menu_redraw = 0;
+	int pad_changed = 0;
 	int mfile_redraw = 0;
 
 	if (first) {
@@ -436,6 +464,33 @@ int WinUI_Menu(int first)
 	cursor0 = mkey_y;
 	joy = get_joy_downstate();
 	reset_joy_downstate();
+
+#ifndef PSP
+	if (menu_state == ms_hwjoy_set && sdl_joy) {
+		int y;
+		y = mval_y[mkey_y];
+		if (y <= 1) {
+			for (i = 0; i < SDL_JoystickNumAxes(sdl_joy); i++) {
+				n = SDL_JoystickGetAxis(sdl_joy, i);
+				if (n < -1024 || n > 1024) {
+					Config.HwJoyAxis[y] = i;
+					menu_hwjoy_print(y);
+					pad_changed = 1;
+					break;
+				}
+			}
+		} else if (y <= 3) {
+			for (i = 0; i < SDL_JoystickNumButtons(sdl_joy); i++) {
+				if (SDL_JoystickGetButton(sdl_joy, i)) {
+					Config.HwJoyBtn[y - 2] = i;
+					menu_hwjoy_print(y);
+					pad_changed = 1;
+					break;
+				}
+			}
+		}
+	}
+#endif
 
 	if (!(joy & JOY_UP)) {
 		switch (menu_state) {
@@ -518,6 +573,10 @@ int WinUI_Menu(int first)
 		case ms_value:
 			menu_func[mkey_y].func(mval_y[mkey_y]);
 
+			if (menu_state == ms_hwjoy_set) {
+				menu_redraw = 1;
+				break;
+			}
 
 			// get back key_mode if value is set.
 			// go file_mode if value is filename.
@@ -575,6 +634,14 @@ int WinUI_Menu(int first)
 			mfl.y = 0;
 			mfl.ptr = 0;
 			break;
+		case ms_hwjoy_set:
+			// Go back keymode
+			// if TRG1 of v-pad or hw keyboard was pushed.
+			if (!pad_changed) {
+				menu_state = ms_key;
+				menu_redraw = 1;
+			}
+			break;
 		}
 	}
 
@@ -591,8 +658,19 @@ int WinUI_Menu(int first)
 			menu_state = ms_key;
 			menu_redraw = 1;
 			break;
+		case ms_hwjoy_set:
+			// Go back keymode
+			// if TRG2 of v-pad or hw keyboard was pushed.
+			if (!pad_changed) {
+				menu_state = ms_key;
+				menu_redraw = 1;
+			}
+			break;
 		}
+	}
 
+	if (pad_changed) {
+		menu_redraw = 1;
 	}
 
 	if (cursor0 != mkey_y) {

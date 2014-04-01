@@ -501,9 +501,9 @@ void WinX68k_Exec(void)
 	}
 
 #ifdef PSP
-	Joystick_Update();
+	Joystick_Update(FALSE);
 #else
-	Joystick_Update(SDLK_UNKNOWN);
+	Joystick_Update(FALSE, SDLK_UNKNOWN);
 #endif
 	FDD_SetFDInt();
 	if ( !DispFrame )
@@ -953,9 +953,9 @@ int main(int argc, char *argv[])
 			int ret; 
 
 #ifdef PSP
-			Joystick_Update();
+			Joystick_Update(TRUE);
 #else
-			Joystick_Update(menu_key_down);
+			Joystick_Update(TRUE, menu_key_down);
 #endif
 			ret = WinUI_Menu(menu_mode == menu_enter);
 			menu_mode = menu_in;

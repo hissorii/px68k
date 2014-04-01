@@ -460,7 +460,7 @@ void draw_button(GLuint texid, GLfloat x, GLfloat y, GLfloat s, GLfloat *tex, GL
 	draw_texture(tex, ver);
 }
 
-void draw_all_buttons(GLfloat *tex, GLfloat *ver, GLfloat scale, int menu)
+void draw_all_buttons(GLfloat *tex, GLfloat *ver, GLfloat scale, int is_menu)
 {
 	int i;
 	VBTN_POINTS *p;
@@ -469,7 +469,7 @@ void draw_all_buttons(GLfloat *tex, GLfloat *ver, GLfloat scale, int menu)
 
 	// 仮想キーはtexid: 1から6まで、キーボードonボタンが7、menuボタンが8
 	for (i = 1; i < 9; i++) {
-		if (menu || !Config.JoyOrMouse || Keyboard_IsSwKeyboard() || i >= 5) {
+		if (need_Vpad() || i >= 7 || (Config.JoyOrMouse && i >= 5)) {
 			draw_button(texid[i], p->x, p->y, scale, tex, ver);
 		}
 		p++;
@@ -1860,7 +1860,8 @@ void WinDraw_DrawMenu(int menu_state, int mkey_pos, int mkey_y, int *mval_y)
 	set_mcolor(0xffff);
 	set_mbcolor(0x0);
 	for (i = 0; i < 7; i++) {
-		if (menu_state == ms_value && i == (mkey_y - mkey_pos)) {
+		if ((menu_state == ms_value || menu_state == ms_hwjoy_set)
+		    && i == (mkey_y - mkey_pos)) {
 			set_mcolor(0x0);
 			set_mbcolor(0xffe0); // yellow);
 		} else {

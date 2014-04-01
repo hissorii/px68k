@@ -4,8 +4,8 @@
 #include "common.h"
 #ifndef PSP
 #include <SDL_keycode.h>
+#include <SDL_joystick.h>
 #endif
-
 
 #define	JOY_UP		0x01
 #define	JOY_DOWN	0x02
@@ -31,14 +31,16 @@ typedef struct _vbtn_points {
 } VBTN_POINTS;
 #endif
 
+#define need_Vpad() (is_menu || Keyboard_IsSwKeyboard() || (!Config.JoyOrMouse && !sdl_joy))
+
 void Joystick_Init(void);
 void Joystick_Cleanup(void);
 BYTE FASTCALL Joystick_Read(BYTE num);
 void FASTCALL Joystick_Write(BYTE num, BYTE data);
 #ifdef PSP
-void FASTCALL Joystick_Update(void);
+void FASTCALL Joystick_Update(int is_menu);
 #else
-void FASTCALL Joystick_Update(SDL_Keycode key);
+void FASTCALL Joystick_Update(int is_menu, SDL_Keycode key);
 #endif
 
 BYTE get_joy_downstate(void);
@@ -58,5 +60,8 @@ BYTE Joystick_get_vbtn_state(WORD n);
 #endif
 
 extern BYTE JoyKeyState;
+#ifndef PSP
+extern SDL_Joystick *sdl_joy;
+#endif
 
 #endif
