@@ -188,7 +188,7 @@ void Joystick_Init(void)
 		if (sdl_joy) {
 			nr_btns = SDL_JoystickNumButtons(sdl_joy);
 			nr_axes = SDL_JoystickNumAxes(sdl_joy);
-			nr_hats = SDL_JoystickNumBalls(sdl_joy);
+			nr_hats = SDL_JoystickNumHats(sdl_joy);
 
 			p6logd("Name: %s\n", SDL_JoystickNameForIndex(i));
 			p6logd("# of Axes: %d\n", nr_axes);
