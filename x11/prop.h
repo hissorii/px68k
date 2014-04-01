@@ -49,6 +49,7 @@ typedef struct
 	int VbtnSwap;
 	int JoyOrMouse;
 	int HwJoyAxis[2];
+	int HwJoyHat;
 	int HwJoyBtn[2];
 } Win68Conf;
 

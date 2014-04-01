@@ -21,6 +21,10 @@
 #define	JOY_TRG8	0x20
 #define	JOY_TRG6	0x40
 
+#ifndef PSP
+#define JOYAXISPLAY 2048
+#endif
+
 #if defined(ANDROID) || TARGET_OS_IPHONE
 #define VBTN_ON 2
 #define VBTN_OFF 1

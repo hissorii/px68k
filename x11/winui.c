@@ -117,7 +117,7 @@ char menu_items[][10][30] = {
 	{"Auto Frame Skip", "Full Frame", "1/2 Frame", "1/3 Frame", "1/4 Frame", "1/5 Frame", "1/6 Frame", "1/8 Frame", ""},
 	{"Ultra Huge", "Super Huge", "Huge", "Large", "Medium", "Small", ""},
 	{"TRIG1 TRIG2", "TRIG2 TRIG1", ""},
-	{"Axis0: xx", "Axis1: xx", "Button0: xx", "Button1: xx",  ""},
+	{"Axis0: xx", "Axis1: xx", "Hat: xx", "Button0: xx", "Button1: xx",  ""},
 	{"Off", "On", ""}
 };
 
@@ -160,10 +160,12 @@ static void menu_hwjoy_print(int v)
 			v,
 			(v == 0)? "Left/Right" : "Up/Down",
 			Config.HwJoyAxis[v]);
-	} else if (v <= 3) {
+	} else if (v == 2) {
+		sprintf(menu_items[7][v], "Hat: %d", Config.HwJoyHat);
+	} else if (v <= 4) {
 		sprintf(menu_items[7][v], "Button%d: %d",
-			v - 2,
-			Config.HwJoyBtn[v - 2]);
+			v - 3,
+			Config.HwJoyBtn[v - 3]);
 	}
 }
 
@@ -186,7 +188,7 @@ WinUI_Init(void)
 	mval_y[5] = Config.VkeyScale;
 	mval_y[6] = Config.VbtnSwap;
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 5; i++) {
 		menu_hwjoy_print(i);
 	}
 
@@ -469,20 +471,31 @@ int WinUI_Menu(int first)
 	if (menu_state == ms_hwjoy_set && sdl_joy) {
 		int y;
 		y = mval_y[mkey_y];
+		SDL_JoystickUpdate();
 		if (y <= 1) {
 			for (i = 0; i < SDL_JoystickNumAxes(sdl_joy); i++) {
 				n = SDL_JoystickGetAxis(sdl_joy, i);
-				if (n < -1024 || n > 1024) {
+				p6logd("axis%d:%d", i, n);
+				if (n < -JOYAXISPLAY || n > JOYAXISPLAY) {
 					Config.HwJoyAxis[y] = i;
 					menu_hwjoy_print(y);
 					pad_changed = 1;
 					break;
 				}
 			}
-		} else if (y <= 3) {
+		} else if (y == 2) {
+			for (i = 0; i < SDL_JoystickNumHats(sdl_joy); i++) {
+				if (SDL_JoystickGetHat(sdl_joy, i)) {
+					Config.HwJoyHat = i;
+					menu_hwjoy_print(y);
+					pad_changed = 1;
+					break;
+				}
+			}
+		} else if (y <= 4) {
 			for (i = 0; i < SDL_JoystickNumButtons(sdl_joy); i++) {
 				if (SDL_JoystickGetButton(sdl_joy, i)) {
-					Config.HwJoyBtn[y - 2] = i;
+					Config.HwJoyBtn[y - 3] = i;
 					menu_hwjoy_print(y);
 					pad_changed = 1;
 					break;

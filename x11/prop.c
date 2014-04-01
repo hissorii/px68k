@@ -275,6 +275,8 @@ void LoadConfig(void)
 
 	Config.HwJoyAxis[1] = GetPrivateProfileInt(ini_title, "HwJoyAxis1", 1, winx68k_ini);
 
+	Config.HwJoyHat = GetPrivateProfileInt(ini_title, "HwJoyHat", 0, winx68k_ini);
+
 	Config.HwJoyBtn[0] = GetPrivateProfileInt(ini_title, "HwJoyBtn0", 0, winx68k_ini);
 
 	Config.HwJoyBtn[1] = GetPrivateProfileInt(ini_title, "HwJoyBtn1", 1, winx68k_ini);
@@ -401,6 +403,9 @@ void SaveConfig(void)
 
 	wsprintf(buf, "%d", Config.HwJoyAxis[1]);
 	WritePrivateProfileString(ini_title, "HwJoyAxis1", buf, winx68k_ini);
+
+	wsprintf(buf, "%d", Config.HwJoyHat);
+	WritePrivateProfileString(ini_title, "HwJoyHat", buf, winx68k_ini);
 
 	wsprintf(buf, "%d", Config.HwJoyBtn[0]);
 	WritePrivateProfileString(ini_title, "HwJoyBtn0", buf, winx68k_ini);

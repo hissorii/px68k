@@ -319,6 +319,7 @@ void FASTCALL Joystick_Update(int is_menu, SDL_Keycode key)
 
 #else //defined(PSP)
 	signed int x, y;
+	UINT8 hat;
 #if defined(ANDROID) || TARGET_OS_IPHONE
 	SDL_Finger *finger;
 	SDL_FingerID fid;
@@ -326,15 +327,15 @@ void FASTCALL Joystick_Update(int is_menu, SDL_Keycode key)
 	int i, j;
 	float scale, asb_x, asb_y; // play x, play y of a button
 
-	if (touchId == -1)
-		return;
-
 	// all active buttons are set to off
 	for (i = 0; i < VBTN_MAX; i++) {
 		if (vbtn_state[i] != VBTN_NOUSE) {
 			vbtn_state[i] = VBTN_OFF;
 		}
 	}
+
+	if (touchId == -1)
+		goto skip_vpad;
 
 	// A play of the button changes size according to scale.
 	scale = WinUI_get_vkscale();
@@ -399,6 +400,8 @@ void FASTCALL Joystick_Update(int is_menu, SDL_Keycode key)
 		}
 	}
 
+skip_vpad:
+
 #endif //defined(ANDROID) || TARGET_OS_IPHONE
 
 	// Hardware Joystick
@@ -407,18 +410,46 @@ void FASTCALL Joystick_Update(int is_menu, SDL_Keycode key)
 		x = SDL_JoystickGetAxis(sdl_joy, Config.HwJoyAxis[0]);
 		y = SDL_JoystickGetAxis(sdl_joy, Config.HwJoyAxis[1]);
 
-		if (x < -256) {
+		if (x < -JOYAXISPLAY) {
 			ret0 ^= JOY_LEFT;
 		}
-		if (x > 256) {
+		if (x > JOYAXISPLAY) {
 			ret0 ^= JOY_RIGHT;
 		}
-		if (y < -256) {
+		if (y < -JOYAXISPLAY) {
 			ret0 ^= JOY_UP;
 		}
-		if (y > 256) {
+		if (y > JOYAXISPLAY) {
 			ret0 ^= JOY_DOWN;
 		}
+
+		hat = SDL_JoystickGetHat(sdl_joy, Config.HwJoyHat);
+
+		if (hat) {
+			switch (hat) {
+			case SDL_HAT_RIGHTUP:
+				ret0 ^= JOY_RIGHT;
+			case SDL_HAT_UP:
+				ret0 ^= JOY_UP;
+				break;
+			case SDL_HAT_RIGHTDOWN:
+				ret0 ^= JOY_DOWN;
+			case SDL_HAT_RIGHT:
+				ret0 ^= JOY_RIGHT;
+				break;
+			case SDL_HAT_LEFTUP:
+				ret0 ^= JOY_UP;
+			case SDL_HAT_LEFT:
+				ret0 ^= JOY_LEFT;
+				break;
+			case SDL_HAT_LEFTDOWN:
+				ret0 ^= JOY_LEFT;
+			case SDL_HAT_DOWN:
+				ret0 ^= JOY_DOWN;
+				break;
+			}
+		}
+
 		if (SDL_JoystickGetButton(sdl_joy, Config.HwJoyBtn[0])) {
 			ret0 ^= JOY_TRG1;
 		}
