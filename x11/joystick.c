@@ -157,7 +157,7 @@ SDL_Joystick *sdl_joy;
 void Joystick_Init(void)
 {
 #ifndef PSP
-	int i, nr_joys, nr_axes, nr_btns;
+	int i, nr_joys, nr_axes, nr_btns, nr_hats;
 #endif
 
 	joy[0] = 1;  // active only one
@@ -188,15 +188,15 @@ void Joystick_Init(void)
 		if (sdl_joy) {
 			nr_btns = SDL_JoystickNumButtons(sdl_joy);
 			nr_axes = SDL_JoystickNumAxes(sdl_joy);
+			nr_hats = SDL_JoystickNumBalls(sdl_joy);
 
 			p6logd("Name: %s\n", SDL_JoystickNameForIndex(i));
 			p6logd("# of Axes: %d\n", nr_axes);
 			p6logd("# of Btns: %d\n", nr_btns);
-			p6logd("# of Balls: %d\n", SDL_JoystickNumBalls(sdl_joy));
-			p6logd("# of Hats: %d\n", SDL_JoystickNumHats(sdl_joy));
+			p6logd("# of Hats: %d\n", nr_hats);
 
 			// skip accelerometer and keyboard
-			if (nr_btns < 2 || nr_axes < 2) {
+			if (nr_btns < 2 || (nr_axes < 2 && nr_hats == 0)) {
 				Joystick_Cleanup();
 				sdl_joy = 0;
 			} else {
