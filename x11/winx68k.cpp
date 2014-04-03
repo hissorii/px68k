@@ -84,7 +84,6 @@ extern	int	SplashFlag;
 BYTE DispFrame = 0;
 extern BYTE FrameRate;
 DWORD SoundSampleRate;
-int CurFrameRate = 1;
 
 unsigned int hTimerID = 0;
 DWORD TimerICount = 0;

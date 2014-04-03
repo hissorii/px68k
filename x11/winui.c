@@ -107,13 +107,13 @@ int mval_y[] = {0, 0, 0, 0, 0, 2, 1, 0, 1};
 char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "hoge", "uhyo", ""};
 
 // Max # of characters is 30.
-// Max # of items including terminater `""' in each line is 10.
-char menu_items[][10][30] = {
+// Max # of items including terminater `""' in each line is 15.
+char menu_items[][15][30] = {
 	{"RESET", "NMI RESET", "QUIT", ""},
 	{"Joystick", "Mouse", ""},
 	{"dummy", "EJECT", ""},
 	{"dummy", "EJECT", ""},
-	{"Auto Frame Skip", "Full Frame", "1/2 Frame", "1/3 Frame", "1/4 Frame", "1/5 Frame", "1/6 Frame", "1/8 Frame", ""},
+	{"Auto Frame Skip", "Full Frame", "1/2 Frame", "1/3 Frame", "1/4 Frame", "1/5 Frame", "1/6 Frame", "1/8 Frame", "1/16 Frame", "1/32 Frame", "1/60 Frame", ""},
 	{"Ultra Huge", "Super Huge", "Huge", "Large", "Medium", "Small", ""},
 	{"TRIG1 TRIG2", "TRIG2 TRIG1", ""},
 	{"Axis0: xx", "Axis1: xx", "Hat: xx", "Button0: xx", "Button1: xx",  ""},
@@ -181,6 +181,12 @@ WinUI_Init(void)
 		mval_y[4] = 0;
 	} else if (FrameRate == 8) {
 		mval_y[4] = 7;
+	} else if (FrameRate == 16) {
+		mval_y[4] = 8;
+	} else if (FrameRate == 32) {
+		mval_y[4] = 9;
+	} else if (FrameRate == 60) {
+		mval_y[4] = 10;
 	} else {
 		mval_y[4] = FrameRate;
 	}
@@ -387,6 +393,12 @@ static void menu_frame_skip(int v)
 		FrameRate = 7;
 	} else if (v == 7) {
 		FrameRate = 8;
+	} else if (v == 8) {
+		FrameRate = 16;
+	} else if (v == 9) {
+		FrameRate = 32;
+	} else if (v == 10) {
+		FrameRate = 60;
 	} else {
 		FrameRate = v;
 	}
