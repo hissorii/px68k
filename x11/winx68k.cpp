@@ -85,7 +85,6 @@ BYTE DispFrame = 0;
 extern BYTE FrameRate;
 DWORD SoundSampleRate;
 int CurFrameRate = 1;
-int NoWaitMode = 0;
 
 unsigned int hTimerID = 0;
 DWORD TimerICount = 0;
@@ -608,7 +607,6 @@ int main(int argc, char *argv[])
 #else
 	Config.SampleRate = 11025;
 	FrameRate = 5;
-	NoWaitMode = 0;
 #endif
 
 #ifndef NOSOUND
@@ -771,7 +769,7 @@ int main(int argc, char *argv[])
 	while (1) {
 		// OPM_RomeoOut(Config.BufferSize * 5);
 		if (menu_mode == menu_out
-		    && (NoWaitMode || Timer_GetCount())) {
+		    && (Config.NoWaitMode || Timer_GetCount())) {
 			WinX68k_Exec();
 #if defined(ANDROID) || TARGET_OS_IPHONE
 			if (vk_cnt > 0) {

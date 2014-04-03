@@ -79,7 +79,6 @@ extern	unsigned int	hTimerID;
 extern	int		FullScreenFlag;
 	int		UI_MouseFlag = 0;
 	int		UI_MouseX = -1, UI_MouseY = -1;
-extern	int		NoWaitMode;
 extern	short		timertrace;
 
 	BYTE		MenuClearFlag = 0;
@@ -192,7 +191,7 @@ WinUI_Init(void)
 		menu_hwjoy_print(i);
 	}
 
-	mval_y[8] = NoWaitMode;
+	mval_y[8] = Config.NoWaitMode;
 
 	strcpy(mfl.dir[0], CUR_DIR_STR);
 	strcpy(mfl.dir[1], CUR_DIR_STR);
@@ -413,8 +412,7 @@ static void menu_hwjoy_setting(int v)
 
 static void menu_nowait(int v)
 {
-	// xxx Not saving to config file.
-	NoWaitMode = v;
+	Config.NoWaitMode = v;
 }
 
 // ex. ./hoge/.. -> ./

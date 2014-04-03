@@ -281,6 +281,8 @@ void LoadConfig(void)
 
 	Config.HwJoyBtn[1] = GetPrivateProfileInt(ini_title, "HwJoyBtn1", 1, winx68k_ini);
 
+	Config.NoWaitMode = GetPrivateProfileInt(ini_title, "NoWaitMode", 0, winx68k_ini);
+
 	for (i=0; i<2; i++)
 	{
 		for (j=0; j<8; j++)
@@ -412,6 +414,9 @@ void SaveConfig(void)
 
 	wsprintf(buf, "%d", Config.HwJoyBtn[1]);
 	WritePrivateProfileString(ini_title, "HwJoyBtn1", buf, winx68k_ini);
+
+	wsprintf(buf, "%d", Config.NoWaitMode);
+	WritePrivateProfileString(ini_title, "NoWaitMode", buf, winx68k_ini);
 
 	for (i=0; i<2; i++)
 	{

@@ -51,6 +51,7 @@ typedef struct
 	int HwJoyAxis[2];
 	int HwJoyHat;
 	int HwJoyBtn[2];
+	int NoWaitMode;
 } Win68Conf;
 
 extern Win68Conf Config;
