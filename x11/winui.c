@@ -84,7 +84,6 @@ extern	short		timertrace;
 	BYTE		MenuClearFlag = 0;
 
 	BYTE		Debug_Text=1, Debug_Grp=1, Debug_Sp=1;
-	BYTE		FrameRate = 2;
 
 	char		filepath[MAX_PATH] = ".";
 	int		fddblink = 0;
@@ -177,18 +176,18 @@ WinUI_Init(void)
 	int i;
 
 	mval_y[1] = Config.JoyOrMouse;
-	if (FrameRate == 7) {
+	if (Config.FrameRate == 7) {
 		mval_y[4] = 0;
-	} else if (FrameRate == 8) {
+	} else if (Config.FrameRate == 8) {
 		mval_y[4] = 7;
-	} else if (FrameRate == 16) {
+	} else if (Config.FrameRate == 16) {
 		mval_y[4] = 8;
-	} else if (FrameRate == 32) {
+	} else if (Config.FrameRate == 32) {
 		mval_y[4] = 9;
-	} else if (FrameRate == 60) {
+	} else if (Config.FrameRate == 60) {
 		mval_y[4] = 10;
 	} else {
-		mval_y[4] = FrameRate;
+		mval_y[4] = Config.FrameRate;
 	}
 	mval_y[5] = Config.VkeyScale;
 	mval_y[6] = Config.VbtnSwap;
@@ -390,17 +389,17 @@ static void menu_create_flist(int v)
 static void menu_frame_skip(int v)
 {
 	if (v == 0) {
-		FrameRate = 7;
+		Config.FrameRate = 7;
 	} else if (v == 7) {
-		FrameRate = 8;
+		Config.FrameRate = 8;
 	} else if (v == 8) {
-		FrameRate = 16;
+		Config.FrameRate = 16;
 	} else if (v == 9) {
-		FrameRate = 32;
+		Config.FrameRate = 32;
 	} else if (v == 10) {
-		FrameRate = 60;
+		Config.FrameRate = 60;
 	} else {
-		FrameRate = v;
+		Config.FrameRate = v;
 	}
 }
 

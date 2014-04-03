@@ -82,7 +82,6 @@ DWORD	vline = 0;
 extern	int	SplashFlag;
 
 BYTE DispFrame = 0;
-extern BYTE FrameRate;
 DWORD SoundSampleRate;
 
 unsigned int hTimerID = 0;
@@ -324,8 +323,8 @@ void WinX68k_Exec(void)
 	int KeyIntCnt = 0, MouseIntCnt = 0;
 	DWORD t_start = timeGetTime(), t_end;
 
-	if ( FrameRate!=7 ) {
-		DispFrame = (DispFrame+1)%FrameRate;
+	if ( Config.FrameRate != 7 ) {
+		DispFrame = (DispFrame+1)%Config.FrameRate;
 	} else {				// Auto Frame Skip
 		if ( FrameSkipQueue ) {
 			if ( FrameSkipCount>15 ) {
@@ -605,7 +604,6 @@ int main(int argc, char *argv[])
 	Config.SampleRate = 22050;
 #else
 	Config.SampleRate = 11025;
-	FrameRate = 5;
 #endif
 
 #ifndef NOSOUND

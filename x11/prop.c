@@ -61,7 +61,6 @@ extern int winx, winy;
 extern char joyname[2][MAX_PATH];
 extern char joybtnname[2][MAX_BUTTON][MAX_PATH];
 extern BYTE joybtnnum[2];
-extern BYTE FrameRate;
 
 #define CFGLEN MAX_PATH
 
@@ -185,8 +184,12 @@ void LoadConfig(void)
 	winx = GetPrivateProfileInt(ini_title, "WinPosX", 0, winx68k_ini);
 	winy = GetPrivateProfileInt(ini_title, "WinPosY", 0, winx68k_ini);
 
-	FrameRate = (BYTE)GetPrivateProfileInt(ini_title, "FrameRate", 7, winx68k_ini);
-	if (!FrameRate) FrameRate=7;
+#ifdef PSP
+	Config.FrameRate = (BYTE)GetPrivateProfileInt(ini_title, "FrameRate", 5, winx68k_ini);
+#else
+	Config.FrameRate = (BYTE)GetPrivateProfileInt(ini_title, "FrameRate", 7, winx68k_ini);
+#endif
+	if (!Config.FrameRate) Config.FrameRate = 7;
 	GetPrivateProfileString(ini_title, "StartDir", "", buf, MAX_PATH, winx68k_ini);
 	if (buf[0] != 0)
 		strncpy(filepath, buf, sizeof(filepath));
@@ -324,7 +327,7 @@ void SaveConfig(void)
 	WritePrivateProfileString(ini_title, "WinPosX", buf, winx68k_ini);
 	wsprintf(buf, "%d", winy);
 	WritePrivateProfileString(ini_title, "WinPosY", buf, winx68k_ini);
-	wsprintf(buf, "%d", FrameRate);
+	wsprintf(buf, "%d", Config.FrameRate);
 	WritePrivateProfileString(ini_title, "FrameRate", buf, winx68k_ini);
 	WritePrivateProfileString(ini_title, "StartDir", filepath, winx68k_ini);
 

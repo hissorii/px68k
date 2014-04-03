@@ -52,6 +52,7 @@ typedef struct
 	int HwJoyHat;
 	int HwJoyBtn[2];
 	int NoWaitMode;
+	BYTE FrameRate;
 } Win68Conf;
 
 extern Win68Conf Config;
