@@ -97,13 +97,13 @@ struct menu_flist mfl;
 
 /***** menu items *****/
 
-#define MENU_NUM 9
+#define MENU_NUM 10
 #define MENU_WINDOW 7
 
-int mval_y[] = {0, 0, 0, 0, 0, 2, 1, 0, 1};
+int mval_y[] = {0, 0, 0, 0, 0, 2, 1, 0, 1, 1};
 
 // Max # of characters is 15.
-char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "hoge", "uhyo", ""};
+char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "JoyKey", "uhyo", ""};
 
 // Max # of characters is 30.
 // Max # of items including terminater `""' in each line is 15.
@@ -116,6 +116,7 @@ char menu_items[][15][30] = {
 	{"Ultra Huge", "Super Huge", "Huge", "Large", "Medium", "Small", ""},
 	{"TRIG1 TRIG2", "TRIG2 TRIG1", ""},
 	{"Axis0: xx", "Axis1: xx", "Hat: xx", "Button0: xx", "Button1: xx",  ""},
+	{"Off", "On", ""},
 	{"Off", "On", ""}
 };
 
@@ -127,6 +128,7 @@ static void menu_vkey_size(int v);
 static void menu_vbtn_swap(int v);
 static void menu_hwjoy_setting(int v);
 static void menu_nowait(int v);
+static void menu_joykey(int v);
 
 struct _menu_func {
 	void (*func)(int v);
@@ -142,7 +144,8 @@ struct _menu_func menu_func[] = {
 	{menu_vkey_size, 1},
 	{menu_vbtn_swap, 1},
 	{menu_hwjoy_setting, 0},
-	{menu_nowait, 1}
+	{menu_nowait, 1},
+	{menu_joykey, 1}
 };
 
 int WinUI_get_fdd_num(int key)
@@ -197,6 +200,7 @@ WinUI_Init(void)
 	}
 
 	mval_y[8] = Config.NoWaitMode;
+	mval_y[9] = Config.JoyKey;
 
 	strcpy(mfl.dir[0], CUR_DIR_STR);
 	strcpy(mfl.dir[1], CUR_DIR_STR);
@@ -424,6 +428,11 @@ static void menu_hwjoy_setting(int v)
 static void menu_nowait(int v)
 {
 	Config.NoWaitMode = v;
+}
+
+static void menu_joykey(int v)
+{
+	Config.JoyKey = v;
 }
 
 // ex. ./hoge/.. -> ./

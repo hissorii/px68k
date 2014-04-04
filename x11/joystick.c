@@ -223,8 +223,6 @@ BYTE FASTCALL Joystick_Read(BYTE num)
 	BYTE joynum = num;
 	BYTE ret0 = 0xff, ret1 = 0xff, ret;
 
-	Config.JoyKey = 1;
-
 	if (Config.JoySwap) joynum ^= 1;
 	if (joy[num]) {
 		ret0 = JoyState0[num];

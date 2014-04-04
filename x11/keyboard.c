@@ -610,7 +610,6 @@ Keyboard_KeyUp(DWORD wp)
 		else
 			JoyKeyState &= ~JOY_TRG2;
 		break;
-
 	}
 
 }
