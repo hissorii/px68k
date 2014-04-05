@@ -1093,6 +1093,7 @@ OP(tas_8_pd7)          { TAS(M, PD7)                           }	// 4ae7
 OP(illegal)
 {
 	SWAP_SP()
+	PC -= 2;
 	EXCEPTION(C68K_ILLEGAL_INSTRUCTION_EX)
 	RET(34)
 }
