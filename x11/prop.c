@@ -280,9 +280,10 @@ void LoadConfig(void)
 
 	Config.HwJoyHat = GetPrivateProfileInt(ini_title, "HwJoyHat", 0, winx68k_ini);
 
-	Config.HwJoyBtn[0] = GetPrivateProfileInt(ini_title, "HwJoyBtn0", 0, winx68k_ini);
-
-	Config.HwJoyBtn[1] = GetPrivateProfileInt(ini_title, "HwJoyBtn1", 1, winx68k_ini);
+	for (i = 0; i < 8; i++) {
+		sprintf(buf, "HwJoyBtn%d", i);
+		Config.HwJoyBtn[i] = GetPrivateProfileInt(ini_title, buf, i, winx68k_ini);
+	}
 
 	Config.NoWaitMode = GetPrivateProfileInt(ini_title, "NoWaitMode", 0, winx68k_ini);
 
@@ -412,11 +413,11 @@ void SaveConfig(void)
 	wsprintf(buf, "%d", Config.HwJoyHat);
 	WritePrivateProfileString(ini_title, "HwJoyHat", buf, winx68k_ini);
 
-	wsprintf(buf, "%d", Config.HwJoyBtn[0]);
-	WritePrivateProfileString(ini_title, "HwJoyBtn0", buf, winx68k_ini);
-
-	wsprintf(buf, "%d", Config.HwJoyBtn[1]);
-	WritePrivateProfileString(ini_title, "HwJoyBtn1", buf, winx68k_ini);
+	for (i = 0; i < 8; i++) {
+		sprintf(buf, "HwJoyBtn%d", i);
+		sprintf(buf2, "%d", Config.HwJoyBtn[i]);
+		WritePrivateProfileString(ini_title, buf, buf2, winx68k_ini);
+	}
 
 	wsprintf(buf, "%d", Config.NoWaitMode);
 	WritePrivateProfileString(ini_title, "NoWaitMode", buf, winx68k_ini);

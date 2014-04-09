@@ -50,7 +50,7 @@ typedef struct
 	int JoyOrMouse;
 	int HwJoyAxis[2];
 	int HwJoyHat;
-	int HwJoyBtn[2];
+	int HwJoyBtn[8];
 	int NoWaitMode;
 	BYTE FrameRate;
 } Win68Conf;

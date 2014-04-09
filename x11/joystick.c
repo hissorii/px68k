@@ -239,9 +239,6 @@ BYTE FASTCALL Joystick_Read(BYTE num)
 
 	ret = ((~JoyPortData[num])&ret0)|(JoyPortData[num]&ret1);
 
-	if (ret0 != 0xff || ret != 0xff)
-		printf("ret0: 0x%x, ret: 0x%x\n", ret0, ret);
-
 	return ret;
 }
 
@@ -453,6 +450,24 @@ skip_vpad:
 		}
 		if (SDL_JoystickGetButton(sdl_joy, Config.HwJoyBtn[1])) {
 			ret0 ^= JOY_TRG2;
+		}
+		if (SDL_JoystickGetButton(sdl_joy, Config.HwJoyBtn[2])) {
+			ret1 ^= JOY_TRG3;
+		}
+		if (SDL_JoystickGetButton(sdl_joy, Config.HwJoyBtn[3])) {
+			ret1 ^= JOY_TRG4;
+		}
+		if (SDL_JoystickGetButton(sdl_joy, Config.HwJoyBtn[4])) {
+			ret1 ^= JOY_TRG5;
+		}
+		if (SDL_JoystickGetButton(sdl_joy, Config.HwJoyBtn[5])) {
+			ret1 ^= JOY_TRG6;
+		}
+		if (SDL_JoystickGetButton(sdl_joy, Config.HwJoyBtn[6])) {
+			ret1 ^= JOY_TRG7;
+		}
+		if (SDL_JoystickGetButton(sdl_joy, Config.HwJoyBtn[7])) {
+			ret1 ^= JOY_TRG8;
 		}
 	}
 

@@ -173,7 +173,7 @@ static void menu_hwjoy_print(int v)
 			Config.HwJoyAxis[v]);
 	} else if (v == 2) {
 		sprintf(menu_items[M_HJS][v], "Hat: %d", Config.HwJoyHat);
-	} else if (v <= 4) {
+	} else {
 		sprintf(menu_items[M_HJS][v], "Button%d: %d",
 			v - 3,
 			Config.HwJoyBtn[v - 3]);
@@ -205,7 +205,7 @@ WinUI_Init(void)
 	mval_y[M_VKS] = Config.VkeyScale;
 	mval_y[M_VBS] = Config.VbtnSwap;
 
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 11; i++) {
 		menu_hwjoy_print(i);
 	}
 
@@ -529,7 +529,7 @@ int WinUI_Menu(int first)
 					break;
 				}
 			}
-		} else if (y <= 4) {
+		} else {
 			for (i = 0; i < SDL_JoystickNumButtons(sdl_joy); i++) {
 				if (SDL_JoystickGetButton(sdl_joy, i)) {
 					Config.HwJoyBtn[y - 3] = i;
