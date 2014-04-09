@@ -102,6 +102,8 @@ struct menu_flist mfl;
 
 int mval_y[] = {0, 0, 0, 0, 0, 2, 1, 0, 1, 1};
 
+enum menu_id {M_SYS, M_JOM, M_FD1, M_FD2, M_FS, M_VKS, M_VBS, M_HJS, M_NW, M_JK};
+
 // Max # of characters is 15.
 char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD1", "FDD2", "Frame Skip", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "JoyKey", "uhyo", ""};
 
@@ -157,14 +159,14 @@ int WinUI_get_fdd_num(int key)
 static void menu_hwjoy_print(int v)
 {
 	if (v <= 1) {
-		sprintf(menu_items[7][v], "Axis%d(%s): %d",
+		sprintf(menu_items[M_HJS][v], "Axis%d(%s): %d",
 			v,
 			(v == 0)? "Left/Right" : "Up/Down",
 			Config.HwJoyAxis[v]);
 	} else if (v == 2) {
-		sprintf(menu_items[7][v], "Hat: %d", Config.HwJoyHat);
+		sprintf(menu_items[M_HJS][v], "Hat: %d", Config.HwJoyHat);
 	} else if (v <= 4) {
-		sprintf(menu_items[7][v], "Button%d: %d",
+		sprintf(menu_items[M_HJS][v], "Button%d: %d",
 			v - 3,
 			Config.HwJoyBtn[v - 3]);
 	}
@@ -178,29 +180,29 @@ WinUI_Init(void)
 {
 	int i;
 
-	mval_y[1] = Config.JoyOrMouse;
+	mval_y[M_JOM] = Config.JoyOrMouse;
 	if (Config.FrameRate == 7) {
-		mval_y[4] = 0;
+		mval_y[M_FS] = 0;
 	} else if (Config.FrameRate == 8) {
-		mval_y[4] = 7;
+		mval_y[M_FS] = 7;
 	} else if (Config.FrameRate == 16) {
-		mval_y[4] = 8;
+		mval_y[M_FS] = 8;
 	} else if (Config.FrameRate == 32) {
-		mval_y[4] = 9;
+		mval_y[M_FS] = 9;
 	} else if (Config.FrameRate == 60) {
-		mval_y[4] = 10;
+		mval_y[M_FS] = 10;
 	} else {
-		mval_y[4] = Config.FrameRate;
+		mval_y[M_FS] = Config.FrameRate;
 	}
-	mval_y[5] = Config.VkeyScale;
-	mval_y[6] = Config.VbtnSwap;
+	mval_y[M_VKS] = Config.VkeyScale;
+	mval_y[M_VBS] = Config.VbtnSwap;
 
 	for (i = 0; i < 5; i++) {
 		menu_hwjoy_print(i);
 	}
 
-	mval_y[8] = Config.NoWaitMode;
-	mval_y[9] = Config.JoyKey;
+	mval_y[M_NW] = Config.NoWaitMode;
+	mval_y[M_JK] = Config.JoyKey;
 
 	strcpy(mfl.dir[0], CUR_DIR_STR);
 	strcpy(mfl.dir[1], CUR_DIR_STR);
