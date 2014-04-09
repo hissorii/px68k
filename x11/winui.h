@@ -30,7 +30,7 @@ enum MenuState {ms_key, ms_value, ms_file, ms_hwjoy_set};
 struct menu_flist {
 	char name[MFL_MAX][MAX_PATH];
 	char type[MFL_MAX];
-	char dir[2][MAX_PATH];
+	char dir[3][MAX_PATH];
 	int ptr;
 	int num;
 	int y;
@@ -39,7 +39,7 @@ struct menu_flist {
 extern char menu_item_key[][15];
 extern char menu_items[][15][30];
 
-int WinUI_get_fdd_num(int key);
+int WinUI_get_drv_num(int key);
 
 #ifndef _winx68k_gtkui_h
 #define _winx68k_gtkui_h
