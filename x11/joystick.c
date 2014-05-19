@@ -190,7 +190,9 @@ void Joystick_Init(void)
 			nr_axes = SDL_JoystickNumAxes(sdl_joy);
 			nr_hats = SDL_JoystickNumHats(sdl_joy);
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 			p6logd("Name: %s\n", SDL_JoystickNameForIndex(i));
+#endif
 			p6logd("# of Axes: %d\n", nr_axes);
 			p6logd("# of Btns: %d\n", nr_btns);
 			p6logd("# of Hats: %d\n", nr_hats);
@@ -212,9 +214,13 @@ void Joystick_Init(void)
 void Joystick_Cleanup(void)
 {
 #ifndef PSP
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	if (SDL_JoystickGetAttached(sdl_joy)) {
 		SDL_JoystickClose(sdl_joy);
 	}
+#else
+	SDL_JoystickClose(sdl_joy);
+#endif
 #endif
 }
 

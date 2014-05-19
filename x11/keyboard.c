@@ -385,6 +385,19 @@ static BYTE get_x68k_keycode(DWORD wp)
 	case SDLK_RIGHT:
 		return 0x3d;
 #ifndef PSP
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
+#define SDLK_KP_0 SDLK_KP0
+#define SDLK_KP_1 SDLK_KP1
+#define SDLK_KP_2 SDLK_KP2
+#define SDLK_KP_3 SDLK_KP3
+#define SDLK_KP_4 SDLK_KP4
+#define SDLK_KP_5 SDLK_KP5
+#define SDLK_KP_6 SDLK_KP6
+#define SDLK_KP_7 SDLK_KP7
+#define SDLK_KP_8 SDLK_KP8
+#define SDLK_KP_9 SDLK_KP9
+#define SDLK_NUMLOCKCLEAR SDLK_NUMLOCK
+#endif
 	case SDLK_KP_0:
 		return 0x4f;
 	case SDLK_KP_1:

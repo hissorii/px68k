@@ -3,7 +3,10 @@
 
 #include "common.h"
 #ifndef PSP
+#include <SDL.h>
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 #include <SDL_keycode.h>
+#endif
 #include <SDL_joystick.h>
 #endif
 
@@ -44,6 +47,9 @@ void FASTCALL Joystick_Write(BYTE num, BYTE data);
 #ifdef PSP
 void FASTCALL Joystick_Update(int is_menu);
 #else
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
+typedef signed int SDL_Keycode;
+#endif
 void FASTCALL Joystick_Update(int is_menu, SDL_Keycode key);
 #endif
 
