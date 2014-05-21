@@ -1,0 +1,156 @@
+物理 FM 音源ドライバ
+RFMDRV (Real FM sound module DRiVer)
+                                                                     2014/05/21
+
+Raspberry Pi の GPIO に接続した本物の FM 音源IC YM2151 を
+X68000 エミュレータ PX68K から操作して音を出すことを目的としています。
+
+
+0. 注意事項
+
+まだ動作し始めたばかりで、エラー処理とかコンフィグ設定とかまったく
+していませんので、ご留意願います。
+
+とりあえず px68k のソフトウェア FM音源側も音が出ます。
+
+また、px68k 自体が遅いですがラズパイ上だとさらに遅いです。
+フレームスキップ 1/60 にしても遅いです。
+
+
+1. RFMDRV の仕組み
+
+                                                               px68k
+                                                         +----------------+
+                                                         |  +----------+  |
+        物理FM音源ボード          Raspberry Pi           |  |X68000 S/W|  |
+        +--------------+        +-------------+          |  +----------+  |
+音が出る|+----------+  |        |  +-------+  |    socket|       |        |
+<-------||物理YM2151|<-+<-------+<-|rfmdrvd|<-+<---------+<------|レジスタ|
+        |+----------+  |    GPIO|  +-------+  |          |       V書き込み|
+        +--------------+        +-------------+          |  +----------+  |
+                                                         |  |S/W YM2151|  |
+                                                         |  +----------+  |
+                                                         +----------------+
+
+(1) px68k がソフトウェア FM 音源 IC に書き込む箇所をフックし、書き込むデータを
+    そのままネットワーク経由で Raspberry Pi 上の rfmdrvd に送信します。
+
+(2) Raspberry Pi 上の rfmdrvd は px68k から受信したデータをそのまま GPIO を
+    経由して 物理 FM音源 IC に書き込みます。
+
+(3) 物理 FM 音源 IC は書き込まれたデータに従い音を出します。
+
+上記のような動作を行い、px68k 上で動作する X68000 ソフトウェアが
+物理 FM 音源 IC を 操作することとなり、物理 FM 音源 ICから音が出ます。
+
+px68k は 物理 FM 音源 IC を接続した Raspberry Pi 上で動作させることも、
+別のマシンで動作させることもできます。
+(とりあえず Raspberry Pi と Mac で確認済み)
+
+
+2. ハードウェアの準備
+
+  2.1 GPIO と YM2151 の接続
+
+    FM 音源 IC YM2151 と Raspberry Pi の GPIO を以下の様に接続します。
+
+    RasPi   YM2151
+    -------+--------
+    GPIO_2  D0
+    GPIO_3  D1
+    GPIO_4  D2
+    GPIO_7  D3
+    GPIO_8  D4
+    GPIO_9  D5
+    GPIO_10 D6
+    GPIO_11 D7
+    GPIO_14 未接続
+    GPIO_15 IC (YM3012 の IC にも接続します)
+    GPIO_17 A0
+    GPIO_18 WR
+    GPIO_22 RD
+    GPIO_23 CS
+   
+    ※ Raspberry Pi (GPIO 3.3V) から YM2151 (5V)  への書き込みのみを
+       行っているので、電圧レベル変換は行わなくてもよいです。
+       YM2151 からの読み込みは行わないでください。5V の電圧が
+       GPIO にかかってしまいます。
+
+  2.2 クリスタルオシレータ
+
+    4MHz のオシレータを使ってください (X68000実機に合わせます)
+
+  2.3 YM2151(OPM) と YM3012(DAC) の接続
+
+    以下の回路図(pdf です)を参考にしました
+    http://www.ooishoo.org/download/YM2151Shield/YM2151ShieldKitManual-0.1.pdf
+
+  2.4 アナログ回路
+
+    以下の回路図(png です)を参考にしました
+    http://sue.niko.to/ps98/ym2151_sch.png
+
+    私が配線などを間違えていなければ、上記回路はとても大きな音になるので、
+    ボリュームを付けた方がよいかもしれません。
+ 
+
+3. ソフトウェアの準備
+
+  3.1 rfmdrvd の作成
+
+   ・px68k の rfmdrv ディレクトリに移動し、rfmdrvd をビルドする
+
+     $ cd rfmdrv
+     $ gcc -o rfmdrvd rfmdrvd.c
+
+  3.2 px68k の rfmdrv 対応化
+
+     ・Makefile の #CDEBUGFLAGS+= -DRFMDRV の # を削除する
+
+     ・px68k を rfmdrvd を動かす Raspberry Pi とは別のマシンで動作させる
+       場合は、x11/winx68k.cpp の以下の行、 127.0.0.1 の箇所を
+       rfmdrvd を動かす Raspberry Pi の IP アドレスに変更する。
+
+       dest.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+     ・px68k をビルドし直す
+
+     $ make clean
+     $ make
+
+
+4. ソフトウェアの実行
+
+  4.1 rfmdrvd の実行
+
+    ・GPIO を操作するのに root 権限が必要です。またバックグランドで
+      動作させる場合は & を付けてください。
+
+     $ cd rfmdrv
+     $ sudo ./rfmdrvd &  
+
+     ※ rfmdrvd を停止する場合は、以下を実行してください
+        $ sudo killall rfmdrvd
+
+  4.2 px68k の実行
+
+     px68k バイナリのあるディレクトリで、
+     $ ./px68k
+
+5. その他
+
+  ・rfmdrvd の GPIO 操作プログラムは以下のサイトのものを
+    使用させていただきました。
+
+    http://www.myu.ac.jp/~xkozima/lab/raspTutorial3.html
+
+6. 免責
+
+  本ソフトウェア/ハードウェアを使用したことによる、いかなる損害も
+  作者は責任を負いません。
+  あくまでも自己責任での使用をお願い致します。
+
+
+ひっそりぃ(@hissorii_com)
+http://hissorii.blog45.fc2.com (ひっそりぃドットコム)
+GitHub: https://github.com/hissorii/px68k

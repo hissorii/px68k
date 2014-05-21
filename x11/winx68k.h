@@ -3,6 +3,14 @@
 
 #include "common.h"
 
+#ifdef RFMDRV
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+extern int rfd_sock;
+#endif
+
 #define vline HOGEvline // workaround for redefinition of 'vline'
 
 #define		SCREEN_WIDTH		768

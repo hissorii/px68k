@@ -50,6 +50,10 @@ extern "C" {
 #include "dswin.h"
 #include "fmg_wrap.h"
 
+#ifdef RFMDRV
+int rfd_sock;
+#endif
+
   //#define WIN68DEBUG
 
 #ifdef WIN68DEBUG
@@ -590,6 +594,18 @@ int main(int argc, char *argv[])
 #endif
 
 	p6logd("20131205 %d %s\n", 123, "hoge");
+
+#ifdef RFMDRV
+	struct sockaddr_in dest;
+
+	memset(&dest, 0, sizeof(dest));
+	dest.sin_port = htons(2151);
+	dest.sin_family = AF_INET;
+	dest.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+	rfd_sock = socket(AF_INET, SOCK_STREAM, 0);
+	connect (rfd_sock, (struct sockaddr *)&dest, sizeof(dest));
+#endif
 
 	if (set_modulepath(winx68k_dir, sizeof(winx68k_dir)))
 		return 1;
