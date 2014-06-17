@@ -28,6 +28,7 @@
  * -------------------------------------------------------------------------- */
 
 #include <sys/stat.h>
+#include <SDL.h>
 
 #include "common.h"
 #include "winx68k.h"
@@ -136,10 +137,53 @@ set_modulepath(char *path, size_t len)
 	struct stat sb;
 	char *homepath;
 
-#ifdef ANDROID // xxx ちゃんと作ろう
-        sprintf(path, "/sdcard/px68k");
-        sprintf(winx68k_ini, "/sdcard/px68k/config");
-        return 0;
+#ifdef ANDROID
+	const char *extpath;
+	char *p, ep_buf[MAX_PATH], p6dir_buf[MAX_PATH];
+	FILE *fp;
+
+	p6dir_buf[0] = '\0';
+	extpath = SDL_AndroidGetExternalStoragePath();
+	p6logd("extpath:%s", extpath);
+
+	// get the Android external path (.ex /storage/emulated/0)
+	strcpy(p6dir_buf, extpath);
+	p = strstr(p6dir_buf, "/Android/data/com.fc2.blog45.hissorii/files");
+	if (p != NULL) {
+		*p = '\0';
+		p6logd("extpath2:%s", p6dir_buf);
+
+		strcat(p6dir_buf, "/px68k");
+		p6logd("p6dir_buf:%s", p6dir_buf);
+		// if there is the px68k directory ...
+		if (stat(p6dir_buf, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+			goto set_dir;
+		}
+	}
+
+	if (extpath != NULL) {
+		// read Android/data/com.fc2.blog45.hissorii/files/dir.txt
+		sprintf(ep_buf, "%s/dir.txt", extpath);
+		if ((fp = fopen(ep_buf, "r")) != NULL) {
+			fgets(p6dir_buf, MAX_PATH - 1, fp);
+			p6logd("p6dir:%s", p6dir_buf);
+			fclose(fp);
+		}
+	}
+
+	// if everything failed, try /sdcard/px68k directory
+	if (p6dir_buf[0] == '\0') {
+		strcpy(p6dir_buf, "/sdcard/px68k");
+	}
+
+set_dir:
+	strcpy(path, p6dir_buf);
+	p6logd("path:%s", path);
+
+	sprintf(winx68k_ini, "%s/config", p6dir_buf);
+	p6logd("config:%s", winx68k_ini);
+
+	return 0;
 #endif
 #if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR == 0
         puts("Iphone...");
