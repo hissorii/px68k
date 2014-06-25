@@ -1887,8 +1887,8 @@ void WinDraw_DrawMenu(int menu_state, int mkey_pos, int mkey_y, int *mval_y)
 				draw_str(" -- no disk --");
 			} else {
 				// 先頭のカレントディレクトリ名を表示しない
-				if (!strncmp(CUR_DIR_STR, p, CUR_DIR_SLEN)) {
-					draw_str(p + CUR_DIR_SLEN);
+				if (!strncmp(cur_dir_str, p, cur_dir_slen)) {
+					draw_str(p + cur_dir_slen);
 				} else {
 					draw_str(p);
 				}

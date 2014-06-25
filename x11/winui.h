@@ -6,14 +6,8 @@
 extern	BYTE	Debug_Text, Debug_Grp, Debug_Sp;
 extern	DWORD	LastClock[4];
 
-#if defined(ANDROID)
-#define CUR_DIR_STR "/sdcard/px68k/"
-#elif TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR == 0
-#define CUR_DIR_STR "/var/mobile/px68k/"
-#else
-#define CUR_DIR_STR "./"
-#endif
-#define CUR_DIR_SLEN strlen(CUR_DIR_STR)
+extern char cur_dir_str[];
+extern int cur_dir_slen;
 
 void WinUI_Init(void);
 int WinUI_Menu(int first);

@@ -93,6 +93,9 @@ extern  int		dmatrace;
 
 	DWORD		LastClock[4] = {0, 0, 0, 0};
 
+char cur_dir_str[MAX_PATH];
+int cur_dir_slen;
+
 struct menu_flist mfl;
 
 /***** menu items *****/
@@ -212,8 +215,23 @@ WinUI_Init(void)
 	mval_y[M_NW] = Config.NoWaitMode;
 	mval_y[M_JK] = Config.JoyKey;
 
+#if defined(ANDROID)
+#define CUR_DIR_STR winx68k_dir
+#elif TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR == 0
+#define CUR_DIR_STR "/var/mobile/px68k/"
+#else
+#define CUR_DIR_STR "./"
+#endif
+
+	strcpy(cur_dir_str, CUR_DIR_STR);
+#ifdef ANDROID
+	strcat(cur_dir_str, "/");
+#endif
+	cur_dir_slen = strlen(cur_dir_str);
+	p6logd("cur_dir_str %s %d\n", cur_dir_str, cur_dir_slen);
+
 	for (i = 0; i < 3; i++) {
-		strcpy(mfl.dir[i], CUR_DIR_STR);
+		strcpy(mfl.dir[i], cur_dir_str);
 	}
 }
 
@@ -327,7 +345,7 @@ static void menu_create_flist(int v)
 	char support[] = "D8888DHDMDUP2HDDIMXDFIMG";
 
 	drv = WinUI_get_drv_num(mkey_y);
-	printf("***** drv:%d *****\n", drv);
+	p6logd("***** drv:%d ***** %s \n", drv, mfl.dir[drv]);
 	if (drv < 0) {
 		return;
 	}
@@ -340,7 +358,7 @@ static void menu_create_flist(int v)
 		} else {
 			Config.HDImage[0][0] = '\0';
 		}
-		strcpy(mfl.dir[drv], CUR_DIR_STR);
+		strcpy(mfl.dir[drv], cur_dir_str);
 		return;
 	}
 
@@ -357,6 +375,8 @@ static void menu_create_flist(int v)
 	char ent_name[MAX_PATH];
 
 	dp = opendir(mfl.dir[drv]);
+
+	// xxx check if dp is null...
 
 	// xxx You can get only MFL_MAX files.
 	for (i = 0 ; i < MFL_MAX; i++) {
@@ -388,9 +408,10 @@ static void menu_create_flist(int v)
 				i--;
 				continue;
 			}
+
 			// You can't go up over current directory.
 			if (!strcmp(n, "..") &&
-			    !strcmp(mfl.dir[drv], CUR_DIR_STR)) {
+			    !strcmp(mfl.dir[drv], cur_dir_str)) {
 				i--;
 				continue;
 			}
