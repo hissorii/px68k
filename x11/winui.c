@@ -681,7 +681,7 @@ int WinUI_Menu(int first)
 				break; 
 			}
 			y = mfl.ptr + mfl.y;
-			printf("file slect %s\n", mfl.name[y]);
+			p6logd("file slect %s\n", mfl.name[y]);
 			if (mfl.type[y]) {
 				// directory operation
 				if (!strcmp(mfl.name[y], "..")) {
@@ -694,14 +694,16 @@ int WinUI_Menu(int first)
 				mfile_redraw = 1;
 			} else {
 				// file operation
-				char tmpstr[MAX_PATH];
-				strcpy(tmpstr, mfl.dir[drv]);
-				strcat(tmpstr, mfl.name[y]);
-				if (drv < 2) {
-					FDD_SetFD(drv, tmpstr, 0);
-					strcpy(Config.FDDImage[drv], tmpstr);
-				} else {
-					strcpy(Config.HDImage[0], tmpstr);
+				if (strlen(mfl.name[y]) != 0) {
+					char tmpstr[MAX_PATH];
+					strcpy(tmpstr, mfl.dir[drv]);
+					strcat(tmpstr, mfl.name[y]);
+					if (drv < 2) {
+						FDD_SetFD(drv, tmpstr, 0);
+						strcpy(Config.FDDImage[drv], tmpstr);
+					} else {
+						strcpy(Config.HDImage[0], tmpstr);
+					}
 				}
 				menu_state = ms_key;
 				menu_redraw = 1;
