@@ -215,8 +215,9 @@
 #define CFLAG_16(A)				((A) >> 8)
 
 #define CFLAG_ADD_32(S, D, R)	(((S & D & 1) + (S >> 1) + (D >> 1)) >> 23)
-#define CFLAG_ADDX_32(S, D, R)	(((((S & 1) + (D & 1) + (R & 1)) >> 1) + (S >> 1) + (D >> 1)) >> 23)
+#define CFLAG_ADDX_32(S, D, F)	(((((S & 1) + (D & 1) + (F & 1)) >> 1) + (S >> 1) + (D >> 1)) >> 23)
 #define CFLAG_SUB_32(S, D, R)	(((S & R & 1) + (S >> 1) + (R >> 1)) >> 23)
+#define CFLAG_SUBX_32(S, R, F)	(((((S & 1) + (R & 1) + (F & 1)) >> 1) + (S >> 1) + (R >> 1)) >> 23)
 
 #define VFLAG_ADD_8(S, D, R)	((S ^ R) & (D ^ R))
 #define VFLAG_ADD_16(S, D, R)	(((S ^ R) & (D ^ R)) >> 8)
@@ -516,7 +517,7 @@
 
 #define FLAGS_SUBX_32()														\
 	FLAG_Z |= ZFLAG_32(res);												\
-	FLAG_X = FLAG_C = CFLAG_SUB_32(src, dst, res);							\
+	FLAG_X = FLAG_C = CFLAG_SUBX_32(src, res, XFLAG_AS_1());	\
 	FLAG_V = VFLAG_SUB_32(src, dst, res);									\
 	FLAG_N = NFLAG_32(res);
 
