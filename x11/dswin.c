@@ -31,20 +31,22 @@
 #include	"mercury.h"
 #include	"fmg_wrap.h"
 
-#define PCMBUF_SIZE 2*2*48000*2
+short	playing = FALSE;
 
-	short	playing = FALSE;
-	BYTE	pcmbuffer[PCMBUF_SIZE];
-	long	DSound_PreCounter = 0;
+#define PCMBUF_SIZE 2*2*48000
+BYTE pcmbuffer[PCMBUF_SIZE];
+BYTE *pcmbufp = pcmbuffer;
+BYTE *pbsp = pcmbuffer;
+BYTE *pbrp = pcmbuffer, *pbwp = pcmbuffer;
+BYTE *pbep = &pcmbuffer[PCMBUF_SIZE];
+DWORD ratebase = 22050;
+long DSound_PreCounter = 0;
+BYTE sdlsndbuf[PCMBUF_SIZE];
 
-	int	audio_fd = -1;
+int audio_fd = -1;
 
-// ????????????
 static void sdlaudio_callback(void *userdata, unsigned char *stream, int len);
 
-// ---------------------------------------------------------------------------
-//  ??????
-// ---------------------------------------------------------------------------
 #ifndef NOSOUND
 #include	"SDL.h"
 #include	"SDL_audio.h"
@@ -55,27 +57,24 @@ DSound_Init(unsigned long rate, unsigned long buflen)
 	SDL_AudioSpec fmt;
 	DWORD samples;
 
-	// ??????????????
 	if (playing) {
 		return FALSE;
 	}
 
-	// ????????????
 	if (rate == 0) {
 		audio_fd = -1;
 		return TRUE;
 	}
 
-	//printf("pbsp 0x%x, pbep 0x%x\n", pbsp, pbep);
+	ratebase = rate;
 
-	// Linux¤Ï2ÇÜ(SDL1.2)¡¢Android(SDL2.0)¤Ï4ÇÜ¤Îlen¤Çcallback¤µ¤ì¤¿¡£
-	// ¤³¤ÎÃÍ¤ò¾®¤µ¤¯¤·¤¿Êý¤¬²»¤ÎÃÙ±ä¤Ï¾¯¤Ê¤¯¤Ê¤ë¤¬Éé²Ù¤¬¤¢¤¬¤ë
-	samples = 1024;
+	// Linuxã¯2å€(SDL1.2)ã€Android(SDL2.0)ã¯4å€ã®lenã§callbackã•ã‚ŒãŸã€‚
+	// ã“ã®å€¤ã‚’å°ã•ãã—ãŸæ–¹ãŒéŸ³ã®é…å»¶ã¯å°‘ãªããªã‚‹ãŒè² è·ãŒã‚ãŒã‚‹
+	samples = 2048;
 
-	// ??????????????????????????????
-	bzero(&fmt, sizeof(fmt));
+	memset(&fmt, 0, sizeof(fmt));
 #ifdef PSP
-	// PSP¤Ï¾ï¤Ë44k¤òÍ×µá¤¹¤ë¤Î¤Ç¡¢rate¤¬22K¤Î¾ì¹ç¤Ï¥Ç¡¼¥¿¤ò2ÇÜ¤Ë¤¹¤ë
+	// PSPã¯å¸¸ã«44kã‚’è¦æ±‚ã™ã‚‹ã®ã§ã€rateãŒ22Kã®å ´åˆã¯ãƒ‡ãƒ¼ã‚¿ã‚’2å€ã«ã™ã‚‹
 	// r0, l0, r1, l1, ... -> r0, l0, r0, l0, r1, l1, r1, l1, ...
 	fmt.freq = 44100;
 #else
@@ -88,7 +87,7 @@ DSound_Init(unsigned long rate, unsigned long buflen)
 #ifdef PSP
 	fmt.userdata = rate;
 #else
-	fmt.userdata = 0;
+	fmt.userdata = NULL;
 #endif
 	audio_fd = SDL_OpenAudio(&fmt, NULL);
 	if (audio_fd < 0) {
@@ -103,7 +102,6 @@ DSound_Init(unsigned long rate, unsigned long buflen)
 void
 DSound_Play(void)
 {
-
 	if (audio_fd >= 0)
 		SDL_PauseAudio(0);
 }
@@ -111,20 +109,13 @@ DSound_Play(void)
 void
 DSound_Stop(void)
 {
-
 	if (audio_fd >= 0)
 		SDL_PauseAudio(1);
 }
 
-
-// ---------------------------------------------------------------------------
-//  ????????
-// ---------------------------------------------------------------------------
-
 int
 DSound_Cleanup(void)
 {
-
 	playing = FALSE;
 	if (audio_fd >= 0) {
 		SDL_CloseAudio();
@@ -134,51 +125,139 @@ DSound_Cleanup(void)
 	return TRUE;
 }
 
-
-// ---------------------------------------------------------------------------
-//  ??????????????
-// ---------------------------------------------------------------------------
-
-static void FASTCALL
-DSound_Send(long length, int rate)
+static void sound_send(int length)
 {
-	if (audio_fd >= 0) {
-		ADPCM_Update((short *)pcmbuffer, length, rate);
-		OPM_Update((short *)pcmbuffer, length, rate);
-#ifndef	NO_MERCURY
-		//Mcry_Update((short *)pcmbufp, length);
+	int rate;
+
+#ifdef PSP
+	rate = Config.SampleRate;
+#else
+	rate = 0;
 #endif
+	SDL_LockAudio();
+	ADPCM_Update((short *)pbwp, length, rate, pbsp, pbep);
+	OPM_Update((short *)pbwp, length, rate, pbsp, pbep);
+#ifndef	NO_MERCURY
+	//Mcry_Update((short *)pcmbufp, length);
+#endif
+	pbwp += length * sizeof(WORD) * 2;
+	if (pbwp >= pbep) {
+		pbwp = pbsp + (pbwp - pbep);
 	}
+	SDL_UnlockAudio();
+}
+
+void FASTCALL DSound_Send0(long clock)
+{
+	int length = 0;
+	int rate;
+
+	if (audio_fd < 0) {
+		return;
+	}
+
+	DSound_PreCounter += (ratebase * clock);
+	while (DSound_PreCounter >= 10000000L) {
+		length++;
+		DSound_PreCounter -= 10000000L;
+	}
+	if (length == 0) {
+		return;
+	}
+	sound_send(length);
+}
+
+static void FASTCALL DSound_Send(int length)
+{
+	int rate;
+
+	if (audio_fd < 0) {
+		return;
+	}
+	sound_send(length);
 }
 
 static void
 sdlaudio_callback(void *userdata, unsigned char *stream, int len)
 {
+	int lena, lenb, datalen;
+	BYTE *buf;
 	static DWORD bef;
 	DWORD now;
-	int rate;
 
 	now = timeGetTime();
+	
+	//p6logd("tdiff %4d : len %d ", now - bef, len);
 
-	//PSP°Ê³°¤Ïrate¤Ï0
-	rate = (int)userdata;
-#ifdef PSP
-	DSound_Send(len / (44100 / rate) / 4, rate);
-#else
-	DSound_Send(len / 4, rate);
+cb_start:
+	if (pbrp <= pbwp) {
+		// pcmbuffer
+		// +---------+-------------+----------+
+		// |         |/////////////|          |
+		// +---------+-------------+----------+
+		// A         A<--datalen-->A          A
+		// |         |             |          |
+		// pbsp     pbrp          pbwp       pbep
+
+		datalen = pbwp - pbrp;
+		if (datalen < len) {
+			// needs more data
+			DSound_Send((len - datalen) / 4);
+		}
+#if 0
+		datalen = pbwp - pbrp;
+		if (datalen < len) {
+			printf("xxxxx not enough sound data xxxxx\n");
+		}
 #endif
-	//p6logd("tdiff %4d : pbrp = 0x%x, pbwp = 0x%x : len %d", now - bef, pbrp, pbwp, len);
+		if (pbrp > pbwp) {
+			// chage to TYPEC or TYPED
+			goto cb_start;
+		}
+
+		buf = pbrp;
+		pbrp += len;
+		//printf("TYPEA: ");
+
+	} else {
+		// pcmbuffer
+		// +---------+-------------+----------+
+		// |/////////|             |//////////|
+		// +------+--+-------------+----------+
+		// <-lenb->  A             <---lena--->
+		// A         |             A          A
+		// |         |             |          |
+		// pbsp     pbwp          pbrp       pbep
+
+		lena = pbep - pbrp;
+		if (lena >= len) {
+			buf = pbrp;
+			pbrp += len;
+			//printf("TYPEC: ");
+		} else {
+			lenb = len - lena;
+			if (pbwp - pbsp < lenb) {
+				DSound_Send((lenb - (pbwp - pbsp)) / 4);
+			}
+#if 0
+			if (pbwp - pbsp < lenb) {
+				printf("xxxxx not enough sound data xxxxx\n");
+			}
+#endif
+			memcpy(sdlsndbuf, pbrp, lena);
+			memcpy(&sdlsndbuf[lena], pbsp, lenb);
+			buf = sdlsndbuf;
+			pbrp = pbsp + lenb;
+			//printf("TYPED: ");
+		}
+	}
+
 #if SDL_VERSION_ATLEAST(2, 0, 0)	
-	// SDL2.0¤Ç¤Ïstream buffer¤Î¥¯¥ê¥¢¤¬É¬Í×
+	// SDL2.0ã§ã¯stream bufferã®ã‚¯ãƒªã‚¢ãŒå¿…è¦
 	memset(stream, 0, len);
 #endif
-	SDL_MixAudio(stream, pcmbuffer, len, SDL_MIX_MAXVOLUME);
-#if 0
-	// ADPCM¤¬¥Ð¥Ã¥Õ¥¡½ñ¤­¹þ¤ß -> OPM¤¬¥Ð¥Ã¥Õ¥¡¤Ë¥Ç¡¼¥¿¤òMix ¤Ê¤Î¤Ç
-	// ADPCM¤òÌµ¸ú¤Ë¤¹¤ë¾ì¹ç¤Ï¥ê¥ó¥°¥Ð¥Ã¥Õ¥¡¤Î¥¯¥ê¥¢¤¬É¬Í×¤Ê¤Î¤Ç
-	// ¤³¤Î#if 0¤òÍ­¸ú¤Ë¤¹¤ë
-	memset(pcmbuffer, 0, len);
-#endif
+	SDL_MixAudio(stream, buf, len, SDL_MIX_MAXVOLUME);
+
 	bef = now;
 }
 
@@ -202,8 +281,11 @@ DSound_Stop(void)
 int
 DSound_Cleanup(void)
 {
-
 	return TRUE;
 }
 
+void FASTCALL
+DSound_Send0(long clock)
+{
+}
 #endif	/* !NOSOUND */

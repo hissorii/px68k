@@ -479,6 +479,7 @@ void WinX68k_Exec(void)
 				MouseIntCnt = 0;
 				SCC_IntCheck();
 			}
+			DSound_Send0(clk_line);
 
 			vline++;
 			clk_next  = (clk_total*(vline+1))/VLINE_TOTAL;

@@ -167,10 +167,10 @@ void FASTCALL OPM_Write(DWORD adr, BYTE data)
 }
 
 
-void OPM_Update(short *buffer, int length, int rate)
+void OPM_Update(short *buffer, int length, int rate, BYTE *pbsp, BYTE *pbep)
 {
 	if ( (!juliet_YM2151IsEnable())||(!Config.SoundROMEO) )
-	  if ( opm ) opm->Mix((FM::Sample*)buffer, length, rate);
+		if ( opm ) opm->Mix((FM::Sample*)buffer, length, rate, pbsp, pbep);
 }
 
 
