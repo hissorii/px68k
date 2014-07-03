@@ -1880,7 +1880,7 @@ void WinDraw_DrawMenu(int menu_state, int mkey_pos, int mkey_y, int *mval_y)
 			if (drv < 2) {
 				p = Config.FDDImage[drv];
 			} else {
-				p = Config.HDImage[0];
+				p = Config.HDImage[drv - 2];
 			}
 
 			if (p[0] == '\0') {

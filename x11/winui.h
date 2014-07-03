@@ -24,7 +24,7 @@ enum MenuState {ms_key, ms_value, ms_file, ms_hwjoy_set};
 struct menu_flist {
 	char name[MFL_MAX][MAX_PATH];
 	char type[MFL_MAX];
-	char dir[3][MAX_PATH];
+	char dir[4][MAX_PATH];
 	int ptr;
 	int num;
 	int y;

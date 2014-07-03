@@ -103,18 +103,19 @@ struct menu_flist mfl;
 #define MENU_NUM 11
 #define MENU_WINDOW 7
 
-int mval_y[] = {0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 1};
+int mval_y[] = {0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 1};
 
-enum menu_id {M_SYS, M_JOM, M_FD1, M_FD2, M_HD1, M_FS, M_VKS, M_VBS, M_HJS, M_NW, M_JK};
+enum menu_id {M_SYS, M_JOM, M_FD0, M_FD1, M_HD0, M_HD1, M_FS, M_VKS, M_VBS, M_HJS, M_NW, M_JK};
 
 // Max # of characters is 15.
-char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD0", "FDD1", "HDD0", "Frame Skip", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "JoyKey", "uhyo", ""};
+char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD0", "FDD1", "HDD0", "HDD1", "Frame Skip", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "JoyKey", "uhyo", ""};
 
 // Max # of characters is 30.
 // Max # of items including terminater `""' in each line is 15.
 char menu_items[][15][30] = {
 	{"RESET", "NMI RESET", "QUIT", ""},
 	{"Joystick", "Mouse", ""},
+	{"dummy", "EJECT", ""},
 	{"dummy", "EJECT", ""},
 	{"dummy", "EJECT", ""},
 	{"dummy", "EJECT", ""},
@@ -147,6 +148,7 @@ struct _menu_func menu_func[] = {
 	{menu_create_flist, 0},
 	{menu_create_flist, 0},
 	{menu_create_flist, 0},
+	{menu_create_flist, 0},
 	{menu_frame_skip, 1},
 	{menu_vkey_size, 1},
 	{menu_vbtn_swap, 1},
@@ -163,7 +165,8 @@ int WinUI_get_drv_num(int key)
 		return strcmp("FDD0", s)?
 			(strcmp("FDD1", s)? -1 : 1) : 0;
 	} else {
-		return strcmp("HDD0", s)? -1 : 2;
+		return strcmp("HDD0", s)?
+			(strcmp("HDD1", s)? -1: 3) : 2;
 	}
 }
 
@@ -230,7 +233,7 @@ WinUI_Init(void)
 	cur_dir_slen = strlen(cur_dir_str);
 	p6logd("cur_dir_str %s %d\n", cur_dir_str, cur_dir_slen);
 
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < 4; i++) {
 		strcpy(mfl.dir[i], cur_dir_str);
 	}
 }
@@ -345,7 +348,7 @@ static void menu_create_flist(int v)
 	char support[] = "D8888DHDMDUP2HDDIMXDFIMG";
 
 	drv = WinUI_get_drv_num(mkey_y);
-	p6logd("***** drv:%d ***** %s \n", drv, mfl.dir[drv]);
+	p6logd("*** drv:%d ***** %s \n", drv, mfl.dir[drv]);
 	if (drv < 0) {
 		return;
 	}
@@ -356,7 +359,7 @@ static void menu_create_flist(int v)
 			FDD_EjectFD(drv);
 			Config.FDDImage[drv][0] = '\0';
 		} else {
-			Config.HDImage[0][0] = '\0';
+			Config.HDImage[drv - 2][0] = '\0';
 		}
 		strcpy(mfl.dir[drv], cur_dir_str);
 		return;
@@ -655,7 +658,7 @@ int WinUI_Menu(int first)
 			menu_redraw = 1;
 
 			drv = WinUI_get_drv_num(mkey_y);
-			printf("***** drv:%d *****\n", drv);
+			printf("**** drv:%d *****\n", drv);
 			if (drv >= 0) {
 				if (mval_y[mkey_y] == 0) {
 					// go file_mode
@@ -702,7 +705,7 @@ int WinUI_Menu(int first)
 						FDD_SetFD(drv, tmpstr, 0);
 						strcpy(Config.FDDImage[drv], tmpstr);
 					} else {
-						strcpy(Config.HDImage[0], tmpstr);
+						strcpy(Config.HDImage[drv - 2], tmpstr);
 					}
 				}
 				menu_state = ms_key;
