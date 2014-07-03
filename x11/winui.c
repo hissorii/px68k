@@ -108,7 +108,7 @@ int mval_y[] = {0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 1};
 enum menu_id {M_SYS, M_JOM, M_FD1, M_FD2, M_HD1, M_FS, M_VKS, M_VBS, M_HJS, M_NW, M_JK};
 
 // Max # of characters is 15.
-char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD1", "FDD2", "HDD1", "Frame Skip", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "JoyKey", "uhyo", ""};
+char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD0", "FDD1", "HDD0", "Frame Skip", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "JoyKey", "uhyo", ""};
 
 // Max # of characters is 30.
 // Max # of items including terminater `""' in each line is 15.
@@ -160,10 +160,10 @@ int WinUI_get_drv_num(int key)
 	char *s = menu_item_key[key];
 
 	if (!strncmp("FDD", s, 3)) {
-		return strcmp("FDD1", s)?
-			(strcmp("FDD2", s)? -1 : 1) : 0;
+		return strcmp("FDD0", s)?
+			(strcmp("FDD1", s)? -1 : 1) : 0;
 	} else {
-		return strcmp("HDD1", s)? -1 : 2;
+		return strcmp("HDD0", s)? -1 : 2;
 	}
 }
 
