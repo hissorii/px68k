@@ -19,7 +19,7 @@ char swaku_str[]  = "„¬„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„
 char swaku2_str[] = "„«                                                        „«";
 char swaku3_str[] = "„¯„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„®";
 
-char item_cap[][60] = {"ƒVƒXƒeƒ€‚ð[ƒŠƒZƒbƒg/NMIƒŠƒZƒbƒg/I—¹]‚µ‚Ü‚·", "[‰¼‘zƒpƒbƒh/‰¼‘zƒ}ƒEƒX]‚ð‘I‘ð‚µ‚Ü‚·", "ƒtƒƒbƒs[‚P‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒtƒƒbƒs[‚Q‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒn[ƒhƒfƒBƒXƒN‚P‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒtƒŒ[ƒ€ƒXƒLƒbƒv‚ðÝ’è‚µ‚Ü‚·", "‰¼‘zƒpƒbƒhA‰¼‘zƒ{ƒ^ƒ“‚Ì‘å‚«‚³‚ð’²®‚µ‚Ü‚·", "‰¼‘zƒ{ƒ^ƒ“‚ÌˆÊ’u‚ðŒðŠ·‚µ‚Ü‚·", "•¨—Pad‚ÌÝ’è‚ð‚µ‚Ü‚·", "No Wait Mode‚ðÝ’è‚µ‚Ü‚·", "JoyKey‚ðÝ’è‚µ‚Ü‚·"};
+char item_cap[][60] = {"ƒVƒXƒeƒ€‚ð[ƒŠƒZƒbƒg/NMIƒŠƒZƒbƒg/I—¹]‚µ‚Ü‚·", "[‰¼‘zƒpƒbƒh/‰¼‘zƒ}ƒEƒX]‚ð‘I‘ð‚µ‚Ü‚·", "ƒtƒƒbƒs[‚O‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒtƒƒbƒs[‚P‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒn[ƒhƒfƒBƒXƒN‚O‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒn[ƒhƒfƒBƒXƒN‚P‚Ì[“ü‚ê‘Ö‚¦/ƒCƒWƒFƒNƒg]‚ð‚µ‚Ü‚·", "ƒtƒŒ[ƒ€ƒXƒLƒbƒv‚ðÝ’è‚µ‚Ü‚·", "ƒTƒEƒ“ƒh‚Ìo—ÍŽü”g”‚ðÝ’è‚µ‚Ü‚·(ŽŸ‰ñ‹N“®Žž‚É—LŒø)", "‰¼‘zƒpƒbƒhA‰¼‘zƒ{ƒ^ƒ“‚Ì‘å‚«‚³‚ð’²®‚µ‚Ü‚·", "‰¼‘zƒ{ƒ^ƒ“‚ÌˆÊ’u‚ðŒðŠ·‚µ‚Ü‚·", "•¨—Pad‚ÌÝ’è‚ð‚µ‚Ü‚·", "No Wait Mode‚ðÝ’è‚µ‚Ü‚·", "JoyKey‚ðÝ’è‚µ‚Ü‚·"};
 
 #if defined (PSP)
 #define CAP_BTN_STR "[›]ƒ{ƒ^ƒ“"
@@ -29,4 +29,4 @@ char item_cap[][60] = {"ƒVƒXƒeƒ€‚ð[ƒŠƒZƒbƒg/NMIƒŠƒZƒbƒg/I—¹]‚µ‚Ü‚·", "[‰¼‘zƒpƒb
 #define CAP_BTN_STR "[ƒŠƒ^[ƒ“]ƒL["
 #endif
 
-char item_cap2[][50] = {"ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ðŒãA•¨—ƒpƒbƒh‚ÌÝ’è‚ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢"};
+char item_cap2[][50] = {"ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µA"CAP_BTN_STR"‚ÅŽÀs‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢B", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ðŒãA•¨—ƒpƒbƒh‚ÌÝ’è‚ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢", "ª«‚Å‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢"};

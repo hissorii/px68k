@@ -100,15 +100,15 @@ struct menu_flist mfl;
 
 /***** menu items *****/
 
-#define MENU_NUM 11
+#define MENU_NUM 13
 #define MENU_WINDOW 7
 
-int mval_y[] = {0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 1};
+int mval_y[] = {0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 1};
 
-enum menu_id {M_SYS, M_JOM, M_FD0, M_FD1, M_HD0, M_HD1, M_FS, M_VKS, M_VBS, M_HJS, M_NW, M_JK};
+enum menu_id {M_SYS, M_JOM, M_FD0, M_FD1, M_HD0, M_HD1, M_FS, M_SR, M_VKS, M_VBS, M_HJS, M_NW, M_JK};
 
 // Max # of characters is 15.
-char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD0", "FDD1", "HDD0", "HDD1", "Frame Skip", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "JoyKey", "uhyo", ""};
+char menu_item_key[][15] = {"SYSTEM", "Joy/Mouse", "FDD0", "FDD1", "HDD0", "HDD1", "Frame Skip", "Sound Rate", "VKey Size", "VBtn Swap", "HwJoy Setting", "No Wait Mode", "JoyKey", "uhyo", ""};
 
 // Max # of characters is 30.
 // Max # of items including terminater `""' in each line is 15.
@@ -120,6 +120,7 @@ char menu_items[][15][30] = {
 	{"dummy", "EJECT", ""},
 	{"dummy", "EJECT", ""},
 	{"Auto Frame Skip", "Full Frame", "1/2 Frame", "1/3 Frame", "1/4 Frame", "1/5 Frame", "1/6 Frame", "1/8 Frame", "1/16 Frame", "1/32 Frame", "1/60 Frame", ""},
+	{"No Sound", "11025Hz", "22050Hz", "44100Hz", "48000Hz", ""},
 	{"Ultra Huge", "Super Huge", "Huge", "Large", "Medium", "Small", ""},
 	{"TRIG1 TRIG2", "TRIG2 TRIG1", ""},
 	{"Axis0: xx", "Axis1: xx", "Hat: xx", "Button0: xx", "Button1: xx",  ""},
@@ -131,6 +132,7 @@ static void menu_system(int v);
 static void menu_joy_or_mouse(int v);
 static void menu_create_flist(int v);
 static void menu_frame_skip(int v);
+static void menu_sound_rate(int v);
 static void menu_vkey_size(int v);
 static void menu_vbtn_swap(int v);
 static void menu_hwjoy_setting(int v);
@@ -150,6 +152,7 @@ struct _menu_func menu_func[] = {
 	{menu_create_flist, 0},
 	{menu_create_flist, 0},
 	{menu_frame_skip, 1},
+	{menu_sound_rate, 1},
 	{menu_vkey_size, 1},
 	{menu_vbtn_swap, 1},
 	{menu_hwjoy_setting, 0},
@@ -208,6 +211,21 @@ WinUI_Init(void)
 	} else {
 		mval_y[M_FS] = Config.FrameRate;
 	}
+
+	if (Config.SampleRate == 0) {
+		mval_y[M_SR] = 0;
+	} else if (Config.SampleRate == 11025) {
+		mval_y[M_SR] = 1;
+	} else if (Config.SampleRate == 22050) {
+		mval_y[M_SR] = 2;
+	} else if (Config.SampleRate == 44100) {
+		mval_y[M_SR] = 3;
+	} else if (Config.SampleRate == 48000) {
+		mval_y[M_SR] = 4;
+	} else {
+		mval_y[M_SR] = 1;
+	}
+
 	mval_y[M_VKS] = Config.VkeyScale;
 	mval_y[M_VBS] = Config.VbtnSwap;
 
@@ -447,6 +465,21 @@ static void menu_frame_skip(int v)
 		Config.FrameRate = 60;
 	} else {
 		Config.FrameRate = v;
+	}
+}
+
+static void menu_sound_rate(int v)
+{
+	if (v == 0) {
+		Config.SampleRate = 0;
+	} else if (v == 1) {
+		Config.SampleRate = 11025;
+	} else if (v == 2) {
+		Config.SampleRate = 22050;
+	} else if (v == 3) {
+		Config.SampleRate = 44100;
+	} else if (v == 4) {
+		Config.SampleRate = 48000;
 	}
 }
 

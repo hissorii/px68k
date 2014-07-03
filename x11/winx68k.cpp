@@ -617,12 +617,6 @@ int main(int argc, char *argv[])
 
 	LoadConfig();
 
-#ifndef PSP
-	Config.SampleRate = 22050;
-#else
-	Config.SampleRate = 11025;
-#endif
-
 #ifndef NOSOUND
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 		p6logd("SDL_Init error\n");		
