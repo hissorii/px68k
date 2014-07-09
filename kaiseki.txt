@@ -509,3 +509,26 @@ Software Keyboard は PSP または OpenGL ES 1.1 専用
   Page0の(0, 0)を下位4ビットに, Page1の(0, 0)を上位4ビットに,
   Page0の(1, 0)を下位4ビットに, Page1の(1, 0)を上位4ビットに,
 
+** 2014/07/04
+
+* 一度解析したはずだが、すっかり忘れているのでもう一度
+
+#define C68K_FETCH_BITS 8		// [4-12]   default = 8
+#define C68K_ADR_BITS	24
+#define C68K_FETCH_SFT	(C68K_ADR_BITS - C68K_FETCH_BITS) -> 16
+#define C68K_FETCH_BANK	(1 << C68K_FETCH_BITS) -> 256
+#define C68K_FETCH_MASK	(C68K_FETCH_BANK - 1)  -> 255 = 0xff
+
+CPU->Fetch[256]
+
+C68k_Set_Fetch(&C68K, 0xc00000, 0xc7ffff, (UINT32)GVRAM);
+
+i = 0xc0, j = 0xc7
+fetch_adr = fetch_adr - (0xc0 << 16) = 0x12345678 - 0xc00000
+CPU->Fetch[0xc0] = fetch_adr
+CPU->Fetch[0xc1] = fetch_adr
+     :                 :
+CPU->Ftech[0xc7] = fetch_adr
+
+仮想MPUが0xc12345にアクセスする場合は、
+CPU->Fetch[0xc1] + 0xc12345 がホストCPUのアドレスになる

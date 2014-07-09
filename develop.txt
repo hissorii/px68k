@@ -2,7 +2,7 @@
 PX68K ( Portable (x)keropi PRO-68K )
 
 ソースを自分でコンパイルする際に役に立つかもしれないドキュメント
-                                                          2014/04/01 ひっそりぃ
+                                                          2014/07/04 ひっそりぃ
 
 ■開発環境について
 
@@ -28,9 +28,9 @@ PX68K ( Portable (x)keropi PRO-68K )
 
 ・Mac OS X
 
-  Mac OS X 10.9.2
-  SDL2-2.0.1
-  SDL2_gfx-1.0.0
+  Mac OS X 10.9.3
+  SDL2-2.0.3
+  SDL2_gfx-1.0.1
   Xcode 5.0.2 (GUIは使わずMakefileを用いてコマンドからmake)
 
 

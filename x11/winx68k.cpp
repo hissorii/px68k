@@ -594,7 +594,7 @@ int main(int argc, char *argv[])
 	sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
 #endif
 
-	p6logd("20131205 %d %s\n", 123, "hoge");
+	p6logd("PX68K Ver.%s\n", PX68KVERSTR);
 
 #ifdef RFMDRV
 	struct sockaddr_in dest;

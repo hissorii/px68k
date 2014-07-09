@@ -1788,6 +1788,7 @@ static void ogles11_draw_menu(void)
 void WinDraw_DrawMenu(int menu_state, int mkey_pos, int mkey_y, int *mval_y)
 {
 	int i, drv;
+	char tmp[256];
 
 // ソフトウェアキーボード描画時にset_sbp(kbd_buffer)されているので戻す
 #if defined(PSP) || defined(USE_OGLES11)
@@ -1810,11 +1811,13 @@ void WinDraw_DrawMenu(int menu_state, int mkey_pos, int mkey_y, int *mval_y)
 
 		set_mcolor(0xffff);
 		set_mlocateC(1, 1);
-		draw_str(title_str);
+		sprintf(tmp, "%s%s", title_str, PX68KVERSTR);
+		draw_str(tmp);
 	} else {
 		set_mcolor(0xffff);
 		set_mlocateC(0, 0);
-		draw_str(pc98_title1_str);
+		sprintf(tmp, "%s%s", pc98_title1_str, PX68KVERSTR);
+		draw_str(tmp);
 		set_mlocateC(0, 2);
 		draw_str(pc98_title3_str);
 		set_mcolor(0x07ff);

@@ -34,6 +34,8 @@ cd px68k-ios
 
 mkdir DEBIAN
 
+VER=`cat ~/src/px68k/version.txt | sed '/PX68K_VERSION=//'`
+
 # make DEBIAN/control file
 cat <<EOF > DEBIAN/control
 Name: px68k
@@ -41,7 +43,7 @@ Package: com.fc2.blog45.hissorii.px68k
 Author: hissorii
 Maintainer: hissorii <hissory@gmail.com>
 Section: Games
-Version: 0.05
+Version: ${VER}
 Architecture: iphoneos-arm
 Description: Portable X68000 Emulator
 Depiction: http://hissorii.blog45.fc2.com

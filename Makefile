@@ -1,3 +1,5 @@
+include version.txt
+
 CC	 = gcc
 CXX	 = c++
 CXXLINK	 = $(CXX)
@@ -50,6 +52,8 @@ CDEBUGFLAGS+= -DNO_MERCURY
 # CDEBUGFLAGS+= -Werror
 # CDEBUGFLAGS+= -DINLINE=
 # CDEBUGFLAGS+= -DUSE_GAS
+
+CDEBUGFLAGS+=-DPX68K_VERSION=$(PX68K_VERSION)
 
 ifdef SDL2
 # SDL 2.0

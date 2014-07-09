@@ -21,6 +21,10 @@ extern int rfd_sock;
 #define		FULLSCREEN_POSX		((FULLSCREEN_WIDTH - SCREEN_WIDTH) / 2)
 #define		FULLSCREEN_POSY		((FULLSCREEN_HEIGHT - SCREEN_HEIGHT) / 2)
 
+#define TOSTR(s) #s
+#define _TOSTR(s) TOSTR(s)
+#define PX68KVERSTR _TOSTR(PX68K_VERSION)
+
 extern	BYTE*	FONT;
 
 extern	WORD	VLINE_TOTAL;

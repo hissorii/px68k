@@ -784,7 +784,10 @@
 				INFOPLIST_FILE = "px68k-ios/px68k-ios-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
 				LIBRARY_SEARCH_PATHS = libsdl/debug;
-				OTHER_CFLAGS = "-DUSE_OGLES11";
+				OTHER_CFLAGS = (
+					"-DUSE_OGLES11",
+					"-DPX68K_VERSION=0.15",
+				);
 				OTHER_LDFLAGS = "-lSDL2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
@@ -808,7 +811,10 @@
 				INFOPLIST_FILE = "px68k-ios/px68k-ios-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
 				LIBRARY_SEARCH_PATHS = libsdl/release;
-				OTHER_CFLAGS = "-DUSE_OGLES11";
+				OTHER_CFLAGS = (
+					"-DUSE_OGLES11",
+					"-DPX68K_VERSION=0.15",
+				);
 				OTHER_LDFLAGS = "-lSDL2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;

@@ -2,9 +2,9 @@ char twaku_str[]  = "„¬„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„­";
 char twaku2_str[] = "„«                                                  „«";
 char twaku3_str[] = "„¯„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„®";
 
-char title_str[] = "‚r‚v‚h‚s‚b‚g ‚†‚‚’ ‚o‚w‚U‚W‚j Version 0.03";
+char title_str[] = "‚r‚v‚h‚s‚b‚g ‚†‚‚’ ‚o‚w‚U‚W‚j Version ";
 
-char pc98_title1_str[] = "‚r‚v‚h‚s‚b‚gƒRƒ}ƒ“ƒh    Ver. 0.03";
+char pc98_title1_str[] = "‚r‚v‚h‚s‚b‚gƒRƒ}ƒ“ƒh    Ver. ";
 char pc98_title2_str[] = "„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ Copyright (C) hissorii 2013";
 char pc98_title3_str[] = "                        (Œ»İ‚Ìİ’è’l)";
 

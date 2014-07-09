@@ -1,5 +1,6 @@
 LOCAL_PATH := $(call my-dir)
 
+include ../../../version.txt
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := main
@@ -80,7 +81,7 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c $(PX68KSRCS)
 
 LOCAL_SHARED_LIBRARIES := SDL2
 
-LOCAL_CFLAGS += -DUSE_OGLES11
+LOCAL_CFLAGS += -DUSE_OGLES11 -DPX68K_VERSION=$(PX68K_VERSION)
 
 LOCAL_LDLIBS := -lGLESv1_CM -llog
 
