@@ -140,10 +140,17 @@ static void sound_send(int length)
 #ifndef	NO_MERCURY
 	//Mcry_Update((short *)pcmbufp, length);
 #endif
+#ifdef PSP
+	pbwp += length * sizeof(WORD) * 2 * (44100 / rate);
+	if (pbwp >= pbep) {
+		pbwp = pbsp + (pbwp - pbep);
+	}
+#else
 	pbwp += length * sizeof(WORD) * 2;
 	if (pbwp >= pbep) {
 		pbwp = pbsp + (pbwp - pbep);
 	}
+#endif
 	SDL_UnlockAudio();
 }
 
@@ -180,14 +187,18 @@ static void FASTCALL DSound_Send(int length)
 static void
 sdlaudio_callback(void *userdata, unsigned char *stream, int len)
 {
-	int lena, lenb, datalen;
+	int lena, lenb, datalen, rate;
 	BYTE *buf;
 	static DWORD bef;
 	DWORD now;
 
 	now = timeGetTime();
-	
+
 	//p6logd("tdiff %4d : len %d ", now - bef, len);
+
+#ifdef PSP
+	rate = (int)userdata;
+#endif
 
 cb_start:
 	if (pbrp <= pbwp) {
@@ -202,7 +213,11 @@ cb_start:
 		datalen = pbwp - pbrp;
 		if (datalen < len) {
 			// needs more data
+#ifdef PSP
+			DSound_Send((len - datalen) / 4 / (44100 / rate));
+#else
 			DSound_Send((len - datalen) / 4);
+#endif
 		}
 #if 0
 		datalen = pbwp - pbrp;
@@ -237,7 +252,11 @@ cb_start:
 		} else {
 			lenb = len - lena;
 			if (pbwp - pbsp < lenb) {
+#ifdef PSP
+				DSound_Send((lenb - (pbwp - pbsp)) / 4 / (44100 / rate));
+#else
 				DSound_Send((lenb - (pbwp - pbsp)) / 4);
+#endif
 			}
 #if 0
 			if (pbwp - pbsp < lenb) {
