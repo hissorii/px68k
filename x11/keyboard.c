@@ -29,6 +29,7 @@
 #include "prop.h"
 #include "keyboard.h"
 #include "mfp.h"
+#include "windraw.h"
 
 BYTE	KeyBufWP;
 BYTE	KeyBufRP;

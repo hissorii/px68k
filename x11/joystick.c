@@ -4,9 +4,9 @@
 #include "prop.h"
 #include "joystick.h"
 #include "winui.h"
+#include "keyboard.h"
 #ifdef PSP
 #include <pspctrl.h>
-#include <keyboard.h>
 #else
 #include <SDL.h>
 #endif
