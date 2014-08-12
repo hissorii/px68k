@@ -34,7 +34,7 @@ cd px68k-ios
 
 mkdir DEBIAN
 
-VER=`cat ~/src/px68k/version.txt | sed '/PX68K_VERSION=//'`
+VER=`cat ~/src/px68k/version.txt | sed 's/PX68K_VERSION=//'`
 
 # make DEBIAN/control file
 cat <<EOF > DEBIAN/control
