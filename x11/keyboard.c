@@ -651,7 +651,7 @@ Keyboard_Int(void)
 
 /********** ソフトウェアキーボード **********/
 
-#if defined(PSP) || defined(USE_OGLES11)
+#if defined(PSP) || defined(USE_OGLES20)
 
 // 選択しているキーの座標 (初期値'Q')
 int  kbd_kx = 1, kbd_ky = 2;
@@ -877,13 +877,13 @@ void Keyboard_ToggleSkbd(void)
 	skbd_mode = (skbd_mode == TRUE)? FALSE : TRUE;
 }
 
-#endif //defined(PSP) || defined(USE_OGLES11)
+#endif //defined(PSP) || defined(USE_OGLES20)
 
 int Keyboard_IsSwKeyboard(void)
 {
 #if defined(PSP)
 	return skbd_mode;
-#elif defined(USE_OGLES11)
+#elif defined(USE_OGLES20)
 	if (kbd_x < 700) {
 		return TRUE;
 	} else {

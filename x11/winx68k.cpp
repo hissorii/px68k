@@ -3,9 +3,6 @@ extern "C" {
 #endif 
 
 #include <SDL.h>
-#ifdef USE_OGLES11
-#include <SDL_opengles.h>
-#endif
 #include "common.h"
 #include "fileio.h"
 #include "timer.h"
@@ -49,6 +46,10 @@ extern "C" {
 
 #include "dswin.h"
 #include "fmg_wrap.h"
+
+#ifdef USE_OGLES20
+SDL_DisplayMode sdl_dispmode;
+#endif
 
 #ifdef RFMDRV
 int rfd_sock;
@@ -641,15 +642,14 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 #else
-#ifdef USE_OGLES11
-	SDL_DisplayMode sdl_dispmode;
+#ifdef USE_OGLES20
 	SDL_GetCurrentDisplayMode(0, &sdl_dispmode);
 	p6logd("width: %d height: %d", sdl_dispmode.w, sdl_dispmode.h);
 	// ナビゲーションバーを除くアプリが触れる画面
 	realdisp_w = sdl_dispmode.w, realdisp_h = sdl_dispmode.h;
 
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 1 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
 
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ); 
 
@@ -666,24 +666,6 @@ int main(int argc, char *argv[])
 		p6logd("sdl_window: %ld", sdl_window);
 	}
 
-#ifdef USE_OGLES11
-	SDL_GLContext glcontext = SDL_GL_CreateContext(sdl_window);
-
-        glClearColor( 0, 0, 0, 0 );
-
-	glEnable(GL_TEXTURE_2D);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_BLEND);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	//glViewport(0, 0, 800, 600); //ここを増やさないとOpenGLの画面はせまい
-	glViewport(0, 0, sdl_dispmode.w, sdl_dispmode.h);
-	// スマホやタブの実画面に関係なくOpenGLの描画領域を800x600とする。
-	// 800x600にした意味は特にない。
-	glOrthof(0, 800, 600, 0, -1, 1);
-	//  glOrthof(0, 1024, 0, 1024, -1, 1);
-	glMatrixMode(GL_MODELVIEW);
-#endif
 #endif // !SDL_VERSION_ATLEAST(2, 0, 0)
 
 	if (!WinDraw_MenuInit()) {
@@ -993,7 +975,7 @@ int main(int argc, char *argv[])
 				p6logd("do_kbd");
 			}
 			if (kbd_x < 700) {
-#ifdef USE_OGLES11
+#ifdef USE_OGLES20
 				Keyboard_skbd();
 #endif
 			}

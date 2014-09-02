@@ -516,7 +516,7 @@ skip_vpad:
 		JoyState1[num] = ret1;
 	}
 
-#if defined(USE_OGLES11) || defined(PSP)
+#if defined(USE_OGLES20) || defined(PSP)
 	// update the states of the mouse buttons
 	if (!(MouseDownState0 & JOY_TRG1) | (MouseUpState0 & JOY_TRG1)) {
 		printf("mouse btn1 event\n");

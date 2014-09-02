@@ -785,7 +785,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
 				LIBRARY_SEARCH_PATHS = libsdl/debug;
 				OTHER_CFLAGS = (
-					"-DUSE_OGLES11",
+					"-DUSE_OGLES20",
 					"-DPX68K_VERSION=0.15",
 				);
 				OTHER_LDFLAGS = "-lSDL2";
@@ -812,7 +812,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 6.1;
 				LIBRARY_SEARCH_PATHS = libsdl/release;
 				OTHER_CFLAGS = (
-					"-DUSE_OGLES11",
+					"-DUSE_OGLES20",
 					"-DPX68K_VERSION=0.15",
 				);
 				OTHER_LDFLAGS = "-lSDL2";
