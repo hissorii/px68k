@@ -57,8 +57,8 @@ PSPDEV = $(shell psp-config -d)
 PSPBIN = $(PSPDEV)/psp/bin
 SDL_CONFIG = $(PSPBIN)/sdl-config
 
-SDL_INCLUDE=	`$(SDL_CONFIG) --cflags`
-SDL_LIB=	`$(SDL_CONFIG) --libs`
+SDL_INCLUDE=	$(shell $(SDL_CONFIG) --cflags)
+SDL_LIB=	$(shell $(SDL_CONFIG) --libs)
 
 INCDIR = ./x11 ./x68k ./fmgen ./win32api
 CFLAGS = -G0 -O2 -Wall $(SDL_INCLUDE) -DPX68K_VERSION=$(PX68K_VERSION)
@@ -68,7 +68,7 @@ CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 
 LIBDIR =
 LDFLAGS =
-LIBS= -lpspgum -lpspgu -lm -lstdc++ $(SDL_LIB)
+LIBS= -lpsppower -lpspgum -lpspgu -lm -lstdc++ $(SDL_LIB)
 
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = PX68K for PSP ver.$(PX68K_VERSION)
